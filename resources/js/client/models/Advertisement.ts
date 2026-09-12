@@ -1,0 +1,22 @@
+export type Advertisement = {
+    id: number;
+    firebase_id: string;
+    name: string;
+    country: string;
+    state: string;
+    city: string;
+    location: string;
+    email: string;
+    phone: string;
+    image: string;
+    video: string;
+    www: string;
+    cost: number;
+    paid: number;
+    is_paid: boolean | number;
+    status: number;
+    start_date: string;
+    end_date: string;
+    created_at?: Date;
+    updated_at?: Date;
+};

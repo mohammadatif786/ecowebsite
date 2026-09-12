@@ -1,0 +1,1354 @@
+<template>
+  <AppLayout>
+    <div class="max-w-7xl mx-auto px-4 py-6">
+      <!-- Header -->
+      <div class="flex justify-between items-center mb-6">
+        <div class="flex items-center gap-3">
+          <Icon name="bar-chart" class="w-6 h-6 text-blue-600" />
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900">Event Statistics & Reports</h1>
+            <p class="text-sm text-gray-500">Comprehensive analytics for all events</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <button @click="exportReport" 
+                  class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+            Export Report
+          </button>
+        </div>
+      </div>
+
+      <!-- Filters Section -->
+      <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-medium text-gray-900">Filters</h3>
+          <button @click="resetFilters" 
+                  class="text-sm text-gray-600 hover:text-gray-900 px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-50">
+            Reset Filters
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <!-- Event Filter -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Event</label>
+            <select v-model="filters.event_id" 
+                    @change="applyFilters"
+                    class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              <option value="">All Events</option>
+              <option v-for="event in events" :key="event.id" :value="event.id">
+                {{ event.title }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Date Range From -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">From Date</label>
+            <input v-model="filters.from_date" 
+                   @change="applyFilters"
+                   type="date" 
+                   class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          </div>
+
+          <!-- Date Range To -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">To Date</label>
+            <input v-model="filters.to_date" 
+                   @change="applyFilters"
+                   type="date" 
+                   class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          </div>
+
+          <!-- Status Filter -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Event Status</label>
+            <select v-model="filters.status" 
+                    @change="applyFilters"
+                    class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              <option value="">All Statuses</option>
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Payment Method Filter -->
+        <div class="mt-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Payment Methods</label>
+          <div class="flex flex-wrap gap-3">
+            <label v-for="method in paymentMethods" :key="method" class="flex items-center">
+              <input type="checkbox" 
+                     v-model="filters.payment_methods" 
+                     :value="method"
+                     @change="applyFilters"
+                     class="mr-2 h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
+              <span class="text-sm capitalize">{{ method }}</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Sort Options -->
+        <div class="mt-4 flex items-center gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
+            <select v-model="filters.sort_by" 
+                    @change="applyFilters"
+                    class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              <option value="event_date_desc">Event Date (Latest)</option>
+              <option value="event_date_asc">Event Date (Oldest)</option>
+              <option value="revenue_desc">Revenue (Highest)</option>
+              <option value="revenue_asc">Revenue (Lowest)</option>
+              <option value="tickets_desc">Tickets Sold (Most)</option>
+              <option value="tickets_asc">Tickets Sold (Least)</option>
+            </select>
+          </div>
+          <div class="mt-6">
+            <button @click="applyFilters" 
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+              Apply Filters
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div v-if="loading" class="text-center py-12">
+        <Icon name="loader" class="w-8 h-8 text-blue-600 animate-spin mx-auto" />
+        <p class="mt-2 text-gray-600">Loading statistics...</p>
+      </div>
+
+      <!-- Statistics Content -->
+      <div v-else>
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div class="bg-white border border-gray-200 rounded-lg p-6">
+            <div class="flex items-center">
+              <div class="flex-shrink-0">
+                <Icon name="calendar" class="h-8 w-8 text-blue-600" />
+              </div>
+              <div class="ml-4">
+                <p class="text-sm font-medium text-gray-500">Total Events</p>
+                <p class="text-2xl font-bold text-gray-900">{{ statistics.summary.total_events || 0 }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white border border-gray-200 rounded-lg p-6">
+            <div class="flex items-center">
+              <div class="flex-shrink-0">
+                <Icon name="users" class="h-8 w-8 text-green-600" />
+              </div>
+              <div class="ml-4">
+                <p class="text-sm font-medium text-gray-500">Total Tickets Sold</p>
+                <p class="text-2xl font-bold text-gray-900">{{ formatNumber(statistics.summary.total_tickets) }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white border border-gray-200 rounded-lg p-6">
+            <div class="flex items-center">
+              <div class="flex-shrink-0">
+                <Icon name="dollar-sign" class="h-8 w-8 text-purple-600" />
+              </div>
+              <div class="ml-4">
+                <p class="text-sm font-medium text-gray-500">Total Revenue</p>
+                <p class="text-2xl font-bold text-gray-900">${{ formatCurrency(statistics.summary.total_revenue) }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white border border-gray-200 rounded-lg p-6">
+            <div class="flex items-center">
+              <div class="flex-shrink-0">
+                <Icon name="trending-up" class="h-8 w-8 text-orange-600" />
+              </div>
+              <div class="ml-4">
+                <p class="text-sm font-medium text-gray-500">Avg. Revenue/Event</p>
+                <p class="text-2xl font-bold text-gray-900">${{ formatCurrency(statistics.summary.avg_revenue_per_event) }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <!-- Revenue Over Time Chart -->
+          <div class="bg-white border border-gray-200 rounded-lg p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Revenue Over Time</h3>
+            <div class="h-80">
+              <canvas ref="revenueChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Tickets Sold Chart -->
+          <div class="bg-white border border-gray-200 rounded-lg p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Tickets Sold by Status</h3>
+            <div class="h-80">
+              <canvas ref="statusChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Payment Methods Chart -->
+          <div class="bg-white border border-gray-200 rounded-lg p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Payment Methods Distribution</h3>
+            <div class="h-80">
+              <canvas ref="paymentChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Top Events Chart -->
+          <div class="bg-white border border-gray-200 rounded-lg p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Top 10 Events by Revenue</h3>
+            <div class="h-80">
+              <canvas ref="topEventsChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Events Table -->
+        <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-medium text-gray-900">Event Details</h3>
+            <p class="text-sm text-gray-500">{{ statistics.events.length }} event(s) found</p>
+          </div>
+          
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tickets Sold</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check-ins</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr v-for="event in statistics.events" :key="event.id" class="hover:bg-gray-50">
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div class="text-sm font-medium text-gray-900">{{ event.title }}</div>
+                      <div class="text-sm text-gray-500">{{ event.location || 'Online' }}</div>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {{ formatEventDate(event.event_date) }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span :class="getStatusClass(event.status)" 
+                          class="inline-flex px-2 py-1 text-xs font-medium rounded-full">
+                      {{ event.status }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {{ formatNumber(event.total_tickets_sold) }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    ${{ formatCurrency(event.total_revenue) }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {{ formatNumber(event.checked_in_count) }} / {{ formatNumber(event.total_tickets_sold) }}
+                    <div class="text-xs text-gray-500">
+                      {{ calculatePercentage(event.checked_in_count, event.total_tickets_sold) }}%
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                    <Link :href="route('organizer.event.report.statistics', event.id)" 
+                          class="text-blue-600 hover:text-blue-900">
+                      View Details
+                    </Link>
+                    <Link :href="route('organizer.event.report.attendees', event.id)" 
+                          class="text-green-600 hover:text-green-900">
+                      Attendees
+                    </Link>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- No Results -->
+          <div v-if="statistics.events.length === 0" class="text-center py-12">
+            <Icon name="inbox" class="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p class="text-gray-500">No events found matching your criteria.</p>
+            <button @click="resetFilters" 
+                    class="mt-2 text-blue-600 hover:text-blue-900 text-sm font-medium">
+              Clear filters to see all events
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </AppLayout>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted, nextTick } from 'vue';
+import { router, Link } from '@inertiajs/vue3';
+import { toast } from 'vue-sonner';
+import AppLayout from '@/layouts/AuthenticatedLayout.vue';
+import Icon from '@/components/ui/Icon.vue';
+import { Chart } from 'chart.js/auto';
+
+interface Event {
+  id: number;
+  title: string;
+  event_date: string;
+  location?: string;
+  status: string;
+  total_tickets_sold: number;
+  total_revenue: number;
+  checked_in_count: number;
+}
+
+interface Statistics {
+  summary: {
+    total_events: number;
+    total_tickets: number;
+    total_revenue: number;
+    avg_revenue_per_event: number;
+  };
+  events: Event[];
+  charts: {
+    revenue_over_time: any[];
+    status_breakdown: Record<string, number>;
+    payment_methods: Record<string, number>;
+    top_events: any[];
+  };
+}
+
+const props = defineProps<{
+  initialStatistics?: Statistics;
+  events?: Event[];
+}>();
+
+// State
+const loading = ref(false);
+const statistics = ref<Statistics>(props.initialStatistics || {
+  summary: { total_events: 0, total_tickets: 0, total_revenue: 0, avg_revenue_per_event: 0 },
+  events: [],
+  charts: { revenue_over_time: [], status_breakdown: {}, payment_methods: {}, top_events: [] }
+});
+
+const events = ref(props.events || []);
+
+const paymentMethods = ['stripe', 'paypal', 'bank', 'cash', 'flutterwave', 'mercado'];
+
+const filters = ref({
+  event_id: '',
+  from_date: '',
+  to_date: '',
+  status: '',
+  payment_methods: [...paymentMethods],
+  sort_by: 'event_date_desc'
+});
+
+// Chart references
+const revenueChart = ref<HTMLCanvasElement>();
+const statusChart = ref<HTMLCanvasElement>();
+const paymentChart = ref<HTMLCanvasElement>();
+const topEventsChart = ref<HTMLCanvasElement>();
+
+// Chart instances
+let revenueChartInstance: Chart | null = null;
+let statusChartInstance: Chart | null = null;
+let paymentChartInstance: Chart | null = null;
+let topEventsChartInstance: Chart | null = null;
+
+// Computed
+const filteredEvents = computed(() => {
+  return statistics.value.events || [];
+});
+
+// Methods
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('en-US', { 
+    minimumFractionDigits: 2, 
+    maximumFractionDigits: 2 
+  }).format(amount || 0);
+};
+
+const formatNumber = (num: number) => {
+  return new Intl.NumberFormat('en-US').format(num || 0);
+};
+
+const formatEventDate = (dateString: string) => {
+  if (!dateString) return 'TBD';
+  return new Date(dateString).toLocaleDateString([], {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+};
+
+const calculatePercentage = (part: number, total: number) => {
+  if (!total) return 0;
+  return Math.round((part / total) * 100);
+};
+
+const getStatusClass = (status: string) => {
+  const classes = {
+    published: 'bg-green-100 text-green-800',
+    draft: 'bg-yellow-100 text-yellow-800',
+    completed: 'bg-blue-100 text-blue-800',
+    cancelled: 'bg-red-100 text-red-800'
+  };
+  return classes[status as keyof typeof classes] || 'bg-gray-100 text-gray-800';
+};
+
+const applyFilters = async () => {
+  loading.value = true;
+  
+  try {
+    await router.get(route('organizer.report.statistics'), filters.value, {
+      preserveState: true,
+      preserveScroll: true,
+      onSuccess: (page) => {
+        statistics.value = page.props.statistics as Statistics;
+        nextTick(() => {
+          initializeCharts();
+        });
+      },
+      onError: () => {
+        toast.error('Failed to load statistics');
+      },
+      onFinish: () => {
+        loading.value = false;
+      }
+    });
+  } catch (error) {
+    console.error('Error applying filters:', error);
+    toast.error('Failed to apply filters');
+    loading.value = false;
+  }
+};
+
+const resetFilters = () => {
+  filters.value = {
+    event_id: '',
+    from_date: '',
+    to_date: '',
+    status: '',
+    payment_methods: [...paymentMethods],
+    sort_by: 'event_date_desc'
+  };
+  applyFilters();
+};
+
+const exportReport = () => {
+  const params = new URLSearchParams();
+  Object.entries(filters.value).forEach(([key, value]) => {
+    if (Array.isArray(value)) {
+      params.append(key, value.join(','));
+    } else if (value) {
+      params.append(key, value.toString());
+    }
+  });
+  
+  window.open(route('organizer.report.export') + '?' + params.toString());
+  toast.success('Report export started');
+};
+
+const destroyCharts = () => {
+  [revenueChartInstance, statusChartInstance, paymentChartInstance, topEventsChartInstance]
+    .forEach(chart => {
+      if (chart) {
+        chart.destroy();
+      }
+    });
+};
+
+const initializeCharts = () => {
+  destroyCharts();
+  
+  if (!statistics.value.charts) return;
+
+  // Revenue Over Time Chart
+  if (revenueChart.value) {
+    const ctx = revenueChart.value.getContext('2d');
+    if (ctx) {
+      revenueChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: statistics.value.charts.revenue_over_time.map((item: any) => item.date),
+          datasets: [{
+            label: 'Revenue ($)',
+            data: statistics.value.charts.revenue_over_time.map((item: any) => item.revenue),
+            borderColor: 'rgb(59, 130, 246)',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            tension: 0.1,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: function(value) {
+                  return '$' + formatNumber(value as number);
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+  }
+
+  // Status Breakdown Chart
+  if (statusChart.value) {
+    const ctx = statusChart.value.getContext('2d');
+    if (ctx) {
+      statusChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(statistics.value.charts.status_breakdown),
+          datasets: [{
+            data: Object.values(statistics.value.charts.status_breakdown),
+            backgroundColor: [
+              'rgb(34, 197, 94)',
+              'rgb(251, 191, 36)',
+              'rgb(239, 68, 68)',
+              'rgb(59, 130, 246)',
+              'rgb(168, 85, 247)'
+            ]
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false
+        }
+      });
+    }
+  }
+
+  // Payment Methods Chart
+  if (paymentChart.value) {
+    const ctx = paymentChart.value.getContext('2d');
+    if (ctx) {
+      paymentChartInstance = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: Object.keys(statistics.value.charts.payment_methods),
+          datasets: [{
+            data: Object.values(statistics.value.charts.payment_methods),
+            backgroundColor: [
+              'rgb(59, 130, 246)',
+              'rgb(34, 197, 94)',
+              'rgb(251, 191, 36)',
+              'rgb(239, 68, 68)',
+              'rgb(168, 85, 247)',
+              'rgb(20, 184, 166)'
+            ]
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false
+        }
+      });
+    }
+  }
+
+  // Top Events Chart
+  if (topEventsChart.value) {
+    const ctx = topEventsChart.value.getContext('2d');
+    if (ctx) {
+      topEventsChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: statistics.value.charts.top_events.map((item: any) => item.title),
+          datasets: [{
+            label: 'Revenue ($)',
+            data: statistics.value.charts.top_events.map((item: any) => item.revenue),
+            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+            borderColor: 'rgb(59, 130, 246)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: 'y',
+          scales: {
+            x: {
+              beginAtZero: true,
+              ticks: {
+                callback: function(value) {
+                  return '$' + formatNumber(value as number);
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+  }
+};
+
+// Lifecycle
+onMounted(() => {
+  nextTick(() => {
+    initializeCharts();
+  });
+});
+</script>
+
+<style scoped>
+/* Custom styles if needed */
+</style>
+
+
+    <!-- MAIN -->
+    <main style="display:flex;flex-direction:column;gap:18px">
+      <!-- REPORTS VIEW -->
+      <section id="view-reports">
+        <section class="panel">
+          <div class="panel-top">
+            <div class="muted"><span id="count">0</span> event date(s) found</div>
+            <div class="toolbar">
+              <button id="btnExport" class="btn btn-blue" title="Export CSV">Export CSV</button>
+              <div class="sort-wrap">
+                <span class="muted">Sort by</span>
+                <div class="select"><select id="sort">
+                  <option value="date-asc">Start date (asc)</option>
+                  <option value="date-desc">Start date (desc)</option>
+                  <option value="sold-desc">Tickets sold (desc)</option>
+                  <option value="net-desc">Net sales (desc)</option>
+                </select></div>
+                <button class="icon-btn" id="reset" title="Reset filters" aria-label="Reset filters">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4.93 4.93A10 10 0 1 1 3 12"/><path d="M1 4h6v6"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="filters">
+            <div class="field">
+              <label for="eventSelect">Event</label>
+              <div class="select"><select id="eventSelect"><option value="">All events</option></select></div>
+            </div>
+            <div class="field">
+              <label for="dateSelect">Event date <span class="help" title="Filter by a specific scheduled date">i</span></label>
+              <div class="select"><select id="dateSelect"><option value="">Any date</option></select></div>
+            </div>
+            <button class="icon-btn" id="apply" aria-label="Apply filters">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            </button>
+            <button class="icon-btn" id="quick" aria-label="Quick search">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2v20M2 10h20"/></svg>
+            </button>
+          </div>
+        </section>
+
+        <section class="table">
+          <div class="thead">
+            <div>Reference</div><div>Event date</div><div>Tickets sold</div><div>Net sales</div><div>Percentage cut</div><div style="text-align:right">Status</div>
+          </div>
+          <div id="rows"></div>
+          <div class="tfoot">
+            <div class="muted">Totals</div><div></div>
+            <div id="totSold" class="num">0</div>
+            <div id="totNet" class="num">$0</div>
+            <div id="totCut" class="num">$0</div>
+            <div></div>
+          </div>
+        </section>
+      </section>
+
+      <!-- STATISTICS VIEW -->
+      <section id="view-stats" class="hidden">
+        <div class="stats-hd card">
+          <div class="stats-top">
+            <a href="#" id="backToReports" class="backlink" style="display:inline-flex;align-items:center;gap:8px">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+              Back to reports
+            </a>
+            <h2 id="statTitle" style="margin:0 0 0 8px">Event</h2>
+            <span class="pill" id="statStatus">On sale</span>
+          </div>
+          <div style="margin-top:8px">
+            <small class="muted">When:</small> <span id="statWhen">—</span>
+            &nbsp; • &nbsp; <small class="muted">Where:</small> <span id="statWhere">—</span>
+          </div>
+        </div>
+
+        <!-- Core KPIs -->
+        <div class="kpis">
+          <div class="kpi card"><div class="big" id="kpiGross">$0</div><div>Total gross sales</div></div>
+          <div class="kpi card"><div class="big" id="kpiSold">0</div><div>Tickets sold</div></div>
+          <div class="kpi card"><div class="big" id="kpiViews">0</div><div>Event views</div></div>
+          <div class="kpi card"><div class="big" id="kpiReviews">0</div><div>Attendees reviews</div></div>
+        </div>
+
+        <!-- F&B KPIs (auto-hide without F&B data) -->
+        <div class="kpis" id="kpis-fnb" style="display:none">
+          <div class="kpi card" title="(Drink tickets + À la carte) − beverage COGS">
+            <div class="big" id="kpiFnbGrossMargin">$0</div>
+            <div>F&amp;B gross margin</div>
+          </div>
+          <div class="kpi card" title="(Issued − Redeemed) × face value">
+            <div class="big" id="kpiUnredeemedValue">$0</div>
+            <div>Unredeemed ticket value</div>
+          </div>
+        </div>
+
+        <!-- Progress + Sales trend -->
+        <div class="charts-2">
+          <div class="card chart-card">
+            <div class="chart-title">Tickets sold (progress)</div>
+            <canvas id="donutSold" height="200"></canvas>
+          </div>
+          <div class="card chart-card">
+            <div class="chart-title">Ticket sales (daily vs cumulative)</div>
+            <canvas id="lineSales" height="200"></canvas>
+          </div>
+        </div>
+
+        <!-- Channel & POS breakdowns -->
+        <div class="charts-4" style="margin-top:16px">
+          <div class="card chart-card"><div class="chart-title">Tickets by channel</div><canvas id="pieTicketsChannel" height="200"></canvas></div>
+          <div class="card chart-card"><div class="chart-title">Gross by channel (USD)</div><canvas id="pieGrossChannel" height="200"></canvas></div>
+          <div class="card chart-card"><div class="chart-title">Tickets per POS</div><canvas id="pieTicketsPOS" height="200"></canvas></div>
+          <div class="card chart-card"><div class="chart-title">Gross per POS (USD)</div><canvas id="pieGrossPOS" height="200"></canvas></div>
+        </div>
+
+        <!-- F&B + Tables Row 1 -->
+        <div class="charts-4" style="margin-top:16px">
+          <div class="card chart-card">
+            <div class="chart-title">Revenue split (Tickets vs F&amp;B vs Tables)</div>
+            <canvas id="pieRevenueSplit" height="200"></canvas>
+          </div>
+          <div class="card chart-card">
+            <div class="chart-title">Drink tickets — redemption</div>
+            <canvas id="donutDrinkRedeem" height="200"></canvas>
+            <div class="note" id="drinkRedeemNote"></div>
+          </div>
+          <div class="card chart-card">
+            <div class="chart-title">Drinks by type</div>
+            <canvas id="pieDrinksType" height="200"></canvas>
+          </div>
+          <div class="card chart-card">
+            <div class="chart-title">Section 4 — table occupancy</div>
+            <canvas id="donutSection4Occ" height="200"></canvas>
+            <div class="note" id="sec4OccNote"></div>
+          </div>
+        </div>
+
+        <!-- F&B + Tables Row 2 -->
+        <div class="charts-2" style="margin-top:16px">
+          <div class="card chart-card">
+            <div class="chart-title">Table packages — sales by section</div>
+            <canvas id="barTablesSection" height="220"></canvas>
+          </div>
+          <div class="card chart-card">
+            <div class="chart-title">Revenue over time by category</div>
+            <canvas id="stackedRevenue" height="220"></canvas>
+          </div>
+        </div>
+
+        <!-- Ticket types -->
+        <section class="types" id="typesContainer"></section>
+
+        <!-- Table packages details list -->
+        <section class="types" id="tablesList"></section>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal: Event Dates -->
+  <div class="modal-backdrop" id="modalDates" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-hd">
+        <div class="modal-title" id="modalTitle">Event: dates</div>
+        <button class="x" data-close aria-label="Close">×</button>
+      </div>
+      <div class="modal-bd" id="modalBody"></div>
+      <div class="modal-ft">
+        <button class="btn btn-ghost" data-close>Cancel</button>
+        <button class="btn" style="background:var(--lime);color:#0b2239" data-close>Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Confirm -->
+  <div class="modal-backdrop" id="modalConfirm" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" style="max-width:520px">
+      <div class="modal-hd">
+        <div class="modal-title" id="confirmTitle">Confirm action</div>
+        <button class="x" data-cancel aria-label="Close">×</button>
+      </div>
+      <div class="modal-bd" id="confirmBody"></div>
+      <div class="modal-ft">
+        <button class="btn btn-ghost" data-cancel>Cancel</button>
+        <button class="btn btn-blue" id="confirmYes">Yes, continue</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ====================== DATA (replace with API) ====================== */
+const DATA = [
+  { ref:"e1475faa45", event:"Adventure In The Jungle", start:"2025-12-16T17:00:00-05:00", tz:"EST", sold:1899, net:1937.5, cut:2152.5, status:"On sale",
+    dates:[ "Tue 16 Dec 2025, 5:00 PM EST" ],
+    stats:{
+      gross:19375, sold:1899, views:12632, reviews:3, capacity:5000,
+      channel:{ tickets:{Online:300, POS:1599}, gross:{Online:4000, POS:15375} },
+      pos:{ labels:["Box Office 1","Mobile POS"], tickets:[1100,799], gross:[11000,8375] },
+      daily:{ labels:["Nov 2025","Dec 2025","Jan 2026"], values:[10,40,90] },
+      types:[
+        { name:"Balcony", code:"balc1", status:"on_sale", price:15, gross:4500, in_cart:2, sold:300, capacity:320, checkin:220,
+          ticketsByChannel:{ Online:120, POS:180 }, grossByChannel:{ Online:1800, POS:2700 } }
+      ]
+    }
+  },
+  { ref:"03873fd743", event:"Adventure In The Jungle", start:"2025-12-17T13:00:00-05:00", tz:"EST", sold:243, net:722.2, cut:458.8, status:"On sale",
+    dates:[ "Wed 17 Dec 2025, 1:00 PM EST" ],
+    stats:{
+      gross:722, sold:243, views:263, reviews:0, capacity:1000,
+      channel:{ tickets:{Online:120, POS:123}, gross:{Online:480, POS:242} },
+      pos:{ labels:["Online"], tickets:[243], gross:[722] },
+      daily:{ labels:["Nov 2025","Dec 2025"], values:[12,8] }
+    }
+  },
+  { ref:"3c7170ef43", event:"Adventure In The Jungle", start:"2025-12-23T16:00:00-05:00", tz:"EST", sold:180, net:-4076, cut:7796, status:"On sale",
+    dates:[ "Tue 23 Dec 2025, 4:00 PM EST" ],
+    stats:{
+      gross:-4076, sold:180, views:600, reviews:1, capacity:1000,
+      channel:{ tickets:{Online:100, POS:80}, gross:{Online:200, POS:-4276} },
+      pos:{ labels:["Refunds"], tickets:[-20], gross:[-4276] },
+      daily:{ labels:["Dec 2025"], values:[-15] }
+    }
+  },
+  { ref:"6404713645", event:"SuperPower", start:"2025-12-28T21:00:00-05:00", tz:"EST", sold:2679, net:7901.5, cut:3528.5, status:"On sale",
+    dates:[ "Sun 28 Dec 2025, 9:00 PM EST" ],
+    stats:{
+      gross:7901, sold:2679, views:12000, reviews:18, capacity:4000,
+      channel:{ tickets:{Online:300, POS:2379}, gross:{Online:1400, POS:6501} },
+      pos:{ labels:["POS A","POS B"], tickets:[1400,979], gross:[3901,4000] },
+      daily:{ labels:["Nov 2025","Dec 2025"], values:[160,500] }
+    }
+  },
+  { ref:"f46836c54c", event:"Gun Man", start:"2026-01-28T21:00:00-05:00", tz:"EST", sold:4999, net:11125, cut:3150, status:"On sale",
+    dates:[ "Wed 28 Jan 2026, 9:00 PM EST" ],
+    stats:{
+      gross:124975, sold:4999, views:26362, reviews:1, capacity:5000,
+      channel:{ tickets:{Online:569, POS:4430}, gross:{Online:15000, POS:109975} },
+      pos:{ labels:["Movies Expert POS 1"], tickets:[4999], gross:[124975] },
+      daily:{ labels:["2021","2022","2023","Jun 2025","Sep 2025","Nov 2025"], values:[0,10,0,1400,-200,1600] },
+      types:[
+        { name:"Early bird", code:"721eb2d44a", status:"on_sale", price:20, gross:19980, in_cart:4, sold:999, capacity:1000, checkin:807,
+          ticketsByChannel:{ Online:110, POS:889 }, grossByChannel:{ Online:2200, POS:17780 },
+          gender:{ Female:0, Male:0 } },
+        { name:"General admission", code:"8756ee0d4f", status:"on_sale", price:25, gross:14825, in_cart:2, sold:593, capacity:1000, checkin:435,
+          ticketsByChannel:{ Online:42, POS:551 }, grossByChannel:{ Online:1050, POS:13775 } }
+      ],
+      /* === F&B and Tables extensions === */
+      fnb:{
+        revenue:{
+          drinkTicketsGross:5990,   // prepaid drink ticket sales
+          aLaCarteGross:3200,       // à la carte beverage sales
+          tablePackagesGross:5000,  // optional portion attributed to F&B
+          refunds:-200
+        },
+        drinkTickets:{ issued:1200, redeemed:980, unredeemed:220, faceValue:5 },
+        drinksByType:{ Beer:360, Wine:120, Spirits:540, Water:200, Mixers:160 },
+        redemptionByChannel:{ Online:300, POS:680 },
+        cogs:{ beverages:2100 }     // beverage cost of goods
+      },
+      tables:{
+        sections:[
+          { name:"Section 4", pricePerTable:250, capacityTables:20, soldTables:14,
+            peoplePerTable:4, included:{ bottlesWater:3, chasers:["Coke","Sprite","Tonic"], mixers:6 },
+            upgrades:{ extraBottles:5 }, checkinPeople:49 },
+          { name:"Section 3", pricePerTable:150, capacityTables:15, soldTables:9,
+            peoplePerTable:3, included:{ bottlesWater:2, mixers:3 }, checkinPeople:21 }
+        ]
+      },
+      revenuesDaily:{
+        labels:["2025-11-20","2025-11-27","2025-12-04","2025-12-11","2025-12-18","2026-01-08"],
+        tickets:[1200,1800,3000,4200,5200,6500],
+        fnb:[100,450,600,900,1200,1540],
+        tables:[0,0,250,750,1000,1500]
+      }
+    }
+  }
+];
+
+/* ====================== HELPERS ====================== */
+const fmtMoney = n => (n<0? "-$":"$")+Math.abs(n).toLocaleString(undefined,{maximumFractionDigits:0});
+const pct = (part,total) => total ? Math.round((part/total)*100) : 0;
+function sumValues(obj){ return Object.values(obj||{}).reduce((a,b)=>a+(+b||0),0); }
+
+const countEl = document.getElementById('count');
+const sortEl = document.getElementById('sort');
+const rowsEl = document.getElementById('rows');
+const eventSel = document.getElementById('eventSelect');
+const dateSel = document.getElementById('dateSelect');
+
+/* Populate filters */
+(function initFilters(){
+  const evs=[...new Set(DATA.map(x=>x.event))];
+  evs.forEach(e=>{const o=document.createElement('option');o.value=e;o.textContent=e;eventSel.appendChild(o);});
+  const dts=[...new Set(DATA.map(x=>x.start.slice(0,10)))].sort();
+  dts.forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent=new Date(d).toDateString();dateSel.appendChild(o);});
+})();
+
+function matchesFilters(x){ const ev=eventSel.value, dt=dateSel.value; if(ev && x.event!==ev) return false; if(dt && x.start.slice(0,10)!==dt) return false; return true; }
+function sortData(items){
+  const v=sortEl.value, c=items.slice();
+  if (v==="date-asc")  c.sort((a,b)=> new Date(a.start)-new Date(b.start));
+  if (v==="date-desc") c.sort((a,b)=> new Date(b.start)-new Date(a.start));
+  if (v==="sold-desc") c.sort((a,b)=> b.sold-a.sold);
+  if (v==="net-desc")  c.sort((a,b)=> b.net-a.net);
+  return c;
+}
+function closeMenus(){ document.querySelectorAll('.menu.open').forEach(m=>m.classList.remove('open')); }
+
+/* Totals */
+function renderTotals(list){
+  const totSold=list.reduce((s,x)=>s+x.sold,0);
+  const totNet=list.reduce((s,x)=>s+x.net,0);
+  const totCut=list.reduce((s,x)=>s+x.cut,0);
+  document.getElementById('totSold').textContent=totSold.toLocaleString();
+  document.getElementById('totNet').textContent=fmtMoney(totNet);
+  document.getElementById('totCut').textContent="$"+totCut.toLocaleString();
+}
+
+/* Row template */
+function rowTemplate(x){
+  const d=new Date(x.start);
+  const date=d.toLocaleDateString(undefined,{weekday:"short",day:"2-digit",month:"short",year:"numeric"});
+  const time=d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});
+  return `
+  <div class="row" data-ref="${x.ref}">
+    <div class="cell ref"><a href="#">${x.ref}</a></div>
+    <div class="cell"><div class="event-name">${x.event}</div><div class="event-sub">${date}, ${time} ${x.tz}</div></div>
+    <div class="cell num">${x.sold.toLocaleString()}</div>
+    <div class="cell num money">${fmtMoney(x.net)}</div>
+    <div class="cell num">$${x.cut.toLocaleString()}</div>
+    <div class="cell kebab">
+      <span class="status">${x.status}</span>
+      <button class="kebab-btn" aria-haspopup="menu" aria-expanded="false"><span class="dots"></span></button>
+      <nav class="menu" role="menu">
+        <a href="#" data-act="statistics">📈 Statistics</a>
+        <a href="#" data-act="payout">💵 Request payout</a>
+        <a href="#" data-act="details">📄 Details</a>
+        <a href="#" data-act="edit">✏️ Edit</a>
+        <a href="#" data-act="attendees">👥 Attendees</a>
+        <a href="#" data-act="reviews">⭐ Reviews</a>
+        <a href="#" data-act="draft">📝 Draft</a>
+        <hr/>
+        <a href="#" data-act="delete" class="danger">✖️ Delete</a>
+      </nav>
+    </div>
+  </div>`;
+}
+
+/* Render table */
+function render(){
+  closeMenus();
+  const filtered=DATA.filter(matchesFilters);
+  countEl.textContent=filtered.length;
+  const sorted=sortData(filtered);
+  rowsEl.innerHTML=sorted.map(rowTemplate).join("");
+  renderTotals(sorted);
+
+  rowsEl.querySelectorAll('.kebab-btn').forEach(btn=>{
+    btn.addEventListener('click',e=>{
+      e.stopPropagation();
+      const menu=btn.nextElementSibling;
+      const open=menu.classList.contains('open');
+      closeMenus(); menu.classList.toggle('open',!open);
+      btn.setAttribute('aria-expanded', String(!open));
+      if(!open) menu.querySelector('a').focus({preventScroll:true});
+    });
+  });
+  rowsEl.querySelectorAll('.menu a').forEach(a=>{
+    a.addEventListener('click',e=>{
+      e.preventDefault();
+      const row=a.closest('.row'); const item=DATA.find(x=>x.ref===row.dataset.ref); const act=a.dataset.act;
+      if(act==='statistics') openDatesModal(item);
+      else if(act==='draft') openConfirm(`Move “${item.event}” to Draft?`,"This will unpublish the event until you republish it.",()=>console.log("drafted",item.ref));
+      else if(act==='delete') openConfirm(`Delete “${item.event}”?`,"This action cannot be undone.",()=>console.log("deleted",item.ref));
+      else alert(`${act} • ${item.event}`);
+    });
+  });
+}
+render();
+
+/* Filter handlers & CSV */
+document.getElementById('apply').addEventListener('click',render);
+document.getElementById('quick').addEventListener('click',render);
+document.getElementById('reset').addEventListener('click',()=>{eventSel.value="";dateSel.value="";sortEl.value="date-asc";render();});
+sortEl.addEventListener('change',render);
+document.addEventListener('click',closeMenus);
+
+document.getElementById('btnExport').addEventListener('click',()=>{
+  const filtered=sortData(DATA.filter(matchesFilters));
+  const rows=[["Reference","Event","Start","Tickets sold","Net sales","Percentage cut","Status"]];
+  filtered.forEach(x=>rows.push([x.ref,x.event,new Date(x.start).toISOString(),x.sold,x.net,x.cut,x.status]));
+  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob=new Blob([csv],{type:"text/csv"}); const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='linkup-reports.csv'; a.click(); URL.revokeObjectURL(url);
+});
+
+/* -------- Event Dates modal -------- */
+const modalDates=document.getElementById('modalDates');
+const modalBody=document.getElementById('modalBody');
+function openDatesModal(item){
+  document.getElementById('modalTitle').textContent=`${item.event}: Event dates`;
+  modalBody.innerHTML=item.dates.map(d=>`<div class="date-row"><div style="font-weight:700">${d}</div><a href="#" class="link" data-view-stats="${item.ref}">View stats</a></div>`).join("");
+  modalDates.classList.add('show'); modalDates.setAttribute('aria-hidden','false');
+}
+function closeDatesModal(){ modalDates.classList.remove('show'); modalDates.setAttribute('aria-hidden','true'); }
+modalDates.addEventListener('click',e=>{ if(e.target===modalDates || e.target.hasAttribute('data-close')) closeDatesModal(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape' && modalDates.classList.contains('show')) closeDatesModal(); });
+modalBody.addEventListener('click',e=>{
+  const ref=e.target?.dataset?.viewStats; if(!ref) return;
+  e.preventDefault(); const item=DATA.find(x=>x.ref===ref); closeDatesModal(); goToStats(item);
+});
+
+/* -------- Confirm modal -------- */
+const modalConfirm=document.getElementById('modalConfirm'); const confirmBody=document.getElementById('confirmBody');
+let confirmCb=null;
+function openConfirm(title,body,onYes){
+  document.getElementById('confirmTitle').textContent=title;
+  confirmBody.innerHTML=`<p>${body}</p>`; confirmCb=onYes;
+  modalConfirm.classList.add('show'); modalConfirm.setAttribute('aria-hidden','false');
+}
+function closeConfirm(){ modalConfirm.classList.remove('show'); modalConfirm.setAttribute('aria-hidden','true'); confirmCb=null; }
+modalConfirm.addEventListener('click',e=>{ if(e.target===modalConfirm || e.target.hasAttribute('data-cancel')) closeConfirm(); });
+document.getElementById('confirmYes').addEventListener('click',()=>{ if(confirmCb) confirmCb(); closeConfirm(); });
+
+/* -------- SPA: Reports <-> Stats -------- */
+const viewReports=document.getElementById('view-reports');
+const viewStats=document.getElementById('view-stats');
+document.getElementById('backToReports').addEventListener('click',(e)=>{e.preventDefault(); showReports();});
+function showReports(){ viewStats.classList.add('hidden'); viewReports.classList.remove('hidden'); }
+function showStats(){ viewReports.classList.add('hidden'); viewStats.classList.remove('hidden'); }
+
+/* Charts registry */
+let CHARTS=[];
+function destroyCharts(){ CHARTS.forEach(c=>{try{c.destroy()}catch{}}); CHARTS=[]; }
+
+function goToStats(item){
+  // Header
+  document.getElementById('statTitle').textContent=item.event;
+  document.getElementById('statStatus').textContent=item.status;
+  const d=new Date(item.start);
+  document.getElementById('statWhen').textContent=
+    d.toLocaleDateString(undefined,{weekday:"short",day:"2-digit",month:"short",year:"numeric"})+", "+
+    d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"})+" "+item.tz;
+  document.getElementById('statWhere').textContent="Online";
+
+  // KPIs
+  const s=item.stats;
+  document.getElementById('kpiGross').textContent=fmtMoney(s.gross);
+  document.getElementById('kpiSold').textContent=s.sold.toLocaleString();
+  document.getElementById('kpiViews').textContent=s.views.toLocaleString();
+  document.getElementById('kpiReviews').textContent=s.reviews.toLocaleString();
+
+  // Reset any old charts
+  destroyCharts();
+  const blue=getComputedStyle(document.documentElement).getPropertyValue('--blue').trim() || '#12A8E8';
+  const lime=getComputedStyle(document.documentElement).getPropertyValue('--lime').trim() || '#C8D60A';
+  const gray='#e6eef6';
+
+  // Donut: Tickets progress
+  CHARTS.push(new Chart(document.getElementById('donutSold'),{
+    type:'doughnut',
+    data:{labels:["Sold","Remaining"],datasets:[{data:[s.sold,Math.max(0,(s.capacity||0)-s.sold)],backgroundColor:["#10b981","#e6eef6"],borderWidth:0}]},
+    options:{plugins:{legend:{display:false}},cutout:"70%"}
+  }));
+
+  // Line/Bar: Daily vs cumulative
+  const daily=s.daily||{labels:[],values:[]};
+  const cumulative=daily.values.reduce((a,v,i)=>{a.push((a[i-1]||0)+v);return a;},[]);
+  CHARTS.push(new Chart(document.getElementById('lineSales'),{
+    type:'line',
+    data:{labels:daily.labels,
+      datasets:[
+        {type:'bar', label:'Daily', data:daily.values, backgroundColor:'rgba(18,168,232,.18)', borderColor:blue, borderWidth:1},
+        {type:'line',label:'Cumulative',data:cumulative,borderColor:blue,tension:.25,fill:false,pointRadius:2}
+      ]},
+    options:{plugins:{legend:{position:'bottom'}}, scales:{y:{ticks:{callback:v=>v.toLocaleString()}}}}
+  }));
+
+  // Channel & POS pies
+  CHARTS.push(new Chart(document.getElementById('pieTicketsChannel'),{
+    type:'pie', data:{labels:Object.keys(s.channel.tickets), datasets:[{data:Object.values(s.channel.tickets), backgroundColor:[blue,lime]}]},
+    options:{plugins:{legend:{position:'bottom'}}}
+  }));
+  CHARTS.push(new Chart(document.getElementById('pieGrossChannel'),{
+    type:'pie', data:{labels:Object.keys(s.channel.gross), datasets:[{data:Object.values(s.channel.gross), backgroundColor:[blue,lime]}]},
+    options:{plugins:{legend:{position:'bottom'}}}
+  }));
+  CHARTS.push(new Chart(document.getElementById('pieTicketsPOS'),{
+    type:'pie', data:{labels:s.pos.labels, datasets:[{data:s.pos.tickets, backgroundColor:Array(s.pos.labels.length).fill(blue)}]},
+    options:{plugins:{legend:{position:'bottom'}}}
+  }));
+  CHARTS.push(new Chart(document.getElementById('pieGrossPOS'),{
+    type:'pie', data:{labels:s.pos.labels, datasets:[{data:s.pos.gross, backgroundColor:Array(s.pos.labels.length).fill(blue)}]},
+    options:{plugins:{legend:{position:'bottom'}}}
+  }));
+
+  /* ---------- F&B KPI cards ---------- */
+  const kpisFnbEl = document.getElementById('kpis-fnb');
+  const fnb = s.fnb || {};
+  const hasFnb = !!(fnb.revenue || fnb.drinkTickets);
+  if (hasFnb) {
+    kpisFnbEl.style.display = '';
+    const fnbSales = (fnb.revenue ? (Number(fnb.revenue.drinkTicketsGross||0) + Number(fnb.revenue.aLaCarteGross||0)) : 0);
+    const fnbCOGS  = fnb.cogs ? Number(fnb.cogs.beverages||0) : 0;
+    const fnbMargin = fnbSales - fnbCOGS;
+    document.getElementById('kpiFnbGrossMargin').textContent = fmtMoney(fnbMargin);
+
+    const dt = fnb.drinkTickets || {};
+    const issued = Number(dt.issued||0), redeemed = Number(dt.redeemed||0);
+    const unredeemed = Number(dt.unredeemed ?? Math.max(0, issued - redeemed));
+    const face = Number(dt.faceValue||0);
+    const unredeemedValue = unredeemed * face;
+    document.getElementById('kpiUnredeemedValue').textContent = fmtMoney(unredeemedValue);
+  } else {
+    kpisFnbEl.style.display = 'none';
+  }
+
+  /* ---------- F&B + Tables Charts ---------- */
+  const tables = s.tables || { sections: [] };
+
+  // Revenue split
+  const ticketsGross = Number(s.gross || 0);
+  const fnbGross = (fnb.revenue ? (Number(fnb.revenue.drinkTicketsGross||0) + Number(fnb.revenue.aLaCarteGross||0)) : 0);
+  const tablesGross = (fnb.revenue ? Number(fnb.revenue.tablePackagesGross||0) : 0);
+  CHARTS.push(new Chart(document.getElementById('pieRevenueSplit'), {
+    type:'pie',
+    data:{ labels:['Tickets','F&B','Tables'],
+      datasets:[{ data:[ticketsGross, fnbGross, tablesGross], backgroundColor:[blue, lime, '#10b981'] }]},
+    options:{ plugins:{ legend:{ position:'bottom' } } }
+  }));
+
+  // Drink tickets redemption
+  const dt = fnb.drinkTickets || { issued:0, redeemed:0, unredeemed:0 };
+  const issued = Number(dt.issued||0), redeemed = Number(dt.redeemed||0);
+  const unredeemed = Number(dt.unredeemed||Math.max(0, issued - redeemed));
+  const redeemPct = issued ? Math.round((redeemed/issued)*100) : 0;
+  CHARTS.push(new Chart(document.getElementById('donutDrinkRedeem'),{
+    type:'doughnut',
+    data:{ labels:['Redeemed','Unredeemed'],
+      datasets:[{ data:[redeemed, unredeemed], backgroundColor:[blue, gray], borderWidth:0 }]},
+    options:{ plugins:{ legend:{ display:false } }, cutout:'70%' }
+  }));
+  document.getElementById('drinkRedeemNote').textContent =
+    `${redeemed.toLocaleString()} / ${issued.toLocaleString()} • ${redeemPct}%` +
+    (dt.faceValue ? `  (face value $${(+dt.faceValue).toFixed(0)}/ticket)` : '');
+
+  // Drinks by type
+  const mix = fnb.drinksByType || {};
+  const mixLabels = Object.keys(mix);
+  const mixValues = Object.values(mix);
+  CHARTS.push(new Chart(document.getElementById('pieDrinksType'),{
+    type:'pie',
+    data:{ labels: mixLabels, datasets:[{ data: mixValues, backgroundColor: mixLabels.map((_,i)=> i%2? lime: blue ) }] },
+    options:{ plugins:{ legend:{ position:'bottom' } } }
+  }));
+
+  // Section 4 occupancy
+  const sec4 = (tables.sections||[]).find(x=>x.name.toLowerCase()==='section 4');
+  if (sec4){
+    const sold = Number(sec4.soldTables||0), cap = Number(sec4.capacityTables||0);
+    const occ = cap ? Math.round((sold/cap)*100) : 0;
+    CHARTS.push(new Chart(document.getElementById('donutSection4Occ'),{
+      type:'doughnut',
+      data:{ labels:['Sold','Remaining'],
+        datasets:[{ data:[sold, Math.max(0, cap - sold)], backgroundColor:['#10b981', gray], borderWidth:0 }] },
+      options:{ plugins:{ legend:{ display:false } }, cutout:'70%' }
+    }));
+    document.getElementById('sec4OccNote').textContent =
+      `${sold.toLocaleString()} / ${cap.toLocaleString()} tables • ${occ}%`;
+  } else {
+    CHARTS.push(new Chart(document.getElementById('donutSection4Occ'),{
+      type:'doughnut',
+      data:{ labels:['Sold','Remaining'], datasets:[{ data:[0, 1], backgroundColor:['#10b981', gray], borderWidth:0 }] },
+      options:{ plugins:{ legend:{ display:false } }, cutout:'70%' }
+    }));
+    document.getElementById('sec4OccNote').textContent = `0 / 0 tables`;
+  }
+
+  // Tables by section
+  const secLabels = (tables.sections||[]).map(x=>x.name);
+  const secSold   = (tables.sections||[]).map(x=>Number(x.soldTables||0));
+  CHARTS.push(new Chart(document.getElementById('barTablesSection'),{
+    type:'bar',
+    data:{ labels: secLabels,
+      datasets:[{ label:'Tables sold', data: secSold, backgroundColor:'rgba(18,168,232,.18)', borderColor: blue, borderWidth:1 }]},
+    options:{ plugins:{ legend:{ display:false } }, scales:{ y:{ ticks:{ callback:v=>v.toLocaleString() } } } }
+  }));
+
+  // Stacked revenue by category over time
+  const rev = s.revenuesDaily || { labels:[], tickets:[], fnb:[], tables:[] };
+  CHARTS.push(new Chart(document.getElementById('stackedRevenue'),{
+    type:'bar',
+    data:{
+      labels: rev.labels,
+      datasets:[
+        { label:'Tickets', data: rev.tickets||[], backgroundColor: blue, stack:'rev' },
+        { label:'F&B',     data: rev.fnb||[],     backgroundColor: lime, stack:'rev' },
+        { label:'Tables',  data: rev.tables||[],  backgroundColor: '#10b981', stack:'rev' }
+      ]
+    },
+    options:{
+      plugins:{ legend:{ position:'bottom' } },
+      responsive:true,
+      scales:{ x:{ stacked:true }, y:{ stacked:true, ticks:{ callback:v=>"$"+v.toLocaleString() } } }
+    }
+  }));
+
+  // Ticket types
+  const container=document.getElementById('typesContainer'); container.innerHTML="";
+  (s.types||[]).forEach((t,i)=>{
+    const id = `${item.ref}_${i}`;
+    const soldPct=pct(t.sold,t.capacity);
+    const checkPct=pct(t.checkin,t.sold);
+
+    const block=document.createElement('div');
+    block.className='card type';
+    block.innerHTML = `
+      <div class="type-head">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 3v18h18"/><path d="M7 15l4-4 4 2 4-6"/>
+        </svg>
+        <strong>${t.name} (${t.code.slice(0,8)})</strong>
+        <span class="pill">On sale</span> &nbsp; — &nbsp; <strong>$${t.price}</strong>
+      </div>
+      <div class="type-grid">
+        <div class="type-kpi">
+          <div class="kpi-box">${fmtMoney(t.gross)}<div style="font-weight:600;font-size:12px;margin-top:4px">Gross sales</div></div>
+          <div class="kpi-box small">${t.in_cart}<div style="font-weight:600;font-size:12px;margin-top:4px">Still in cart</div></div>
+        </div>
+
+        <div class="card chart-card">
+          <div class="chart-title">Tickets sales</div>
+          <canvas id="donutSold_${id}" height="180"></canvas>
+          <div class="note">${t.sold.toLocaleString()} / ${t.capacity.toLocaleString()} • ${soldPct}%</div>
+        </div>
+
+        <div class="card chart-card">
+          <div class="chart-title">Attendees check-in</div>
+          <canvas id="donutCheck_${id}" height="180"></canvas>
+          <div class="note">${t.checkin.toLocaleString()} / ${t.sold.toLocaleString()} • ${checkPct}%</div>
+        </div>
+
+        <div class="card chart-card">
+          <div class="chart-title">Tickets by channel</div>
+          <canvas id="pieTk_${id}" height="180"></canvas>
+        </div>
+
+        <div class="card chart-card">
+          <div class="chart-title">Gross by channel (USD)</div>
+          <canvas id="pieGr_${id}" height="180"></canvas>
+        </div>
+
+        <div class="card chart-card">
+          <div class="chart-title">Sales channel — Number of tickets</div>
+          <table>
+            <thead><tr><th>Channel</th><th>Tickets</th></tr></thead>
+            <tbody>
+              ${Object.entries(t.ticketsByChannel).map(([k,v])=>`<tr><td>${k}</td><td>${v.toLocaleString()}</td></tr>`).join("")}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card chart-card">
+          <div class="chart-title">Tickets by channel (bar)</div>
+          <canvas id="barTk_${id}" height="180"></canvas>
+        </div>
+
+        ${t.gender ? `
+        <div class="card chart-card">
+          <div class="chart-title">Ticket by gender</div>
+          <canvas id="pieGender_${id}" height="180"></canvas>
+        </div>` : ``}
+      </div>`;
+    container.appendChild(block);
+
+    // Per-type charts
+    CHARTS.push(new Chart(document.getElementById(`donutSold_${id}`),{
+      type:'doughnut', data:{labels:["Sold","Remaining"],datasets:[{data:[t.sold,Math.max(0,t.capacity-t.sold)],backgroundColor:["#10b981","#e6eef6"],borderWidth:0}]},
+      options:{plugins:{legend:{display:false}},cutout:"70%"}
+    }));
+    CHARTS.push(new Chart(document.getElementById(`donutCheck_${id}`),{
+      type:'doughnut', data:{labels:["Checked in","Not yet"],datasets:[{data:[t.checkin,Math.max(0,t.sold-t.checkin)],backgroundColor:[lime,"#e6eef6"],borderWidth:0}]},
+      options:{plugins:{legend:{display:false}},cutout:"70%"}
+    }));
+    CHARTS.push(new Chart(document.getElementById(`pieTk_${id}`),{
+      type:'pie', data:{labels:Object.keys(t.ticketsByChannel),datasets:[{data:Object.values(t.ticketsByChannel), backgroundColor:[blue,lime]}]},
+      options:{plugins:{legend:{position:'bottom'}}}
+    }));
+    CHARTS.push(new Chart(document.getElementById(`pieGr_${id}`),{
+      type:'pie', data:{labels:Object.keys(t.grossByChannel),datasets:[{data:Object.values(t.grossByChannel), backgroundColor:[blue,lime]}]},
+      options:{plugins:{legend:{position:'bottom'}}}
+    }));
+    CHARTS.push(new Chart(document.getElementById(`barTk_${id}`),{
+      type:'bar', data:{labels:Object.keys(t.ticketsByChannel),
+        datasets:[{label:'Tickets',data:Object.values(t.ticketsByChannel),backgroundColor:'rgba(18,168,232,.18)',borderColor:blue,borderWidth:1}]},
+      options:{plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v.toLocaleString()}}}}
+    }));
+    if (t.gender){
+      CHARTS.push(new Chart(document.getElementById(`pieGender_${id}`),{
+        type:'pie', data:{labels:Object.keys(t.gender), datasets:[{data:Object.values(t.gender), backgroundColor:[blue,lime]}]},
+        options:{plugins:{legend:{position:'bottom'}}}
+      }));
+    }
+  });
+
+  // Tables details cards
+  const tblList = document.getElementById('tablesList');
+  tblList.innerHTML = (tables.sections||[]).map(sec=>{
+    const occ = sec.capacityTables ? Math.round((sec.soldTables/sec.capacityTables)*100) : 0;
+    const inc = sec.included || {};
+    const chasers = (inc.chasers||[]).join(", ");
+    const incBits = [
+      inc.bottlesWater ? `${inc.bottlesWater}× water` : null,
+      inc.mixers ? `${inc.mixers}× mixers` : null,
+      chasers ? `chasers: ${chasers}` : null
+    ].filter(Boolean).join(" • ");
+
+    return `
+    <div class="card type">
+      <div class="type-head">
+        <strong>${sec.name}</strong>
+        <span class="pill">${occ}% occupancy</span>
+        &nbsp; — &nbsp; <strong>$${Number(sec.pricePerTable||0).toLocaleString()}</strong> / table
+      </div>
+      <div class="type-grid" style="grid-template-columns:repeat(4,minmax(180px,1fr));">
+        <div class="kpi-box">${(sec.soldTables||0).toLocaleString()} / ${(sec.capacityTables||0).toLocaleString()}<div style="font-weight:600;font-size:12px;margin-top:4px">Tables sold</div></div>
+        <div class="kpi-box">${(sec.peoplePerTable||0).toLocaleString()}<div style="font-weight:600;font-size:12px;margin-top:4px">People / table</div></div>
+        <div class="kpi-box">${(sec.checkinPeople||0).toLocaleString()}<div style="font-weight:600;font-size:12px;margin-top:4px">People checked in</div></div>
+        <div class="kpi-box small">${incBits || '—'}<div style="font-weight:600;font-size:12px;margin-top:4px">Included</div></div>
+      </div>
+    </div>`;
+  }).join("");
+
+  showStats();
+}
+
+/* Deep link to stats */
+if(location.hash.startsWith("#stats=")){
+  const ref=location.hash.split("=")[1];
+  const item=DATA.find(x=>x.ref===ref);
+  if(item) goToStats(item);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+use O21\LaravelWallet\Enums\TransactionStatus;
+
+use function O21\LaravelWallet\ConfigHelpers\table_name;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        Schema::create(table_name('transactions'), function (Blueprint $table) {
+            $table->id();
+            $table->uuid()->unique();
+            $table->nullableMorphs('from');
+            $table->nullableMorphs('to');
+            $table->decimal('amount', 16, 8)->unsigned()->default(0)->index();
+            $table->decimal('commission', 16, 8)->unsigned()->default(0);
+            $table->decimal('received', 16, 8)
+                ->unsigned()
+                ->default(0)
+                ->comment('received = amount - commission')
+                ->index();
+            $table->string('currency', 10)->index();
+            $table->enum('status', TransactionStatus::known())
+                ->default(TransactionStatus::PENDING)
+                ->index();
+            $table->string('processor_id')->index();
+            $table->json('meta')->nullable();
+            $table->boolean('archived')->default(false)->index();
+            $table->boolean('invisible')->default(false)->index();
+            $table->integer('batch')
+                ->unsigned()
+                ->index()
+                ->comment('batch id to track related transactions');
+            $table->timestamp('created_at')->nullable()->index();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        Schema::dropIfExists(table_name('transactions'));
+    }
+};

@@ -1,0 +1,180 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@700&display=swap');
+
+.bg-linkup-dark {
+  background-color: #0b2342;
+}
+
+.bg-linkup-blue {
+  background-color: #3fa9f5;
+}
+
+.text-linkup-blue {
+  color: #3fa9f5;
+}
+
+.text-linkup-lime {
+  color: #d5de23;
+}
+
+.bg-linkup-lime {
+  background-color: #d5de23;
+}
+
+.bg-linkup-teal {
+  background-color: #0d9488;
+}
+
+.text-linkup-teal {
+  color: #0d9488;
+}
+
+.bg-surface {
+  background-color: #f8fafc;
+}
+
+.bg-linkup-blue\/5 {
+  background-color: rgba(63, 169, 245, 0.05);
+}
+
+.border-linkup-blue\/10 {
+  border-color: rgba(63, 169, 245, 0.1);
+}
+
+.glow-border {
+  border: 1px solid rgba(63, 169, 245, 0.2);
+  box-shadow: 0 0 15px rgba(63, 169, 245, 0.05);
+  transition: all 0.3s ease;
+}
+
+.glow-border:hover {
+  border-color: rgba(63, 169, 245, 0.6);
+  box-shadow: 0 0 25px rgba(63, 169, 245, 0.2);
+  transform: translateY(-2px);
+}
+
+.pattern-grid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.pattern-ripple {
+  background-image: repeating-radial-gradient(circle at 0 0, transparent 0, transparent 24px, rgba(255, 255, 255, 0.08) 24px, rgba(255, 255, 255, 0.08) 25px);
+}
+
+.asue-pattern {
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.1) 2px, transparent 2.5px);
+  background-size: 20px 20px;
+}
+
+.card-gradient {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+}
+
+.asue-gradient {
+  background: linear-gradient(135deg, #0d9488 0%, #0e7490 100%);
+}
+
+.crypto-gradient {
+  background: linear-gradient(135deg, #312e81 0%, #1e1b4b 100%);
+}
+
+.bank-gradient {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+}
+
+.bank-pattern {
+  background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255, 255, 255, 0.05) 10px, rgba(255, 255, 255, 0.05) 20px);
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(63, 169, 245, 0.7);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(63, 169, 245, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(63, 169, 245, 0);
+  }
+}
+
+.btn-pulse {
+  animation: pulse-ring 2s infinite;
+}
+
+.fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hide-scroll {
+  scrollbar-width: none;
+}
+
+.hide-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.font-brand {
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.card-mesh {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.08), transparent 35%),
+    radial-gradient(circle at 80% 0%, rgba(63, 169, 245, 0.15), transparent 40%),
+    radial-gradient(circle at 50% 80%, rgba(255, 255, 255, 0.05), transparent 45%);
+  opacity: 0.35;
+}
+
+.bg-linkup-blue\/20 {
+  background-color: rgba(63, 169, 245, 0.2);
+}
+
+.bg-linkup-blue\/30 {
+  background-color: rgba(63, 169, 245, 0.3);
+}
+
+.border-linkup-blue\/20 {
+  border-color: rgba(63, 169, 245, 0.2);
+}
+
+.border-linkup-blue\/30 {
+  border-color: rgba(63, 169, 245, 0.3);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all 0.3s ease;
+}
+
+.slide-down-enter-from {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+.slide-down-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
+}

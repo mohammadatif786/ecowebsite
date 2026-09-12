@@ -1,0 +1,223 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Pacifico&display=swap');
+
+:root {
+  --lk-blue: #2f9bef;
+  --lk-blue2: #2563eb;
+  --lk-yellow: #F5C518;
+  --lk-green: #9EDB2F;
+  --lk-bg: #eef5fd;
+}
+
+/* ---- lkyellow utilities (mirrors lkblue / lkblue2) ---- */
+.bg-lkyellow  { background-color: var(--lk-yellow) !important; }
+.text-lkyellow { color: var(--lk-yellow) !important; }
+.border-lkyellow { border-color: var(--lk-yellow) !important; }
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+html, body {
+  height: 100%;
+}
+body {
+  font-family: Inter, system-ui, sans-serif;
+  background: var(--lk-bg, #eef5fd);
+  color: #0f172a;
+}
+.logo {
+  font-family: Pacifico, cursive;
+}
+.brandgrad {
+  background: linear-gradient(120deg, #2f9bef, #2563eb 60%, #6d5efc);
+}
+.glass {
+  background: rgba(255, 255, 255, .72);
+  backdrop-filter: blur(10px);
+}
+.navitem.active {
+  background: linear-gradient(135deg, #2f9bef, #2563eb);
+  color: #fff;
+  box-shadow: 0 8px 20px -8px rgba(37, 99, 235, .6);
+}
+.navitem.active .ni-ico {
+  background: rgba(255, 255, 255, .25) !important;
+  color: #fff !important;
+}
+.card {
+  background: #fff;
+  border: 1px solid #eef2f7;
+  border-radius: 20px;
+}
+.chip {
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  border-radius: 999px;
+  padding: 7px 15px;
+  font-weight: 700;
+  font-size: 13px;
+  color: #475569;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: .15s;
+}
+.chip:hover {
+  border-color: #cbd5e1;
+}
+.chip.on {
+  background: linear-gradient(135deg, #2f9bef, #2563eb);
+  color: #fff;
+  border-color: transparent;
+}
+.btn {
+  border-radius: 14px;
+  font-weight: 800;
+  transition: .15s;
+  cursor: pointer;
+}
+.btn-primary {
+  background: linear-gradient(135deg, #2f9bef, #2563eb);
+  color: #fff;
+}
+.btn-primary:hover {
+  filter: brightness(1.05);
+}
+.btn-ghost {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  color: #0f172a;
+}
+.btn-ghost:hover {
+  background: #f8fafc;
+}
+.fade {
+  animation: fade .35s ease;
+}
+@keyframes fade {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.hide-scroll::-webkit-scrollbar {
+  display: none;
+}
+.hide-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%) translateY(20px);
+  z-index: 240;
+  background: #0f172a;
+  color: #fff;
+  padding: 12px 22px;
+  border-radius: 999px;
+  font-weight: 800;
+  opacity: 0;
+  transition: .3s;
+  pointer-events: none;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+@media (max-width: 1100px) {
+  #sidebar {
+    width: 78px;
+  }
+  #sidebar .ni-label, #sidebar .side-full {
+    display: none;
+  }
+  #main {
+    margin-left: 78px;
+  }
+}
+@media (max-width: 720px) {
+  #sidebar {
+    transform: translateX(-100%);
+  }
+  #sidebar.open {
+    transform: none;
+    width: 250px;
+  }
+  #sidebar.open .ni-label, #sidebar.open .side-full {
+    display: block;
+  }
+  #main {
+    margin-left: 0;
+  }
+  #menuBtn {
+    display: inline-flex !important;
+  }
+}
+.modal-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, .5);
+  backdrop-filter: blur(3px);
+  padding: 20px;
+}
+.modal-wrap.open {
+  display: flex;
+}
+.dualrange {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  margin: 0;
+  background: transparent;
+  pointer-events: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.dualrange::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  pointer-events: auto;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #2f9bef;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 2px #2f9bef;
+  cursor: pointer;
+  margin-top: 0;
+}
+.dualrange::-moz-range-thumb {
+  pointer-events: auto;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: #2f9bef;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 2px #2f9bef;
+  cursor: pointer;
+}
+.dualrange::-webkit-slider-runnable-track {
+  -webkit-appearance: none;
+  background: transparent;
+}

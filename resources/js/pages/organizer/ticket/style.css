@@ -1,0 +1,154 @@
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.7;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.pulse {
+    animation: pulse 1.5s infinite;
+}
+
+dialog::backdrop {
+    background: rgba(0, 0, 0, 0.55);
+}
+
+.field {
+    border: 1px solid rgba(148, 163, 184, .35);
+    border-radius: 10px;
+    padding: .6rem .75rem;
+    width: 100%;
+    outline: none;
+    background: #fff;
+}
+
+.field:focus {
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, .15);
+    border-color: rgba(37, 99, 235, .45);
+}
+
+.label {
+    font-weight: 600;
+    color: #0f172a;
+    font-size: .92rem;
+}
+
+.help {
+    color: #64748b;
+    font-size: .82rem;
+}
+
+.pill {
+    border: 1px solid rgba(148, 163, 184, .35);
+    border-radius: 999px;
+    padding: .35rem .6rem;
+    font-size: .8rem;
+    color: #0f172a;
+    background: #fff;
+}
+
+.radioDot {
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    border: 2px solid rgba(100, 116, 139, .5);
+    display: inline-block;
+    position: relative;
+}
+
+input[type="radio"]:checked + .radioDot {
+    border-color: rgba(37, 99, 235, .85);
+}
+
+input[type="radio"]:checked + .radioDot::after {
+    content: "";
+    position: absolute;
+    inset: 2px;
+    background: rgba(37, 99, 235, .9);
+    border-radius: 999px;
+}
+
+.card {
+    background: #fff;
+    border: 1px solid #eef2f7;
+    border-radius: 20px;
+}
+
+.miniCard {
+    border: 1px solid rgba(148, 163, 184, .25);
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: 0 8px 18px rgba(2, 6, 23, .06);
+}
+
+.sectionCard {
+    background: #ffffff;
+    border: 1px solid rgba(148, 163, 184, .25);
+    border-radius: 20px;
+    box-shadow: 0 8px 18px rgba(2, 6, 23, .06);
+}
+
+.divider {
+    height: 1px;
+    background: rgba(148, 163, 184, .25);
+}
+
+.btnGhost {
+    border-radius: 999px;
+    padding: .45rem .9rem;
+    font-weight: 800;
+    border: 1px solid rgba(148, 163, 184, .35);
+    background: #fff;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    border: 1px solid rgba(148, 163, 184, .35);
+    background: #fff;
+    border-radius: 999px;
+    padding: .35rem .6rem;
+    font-size: .78rem;
+}
+
+.moneyRow {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.moneyRow b {
+    font-variant-numeric: tabular-nums;
+}
+
+.slotBtn {
+    border: 1px solid rgba(148, 163, 184, .35);
+    background: #fff;
+    border-radius: 12px;
+    padding: .55rem .7rem;
+    font-weight: 800;
+    font-size: .85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.slotBtn:hover {
+    box-shadow: 0 6px 18px rgba(2, 6, 23, .08);
+}
+
+.slotBtn[disabled] {
+    opacity: .55;
+    cursor: not-allowed;
+    box-shadow: none;
+}
