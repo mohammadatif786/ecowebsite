@@ -5,29 +5,25 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 
 use App\Models\Frontend\FriendRequest;
-use App\Models\ScanSignUser;
-use Stripe\Customer;
-use App\Models\LinkUpEvent;
 use Illuminate\Database\Eloquent\BroadcastsEvents;
-use Spatie\Permission\Traits\HasRoles;
-use Illuminate\Notifications\Notifiable;
-use O21\LaravelWallet\Contracts\Payable;
-use O21\LaravelWallet\Models\Transaction;
-use O21\LaravelWallet\Models\Concerns\HasBalance;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Support\Str;
 use Laravel\Cashier\Subscription;
+use Laravel\Sanctum\HasApiTokens;
+use O21\LaravelWallet\Contracts\Payable;
+use O21\LaravelWallet\Models\Concerns\HasBalance;
+use O21\LaravelWallet\Models\Transaction;
+use Spatie\Permission\Traits\HasRoles;
+use Stripe\Customer;
 
 use function O21\LaravelWallet\ConfigHelpers\get_model_class;
 
 class User extends Authenticatable implements Payable
 {
-    use HasFactory, Notifiable, HasRoles, HasBalance, HasApiTokens, BroadcastsEvents;
-
+    use BroadcastsEvents, HasApiTokens, HasBalance, HasFactory, HasRoles, Notifiable;
 
     /** @use HasFactory<\Database\Factories\UserFactory> */
     /**
@@ -124,7 +120,6 @@ class User extends Authenticatable implements Payable
         'mute_system_notification',
     ];
 
-
     /**
      * The attributes that should be hidden for serialization.
      *
@@ -134,6 +129,7 @@ class User extends Authenticatable implements Payable
         'password',
         'remember_token',
     ];
+
     /**
      * Get the attributes that should be cast.
      *
@@ -173,13 +169,13 @@ class User extends Authenticatable implements Payable
             'last_login_at' => 'datetime',
         ];
     }
+
     protected $appends = [
         'front_side_url',
         'back_side_url',
         'address_proof_url',
         'popularity_level',
     ];
-
 
     public function messages()
     {
@@ -243,9 +239,16 @@ class User extends Authenticatable implements Payable
     public function getPopularityLevelAttribute(): string
     {
         $score = $this->popularity_score ?? 0;
-        if ($score < 50) return 'Low';
-        if ($score < 200) return 'Medium';
-        if ($score < 500) return 'High';
+        if ($score < 50) {
+            return 'Low';
+        }
+        if ($score < 200) {
+            return 'Medium';
+        }
+        if ($score < 500) {
+            return 'High';
+        }
+
         return 'Very High';
     }
 
@@ -267,31 +270,55 @@ class User extends Authenticatable implements Payable
     protected static function booted()
     {
         static::creating(function ($user) {
-            $user->name = $user->first_name . ' ' . $user->last_name;
+            $user->name = $user->first_name.' '.$user->last_name;
             if (empty($model->uid)) {
                 $user->uid = Str::random(28);
             }
             // Sync location fields
-            if ($user->new_country) $user->country = $user->new_country;
-            if ($user->new_state)   $user->state = $user->new_state;
-            if ($user->new_city)    $user->city = $user->new_city;
+            if ($user->new_country) {
+                $user->country = $user->new_country;
+            }
+            if ($user->new_state) {
+                $user->state = $user->new_state;
+            }
+            if ($user->new_city) {
+                $user->city = $user->new_city;
+            }
 
-            if (!$user->new_country && $user->country) $user->new_country = $user->country;
-            if (!$user->new_state && $user->state)     $user->new_state = $user->state;
-            if (!$user->new_city && $user->city)       $user->new_city = $user->city;
+            if (! $user->new_country && $user->country) {
+                $user->new_country = $user->country;
+            }
+            if (! $user->new_state && $user->state) {
+                $user->new_state = $user->state;
+            }
+            if (! $user->new_city && $user->city) {
+                $user->new_city = $user->city;
+            }
         });
         static::updating(function ($user) {
-            $user->name = $user->first_name . ' ' . $user->last_name;
+            $user->name = $user->first_name.' '.$user->last_name;
 
             // Sync location fields - prefer dirty new_* fields
-            if ($user->isDirty('new_country')) $user->country = $user->new_country;
-            if ($user->isDirty('new_state'))   $user->state = $user->new_state;
-            if ($user->isDirty('new_city'))    $user->city = $user->new_city;
+            if ($user->isDirty('new_country')) {
+                $user->country = $user->new_country;
+            }
+            if ($user->isDirty('new_state')) {
+                $user->state = $user->new_state;
+            }
+            if ($user->isDirty('new_city')) {
+                $user->city = $user->new_city;
+            }
 
             // If old fields are dirty and new ones aren't, sync back
-            if ($user->isDirty('country') && !$user->isDirty('new_country')) $user->new_country = $user->country;
-            if ($user->isDirty('state')   && !$user->isDirty('new_state'))   $user->new_state = $user->state;
-            if ($user->isDirty('city')    && !$user->isDirty('new_city'))    $user->new_city = $user->city;
+            if ($user->isDirty('country') && ! $user->isDirty('new_country')) {
+                $user->new_country = $user->country;
+            }
+            if ($user->isDirty('state') && ! $user->isDirty('new_state')) {
+                $user->new_state = $user->state;
+            }
+            if ($user->isDirty('city') && ! $user->isDirty('new_city')) {
+                $user->new_city = $user->city;
+            }
         });
     }
 
@@ -306,15 +333,18 @@ class User extends Authenticatable implements Payable
     {
         return $this->hasMany(Message::class, 'to_user_id');
     }
+
     // 🔹 User's subscriptions
     public function subscriptions()
     {
         return $this->hasMany(SubscriptionPlan::class);
     }
+
     public function subscribed()
     {
         return $this->hasMany(Subscription::class, 'user_id');
     }
+
     public function checkSubscribed()
     {
         return $this->hasOne(Subscription::class, 'user_id')
@@ -324,7 +354,7 @@ class User extends Authenticatable implements Payable
     public function scopeFilter($query, array $filters)
     {
         $query->when($filters['search'] ?? null, function ($query, $search) {
-            $query->where('name', 'like', '%' . $search . '%');
+            $query->where('name', 'like', '%'.$search.'%');
         });
     }
 
@@ -332,14 +362,17 @@ class User extends Authenticatable implements Payable
     {
         return $this->hasOne(OrganizerProfile::class);
     }
+
     public function cashouts()
     {
         return $this->hasMany(CashOut::class, 'user_id');
     }
+
     public function scanSignUser()
     {
-        return $this->hasMany(ScanSignUser::class, 'user_id',);
+        return $this->hasMany(ScanSignUser::class, 'user_id');
     }
+
     public function notifications()
     {
         return $this->hasMany(Notification::class);
@@ -363,7 +396,6 @@ class User extends Authenticatable implements Payable
             ->select('users.uid', 'users.id', 'users.age', 'users.name', 'users.country', 'users.gender', 'users.more_photos', 'users.avatar', 'users.popularity_score', 'users.last_active', 'users.interests', 'users.caribbean_interest');
     }
 
-
     public function dislikedUsers()
     {
         return $this->belongsToMany(User::class, 'user_matches', 'user_id', 'target_user_id')
@@ -374,13 +406,13 @@ class User extends Authenticatable implements Payable
 
     public function scopeNearby($query, $lat, $lng, $minRadius, $maxRadius)
     {
-        $distanceSql = "(6371 * acos(
+        $distanceSql = '(6371 * acos(
         cos(radians(?)) *
         cos(radians(latitude)) *
         cos(radians(longitude) - radians(?)) +
         sin(radians(?)) *
         sin(radians(latitude))
-    ))";
+    ))';
 
         return $query->selectRaw("
             users.id,
@@ -394,9 +426,9 @@ class User extends Authenticatable implements Payable
             users.linkup_id,
             {$distanceSql} AS distance
         ", [$lat, $lng, $lat])
-            ->havingRaw("distance >= ?", [$minRadius])
-            ->havingRaw("distance <= ?", [$maxRadius])
-            ->orderBy("distance", "asc");
+            ->havingRaw('distance >= ?', [$minRadius])
+            ->havingRaw('distance <= ?', [$maxRadius])
+            ->orderBy('distance', 'asc');
     }
 
     public function conversations()
@@ -463,10 +495,11 @@ class User extends Authenticatable implements Payable
     {
         return Customer::retrieve($this->stripe_id);
     }
+
     public function getAvatarAttribute()
     {
         $avatar = $this->attributes['avatar'] ?? null;
-        if (!$avatar) {
+        if (! $avatar) {
             return null;
         }
 
@@ -476,8 +509,9 @@ class User extends Authenticatable implements Payable
         }
 
         // Otherwise, assume it's a local path and prepend storage
-        return asset('storage/' . $avatar);
+        return asset('storage/'.$avatar);
     }
+
     public function isMatchedWith(User $otherUser)
     {
         return UserMatch::where('user_id', $this->id)
@@ -486,9 +520,9 @@ class User extends Authenticatable implements Payable
             ->exists()
             &&
             UserMatch::where('user_id', $otherUser->id)
-            ->where('target_user_id', $this->id)
-            ->where('status', 'like')
-            ->exists();
+                ->where('target_user_id', $this->id)
+                ->where('status', 'like')
+                ->exists();
     }
 
     // Organizer followers relationships
@@ -560,6 +594,21 @@ class User extends Authenticatable implements Payable
     public function products()
     {
         return $this->hasMany(Product::class, 'user_id');
+    }
+
+    public function vibes()
+    {
+        return $this->hasMany(Vibe::class, 'created_by');
+    }
+
+    public function publishedVibes()
+    {
+        return $this->morphMany(Vibe::class, 'publisher');
+    }
+
+    public function clubFetes()
+    {
+        return $this->belongsToMany(ClubFete::class, 'club_fete_members')->withPivot(['role', 'is_active'])->withTimestamps();
     }
 
     public function ticketSales()

@@ -30,17 +30,17 @@ class ClubFete extends Model
     public function scopeFilter($query, array $filters)
     {
         $query->when($filters['search'] ?? null, function ($query, $search) {
-            $query->where('name', 'like', '%' . $search . '%');
+            $query->where('name', 'like', '%'.$search.'%');
         });
     }
 
     public function scopeActive($query)
     {
         return $query->where('status', 1)
-                     ->where('start_date', '<=', now())
-                     ->where('end_date', '>=', now());
+            ->where('start_date', '<=', now())
+            ->where('end_date', '>=', now());
     }
-    
+
     public function likes()
     {
         return $this->morphMany(Vote::class, 'votable')->where('type', 'like');
@@ -50,9 +50,19 @@ class ClubFete extends Model
     {
         return $this->morphOne(Vote::class, 'votable')->where('user_id', auth()->id())->where('type', 'like');
     }
-    
+
     public function invoice()
     {
         return $this->belongsTo(Invoice::class, 'invoice_id');
+    }
+
+    public function members()
+    {
+        return $this->belongsToMany(User::class, 'club_fete_members')->withPivot(['role', 'is_active'])->withTimestamps();
+    }
+
+    public function vibes()
+    {
+        return $this->morphMany(Vibe::class, 'publisher');
     }
 }

@@ -389,7 +389,18 @@ class DashboardController extends Controller
 
     public function vibes()
     {
-        return Inertia::render('new_front/vibes/Index');
+        $user = request()->user();
+
+        return Inertia::render('new_front/vibes/Index', [
+            'vibePublishers' => [
+                'organizations' => $user->organizerProfile()->get(['id', 'organizer_name'])
+                    ->map(fn ($organization) => ['id' => $organization->id, 'name' => $organization->organizer_name]),
+                'groups' => $user->clubFetes()->wherePivot('is_active', true)
+                    ->wherePivotIn('role', ['owner', 'admin'])->where('club_fetes.status', true)
+                    ->get(['club_fetes.id', 'club_fetes.name'])
+                    ->map(fn ($group) => ['id' => $group->id, 'name' => $group->name]),
+            ],
+        ]);
     }
 
     public function uvibe()

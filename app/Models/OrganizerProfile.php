@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\OrganizerKyc;
 use Illuminate\Support\Facades\DB;
 
 class OrganizerProfile extends Model
@@ -21,7 +20,7 @@ class OrganizerProfile extends Model
         'telephone',
         'about_the_organizer',
         'categories',
-        'ssn'
+        'ssn',
     ];
 
     protected $casts = [
@@ -70,6 +69,11 @@ class OrganizerProfile extends Model
         return $this->hasMany(LinkUpEvent::class, 'organizer_id');
     }
 
+    public function vibes()
+    {
+        return $this->morphMany(Vibe::class, 'publisher');
+    }
+
     public function scopeFilter($query, array $filters)
     {
         $query->when($filters['search'] ?? null, function ($query, $search) {
@@ -78,7 +82,7 @@ class OrganizerProfile extends Model
                     $q2->where(
                         DB::raw("CONCAT(first_name, ' ', last_name)"),
                         'like',
-                        '%' . $search . '%'
+                        '%'.$search.'%'
                     );
                 });
             });

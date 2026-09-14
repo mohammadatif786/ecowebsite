@@ -73,7 +73,7 @@
     </div>
 
     <!-- Compose Modal -->
-    <ComposeVibeModal ref="composeModalRef" @postCreated="onPostCreated" />
+    <ComposeVibeModal ref="composeModalRef" :publishers="vibePublishers" @postCreated="onPostCreated" />
   </div>
 </template>
 
@@ -85,6 +85,10 @@ import ComposeVibeModal from '../../../components/new_frontend/modals/ComposeVib
 import { getVibes, SEED, getUser } from '../../../components/new_frontend/MockDataStore';
 
 defineOptions({ layout: MainLayout });
+
+defineProps({
+  vibePublishers: { type: Object, default: () => ({ organizations: [], groups: [] }) },
+});
 
 const user = getUser();
 const posts = getVibes();

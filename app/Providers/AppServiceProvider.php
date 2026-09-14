@@ -7,6 +7,7 @@ use App\Contracts\FeatureGateRepositoryInterface;
 use App\Repositories\FeatureGateRepository;
 use App\Services\ChatService;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -64,6 +65,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Relation::morphMap([
+            'user' => \App\Models\User::class,
+            'organization' => \App\Models\OrganizerProfile::class,
+            'group' => \App\Models\ClubFete::class,
+            'product' => \App\Models\Product::class,
+            'event' => \App\Models\LinkUpEvent::class,
+        ]);
+
         $this->configureRateLimiting();
 
         \App\Models\LinkUpEvent::observe(\App\Observers\LinkUpEventObserver::class);

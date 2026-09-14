@@ -27,7 +27,7 @@ class Product extends Model
 
     protected $casts = [
         'images' => 'array',
-        'status'=>'boolean',
+        'status' => 'boolean',
         'collect_tax' => 'boolean',
         'commission' => 'float',
         'commFlat' => 'float',
@@ -46,8 +46,8 @@ class Product extends Model
     public function scopeFilter($query, array $filters)
     {
         $query->when($filters['search'] ?? null, function ($query, $search) {
-            $query->where('name', 'like', '%' . $search . '%');
-            $query->orWhere('description', 'like', '%' . $search . '%');
+            $query->where('name', 'like', '%'.$search.'%');
+            $query->orWhere('description', 'like', '%'.$search.'%');
         });
     }
 
@@ -64,5 +64,10 @@ class Product extends Model
     public function orderItems()
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    public function vibes()
+    {
+        return $this->morphToMany(Vibe::class, 'attachable', 'vibe_attachments');
     }
 }

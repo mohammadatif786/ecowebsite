@@ -1,188 +1,62 @@
 <template>
   <Modal ref="modalRef">
-    <div class="p-4 flex items-center justify-between border-b border-slate-100">
-      <h3 class="text-lg font-black">New Vibe</h3>
-      <button @click="modalRef.close()" class="text-slate-400">
-        <i data-lucide="x" class="w-5 h-5"></i>
-      </button>
-    </div>
-    <div class="p-4 space-y-3">
-      <div>
-        <p class="text-[11px] font-black text-slate-400 uppercase mb-1.5">Post as</p>
-        <div class="grid grid-cols-2 gap-2">
-          <button @click="postAs = 'me'" class="rounded-2xl py-2.5 text-sm font-black border-2 flex items-center justify-center gap-1.5 transition" :class="postAs === 'me' ? 'border-lkblue bg-blue-50' : 'border-slate-200 bg-white'">
-            👤 Myself
-          </button>
-          <button @click="postAs = 'org'" class="rounded-2xl py-2.5 text-sm font-black border-2 flex items-center justify-center gap-1.5 transition" :class="postAs === 'org' ? 'border-lkblue bg-blue-50' : 'border-slate-200 bg-white'">
-            🏢 Organization / Group
-          </button>
-        </div>
+    <div class="flex items-center justify-between border-b p-4"><h3 class="text-lg font-black">New Vibe</h3><button @click="close">✕</button></div>
+    <div class="space-y-3 p-4">
+      <p class="text-xs font-black uppercase text-slate-400">Post as</p>
+      <div class="grid grid-cols-2 gap-2">
+        <button class="rounded-2xl border-2 py-2.5 font-black" :class="postAs === 'me' ? 'border-lkblue bg-blue-50' : 'border-slate-200'" @click="postAs = 'me'">👤 Myself</button>
+        <button class="rounded-2xl border-2 py-2.5 font-black" :class="postAs === 'entity' ? 'border-lkblue bg-blue-50' : 'border-slate-200'" @click="postAs = 'entity'">🏢 Organization / Group</button>
       </div>
-
-      <div v-if="postAs === 'org'" class="rounded-2xl bg-slate-50 p-3 space-y-2">
-        <div v-if="postAsEntities.length" class="flex flex-wrap gap-2">
-          <span
-            v-for="entity in postAsEntities"
-            :key="entity.id"
-            class="inline-flex items-center gap-1.5 rounded-full border border-blue-100 bg-white px-3 py-1.5 text-xs font-black text-slate-700"
-          >
-            <span>{{ entity.type === 'Organization' ? '🏢' : '👥' }}</span>
-            {{ entity.name }}
-            <button
-              type="button"
-              class="ml-0.5 text-slate-400 hover:text-slate-700"
-              :aria-label="`Remove ${entity.name}`"
-              @click="removePostAsEntity(entity.id)"
-            >
-              <i data-lucide="x" class="h-3.5 w-3.5"></i>
-            </button>
-          </span>
-        </div>
-        <div class="flex gap-2">
-          <input
-            v-model.trim="postAsEntityName"
-            type="text"
-            placeholder="Organization or group name"
-            class="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-lkblue"
-            @keyup.enter="addPostAsEntity"
-          />
-          <select v-model="postAsEntityType" class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium outline-none focus:border-lkblue">
-            <option>Organization</option>
-            <option>Group</option>
-          </select>
-          <button type="button" class="btn btn-primary px-3 py-2 text-xs" @click="addPostAsEntity">Add</button>
-        </div>
-      </div>
-      
-      <div class="rounded-2xl border-2 border-dashed border-slate-200 p-4">
+      <select v-if="postAs === 'entity'" v-model="selectedPublisher" class="w-full rounded-xl border p-3">
+        <option value="" disabled>Select an organization or group</option>
+        <optgroup label="Organizations"><option v-for="p in publishers.organizations" :key="`o${p.id}`" :value="`organization:${p.id}`">{{ p.name }}</option></optgroup>
+        <optgroup label="Groups"><option v-for="p in publishers.groups" :key="`g${p.id}`" :value="`group:${p.id}`">{{ p.name }}</option></optgroup>
+      </select>
+      <div class="rounded-2xl border-2 border-dashed p-4">
         <div class="grid grid-cols-3 gap-2">
-          <label class="rounded-xl bg-slate-50 hover:bg-slate-100 p-3 flex flex-col items-center gap-1 cursor-pointer text-center">
-            <input type="file" accept="image/*" capture="environment" class="hidden" @change="onMediaSelected" />
-            <i data-lucide="camera" class="w-5 h-5 text-lkblue2"></i><span class="text-[11px] font-bold text-slate-600">Take Photo</span>
-          </label>
-          <label class="rounded-xl bg-slate-50 hover:bg-slate-100 p-3 flex flex-col items-center gap-1 cursor-pointer text-center">
-            <input type="file" accept="video/*" capture="environment" class="hidden" @change="onMediaSelected" />
-            <i data-lucide="video" class="w-5 h-5 text-lkblue2"></i><span class="text-[11px] font-bold text-slate-600">Record Video</span>
-          </label>
-          <label class="rounded-xl bg-slate-50 hover:bg-slate-100 p-3 flex flex-col items-center gap-1 cursor-pointer text-center">
-            <input type="file" accept="image/*,video/*" multiple class="hidden" @change="onMediaSelected" />
-            <i data-lucide="image-plus" class="w-5 h-5 text-lkblue2"></i><span class="text-[11px] font-bold text-slate-600">Gallery</span>
+          <label v-for="picker in pickers" :key="picker.source" class="cursor-pointer rounded-xl bg-slate-50 p-3 text-center text-xs font-bold">
+            <input type="file" :accept="picker.accept" :capture="picker.capture" :multiple="picker.multiple" class="hidden" @change="selectMedia($event, picker.source)" />{{ picker.label }}
           </label>
         </div>
-        <div v-if="draftMediaUrl" class="relative mt-3 rounded-xl overflow-hidden bg-black">
-          <video v-if="draftIsVideo" :src="draftMediaUrl" controls class="w-full max-h-64 object-contain"></video>
-          <img v-else :src="draftMediaUrl" class="w-full max-h-64 object-cover" />
-          <div class="absolute top-2 right-2 flex gap-1.5">
-            <button @click="clearMedia" class="h-7 w-7 rounded-full bg-black/60 text-white grid place-items-center">
-              <i data-lucide="x" class="w-4 h-4"></i>
-            </button>
+        <div v-if="media.length" class="mt-3 grid grid-cols-2 gap-2">
+          <div v-for="(item, i) in media" :key="item.url" class="relative overflow-hidden rounded-xl bg-black">
+            <video v-if="item.video" :src="item.url" controls class="h-36 w-full object-contain"/><img v-else :src="item.url" class="h-36 w-full object-cover"/>
+            <button class="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-1 text-white" @click="removeMedia(i)">✕</button>
           </div>
         </div>
-        <p v-else class="text-[11px] text-slate-400 text-center mt-2">Take photo · record video · gallery</p>
       </div>
-      
-      <textarea v-model="draftText" rows="2" placeholder="Write a caption… #carnival #island" class="w-full border border-slate-200 rounded-2xl p-3 text-sm outline-none focus:border-lkblue"></textarea>
-      <input v-model="draftLoc" placeholder="📍 Add location" class="w-full border border-slate-200 rounded-2xl p-3 text-sm outline-none focus:border-lkblue" />
-      
-      <label class="flex items-center justify-between rounded-2xl bg-amber-50 px-3 py-2.5">
-        <span class="font-bold text-sm">🪙 Allow Big Up coin gifts</span>
-        <input type="checkbox" checked class="h-5 w-5" />
-      </label>
-      
-      <div class="rounded-2xl border border-slate-200 p-3">
-        <div class="flex items-center justify-between">
-          <span class="font-bold text-sm">🛍️ Tag a product or 🎟️ event</span>
-          <button class="btn btn-primary px-3 py-1.5 text-xs">Tag</button>
-        </div>
-        <div class="mt-2">
-          <p class="text-[11px] text-slate-400">Make your vibe shoppable — viewers buy the product or grab tickets right from your post, and you earn commission.</p>
-        </div>
-      </div>
-      
-      <button @click="postVibe" class="btn btn-primary w-full py-3">Share Vibe</button>
+      <textarea v-model="caption" maxlength="2200" rows="3" placeholder="Write a caption… #carnival #island" class="w-full rounded-2xl border p-3"/>
+      <input v-model="location" placeholder="📍 Add location" class="w-full rounded-2xl border p-3"/>
+      <label class="flex justify-between rounded-2xl bg-amber-50 p-3 font-bold">🪙 Allow Big Up coin gifts <input v-model="allowGifts" type="checkbox"/></label>
+      <p class="text-xs text-slate-500">Product and event IDs are supported by the API; the existing picker can send them as product_ids and event_ids.</p>
+      <p v-if="error" class="text-sm font-semibold text-red-600">{{ error }}</p>
+      <button :disabled="busy" class="btn btn-primary w-full py-3 disabled:opacity-60" @click="submit">{{ busy ? 'Sharing…' : 'Share Vibe' }}</button>
     </div>
   </Modal>
 </template>
 
 <script setup>
+import axios from 'axios';
+import { usePage } from '@inertiajs/vue3';
 import { ref } from 'vue';
-import Modal from '../ui/Modal.vue';
 import { getUser } from '../MockDataStore';
+import Modal from '../ui/Modal.vue';
 
+const props = defineProps({ publishers: { type: Object, default: () => ({ organizations: [], groups: [] }) } });
 const emit = defineEmits(['postCreated']);
-
-const user = getUser();
-const modalRef = ref(null);
-const postAs = ref('me');
-const draftText = ref('');
-const draftLoc = ref(`${user.city}, ${user.country}`);
-const draftMediaUrl = ref(null);
-const draftIsVideo = ref(false);
-const postAsEntityName = ref('');
-const postAsEntityType = ref('Organization');
-const postAsEntities = ref([]);
-
-const addPostAsEntity = () => {
-  if (!postAsEntityName.value) return;
-
-  postAsEntities.value.push({
-    id: Date.now(),
-    name: postAsEntityName.value,
-    type: postAsEntityType.value,
-  });
-  postAsEntityName.value = '';
-};
-
-const removePostAsEntity = (id) => {
-  postAsEntities.value = postAsEntities.value.filter((entity) => entity.id !== id);
-};
-
-const open = () => {
-  if (modalRef.value) {
-    modalRef.value.open();
-    if (window.lucide) {
-      setTimeout(() => lucide.createIcons(), 50);
-    }
-  }
-};
-
-const close = () => {
-  if (modalRef.value) modalRef.value.close();
-};
-
-defineExpose({ open, close });
-
-const onMediaSelected = (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  draftIsVideo.value = file.type.startsWith('video/');
-  draftMediaUrl.value = URL.createObjectURL(file);
-};
-
-const clearMedia = () => {
-  draftMediaUrl.value = null;
-  draftIsVideo.value = false;
-};
-
-const postVibe = () => {
-  const newPost = {
-    id: Date.now(),
-    handle: user.name,
-    avatar: user.avatar,
-    location: draftLoc.value,
-    kind: draftIsVideo.value ? 'reel' : 'photo',
-    media: draftMediaUrl.value || 'https://picsum.photos/800/600',
-    caption: draftText.value || 'New vibe ✨',
-    likes: 0,
-    comments: 0,
-    bigup: 0,
-    shoppable: false,
-    realVideo: draftIsVideo.value
-  };
-  
-  emit('postCreated', newPost);
-  close();
-  draftText.value = '';
-  draftMediaUrl.value = null;
+const user = usePage().props.auth?.user || getUser();
+const modalRef = ref(); const postAs = ref('me'); const selectedPublisher = ref(''); const caption = ref('');
+const location = ref(`${user.city}, ${user.country}`); const allowGifts = ref(true); const media = ref([]); const busy = ref(false); const error = ref('');
+const pickers = [{ label: '📷 Take Photo', accept: 'image/*', capture: 'environment', source: 'camera' }, { label: '🎥 Record Video', accept: 'video/*', capture: 'environment', source: 'video_recording' }, { label: '🖼️ Gallery', accept: 'image/*,video/*', multiple: true, source: 'gallery' }];
+const open = () => modalRef.value?.open(); const close = () => modalRef.value?.close(); defineExpose({ open, close });
+const selectMedia = (event, source) => { Array.from(event.target.files || []).forEach(file => media.value.push({ file, source, video: file.type.startsWith('video/'), url: URL.createObjectURL(file) })); event.target.value = ''; };
+const removeMedia = i => { URL.revokeObjectURL(media.value[i].url); media.value.splice(i, 1); };
+const submit = async () => {
+  error.value = ''; if (!caption.value.trim() && !media.value.length) { error.value = 'Add a caption or media.'; return; }
+  const [type, id] = postAs.value === 'me' ? ['user', user.id] : selectedPublisher.value.split(':'); if (!id) { error.value = 'Select a publisher.'; return; }
+  const form = new FormData(); Object.entries({ publisher_type: type, publisher_id: id, caption: caption.value, location_name: location.value, allow_coin_gifts: allowGifts.value ? 1 : 0, visibility: 'public' }).forEach(([k, v]) => form.append(k, v));
+  media.value.forEach((item, i) => { form.append(`media[${i}]`, item.file); form.append(`media_sources[${i}]`, item.source); }); busy.value = true;
+  try { const vibe = (await axios.post(route('new_frontend.vibes.store'), form)).data.data; emit('postCreated', { id: vibe.id, handle: vibe.publisher.name, avatar: vibe.publisher.avatar || user.avatar, location: vibe.location.name, kind: vibe.media[0]?.type === 'video' ? 'reel' : 'photo', media: vibe.media[0]?.url, caption: vibe.caption, likes: 0, comments: 0, bigup: 0, shoppable: vibe.products.length + vibe.events.length > 0, realVideo: vibe.media[0]?.type === 'video' }); media.value.forEach(x => URL.revokeObjectURL(x.url)); media.value = []; caption.value = ''; close(); }
+  catch (e) { error.value = Object.values(e.response?.data?.errors || {})[0]?.[0] || e.response?.data?.message || 'Unable to share this vibe.'; } finally { busy.value = false; }
 };
 </script>

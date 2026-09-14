@@ -3,12 +3,11 @@
 namespace App\Models;
 
 use App\Models\Frontend\FavouriteEvent;
-use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Storage;
 
 class LinkUpEvent extends Model
 {
@@ -42,7 +41,7 @@ class LinkUpEvent extends Model
         'created_at',
         'updated_at',
         'is_free',
-        'organizer_id'
+        'organizer_id',
     ];
 
     protected $appends = [
@@ -57,10 +56,12 @@ class LinkUpEvent extends Model
     public function getGalleryUrlsAttribute()
     {
         $gallery = $this->eventDetails?->image_gallery;
-        if (!is_array($gallery)) return [];
+        if (! is_array($gallery)) {
+            return [];
+        }
 
         return collect($gallery)
-            ->map(fn($img) => asset(Storage::url($img)))
+            ->map(fn ($img) => asset(Storage::url($img)))
             ->prepend($this->image_url)
             ->unique()
             ->filter()
@@ -83,7 +84,6 @@ class LinkUpEvent extends Model
         return $this->tickets_count ?? ($this->relationLoaded('tickets') ? $this->tickets->count() : 0);
     }
 
-
     /**
      * Get the attributes that should be cast.
      *
@@ -96,7 +96,7 @@ class LinkUpEvent extends Model
             'organizer_image_object' => 'array',
             'start_time' => 'datetime',
             'end_time' => 'datetime',
-            'is_free' => 'boolean'
+            'is_free' => 'boolean',
         ];
     }
 
@@ -105,27 +105,26 @@ class LinkUpEvent extends Model
         return $this->belongsTo(User::class, 'organizer_id');
     }
 
-
     protected static function booted()
     {
 
-       static::deleting(function ($event) {
-        // $event->tickets()->delete();
-        Sponsor::where('link_up_event_id', $event->id)->delete();
-        Ticket::where('event_id',$event->id)->delete();
-    });
+        static::deleting(function ($event) {
+            // $event->tickets()->delete();
+            Sponsor::where('link_up_event_id', $event->id)->delete();
+            Ticket::where('event_id', $event->id)->delete();
+        });
     }
 
     public function scopeFilter($query, array $filters)
     {
         $query->when($filters['search'] ?? null, function ($query, $search) {
-            $query->where('title', 'like', '%' . $search . '%');
+            $query->where('title', 'like', '%'.$search.'%');
         });
     }
 
     public function scopeNearby($query, $lat, $lng, $minRadius, $maxRadius)
     {
-        return $query->select("*", DB::raw("
+        return $query->select('*', DB::raw("
                     (6371 * acos(
                         cos(radians($lat)) *
                         cos(radians(latitude)) *
@@ -134,15 +133,16 @@ class LinkUpEvent extends Model
                         sin(radians(latitude))
                     )) AS distance
                 "))
-            ->having("distance", ">=", $minRadius)
-            ->having("distance", "<=", $maxRadius)
-            ->orderBy("distance", "asc");
+            ->having('distance', '>=', $minRadius)
+            ->having('distance', '<=', $maxRadius)
+            ->orderBy('distance', 'asc');
     }
 
     public function category()
     {
         return $this->belongsTo(EventCategory::class, 'category_id');
     }
+
     public function tickets()
     {
         return $this->hasMany(Ticket::class, 'event_id');
@@ -166,19 +166,23 @@ class LinkUpEvent extends Model
             $image = $image[0] ?? null;
         }
 
-        if (!$image) {
+        if (! $image) {
             // Fallback to featured_image if image_object is empty
             $image = $this->featured_image;
         }
 
-        if (!$image) return null;
+        if (! $image) {
+            return null;
+        }
 
         return asset(Storage::url($image));
     }
 
     public function getOrganizerImageUrlAttribute()
     {
-        if (! $this->organizer_image_object) return null;
+        if (! $this->organizer_image_object) {
+            return null;
+        }
 
         return asset(Storage::url($this->organizer_image_object));
     }
@@ -263,5 +267,10 @@ class LinkUpEvent extends Model
                 $sub->where('event_type', 'recurring')->whereDate('recurr_end_date', '>=', now()->today());
             });
         });
+    }
+
+    public function vibes()
+    {
+        return $this->morphToMany(Vibe::class, 'attachable', 'vibe_attachments');
     }
 }

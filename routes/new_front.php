@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\NewFrontend\ChatController;
 use App\Http\Controllers\NewFrontend\ChatAttachmentController;
+use App\Http\Controllers\NewFrontend\ChatController;
 use App\Http\Controllers\NewFrontend\DashboardController;
 use App\Http\Controllers\NewFrontend\EventController;
 use App\Http\Controllers\NewFrontend\LinkupController;
@@ -10,6 +10,7 @@ use App\Http\Controllers\NewFrontend\MarketplaceAffiliateController;
 use App\Http\Controllers\NewFrontend\NightLifeController;
 use App\Http\Controllers\NewFrontend\ProfileSecurityController;
 use App\Http\Controllers\NewFrontend\TicketPurchaseController;
+use App\Http\Controllers\NewFrontend\VibeController;
 use App\Http\Controllers\NewFrontend\WalletController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,6 +20,7 @@ Route::prefix('new_frontend')->name('new_frontend.')->group(function () {
     });
 
     Route::middleware(['auth', 'otp.verified', 'isWizardComplete'])->group(function () {
+        Route::post('/vibes', [VibeController::class, 'store'])->middleware('throttle:10,1')->name('vibes.store');
         Route::get('/home', [DashboardController::class, 'home'])->name('home');
         Route::get('/vibes', [DashboardController::class, 'vibes'])->name('vibes');
         Route::get('/uvibe', [DashboardController::class, 'uvibe'])->name('uvibe');
