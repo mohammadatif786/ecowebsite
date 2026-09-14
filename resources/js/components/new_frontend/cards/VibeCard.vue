@@ -21,15 +21,50 @@
       </span>
       <button @click="showToast('More')" class="text-slate-400"><i data-lucide="more-horizontal" class="w-5 h-5"></i></button>
     </div>
-    
-    <div class="relative bg-black">
-      <video v-if="p.realVideo" :src="p.media" controls class="w-full max-h-[560px] object-contain bg-black"></video>
-      <img v-else :src="p.media" class="w-full max-h-[560px] object-cover" />
-      <span v-if="p.kind === 'reel' && !p.realVideo" class="absolute top-3 right-3 bg-black/50 text-white text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
+
+    <div class="relative bg-black group">
+      <!-- Media Carousel -->
+      <div class="relative overflow-hidden w-full max-h-[560px]">
+        <div class="flex transition-transform duration-300 ease-in-out" :style="{ transform: `translateX(-${currentIndex * 100}%)` }">
+          <div v-for="(item, index) in p.media" :key="item.id || index" class="w-full shrink-0 flex items-center justify-center bg-black">
+            <video v-if="item.type === 'video'" :src="item.url" controls class="w-full max-h-[560px] object-contain"></video>
+            <img v-else :src="item.url" class="w-full max-h-[560px] object-cover" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Arrows (only show if more than 1 media) -->
+      <template v-if="p.media && p.media.length > 1">
+        <button
+          @click="prev"
+          class="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          <i data-lucide="chevron-left" class="w-5 h-5"></i>
+        </button>
+        <button
+          @click="next"
+          class="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          <i data-lucide="chevron-right" class="w-5 h-5"></i>
+        </button>
+
+        <!-- Pagination dots -->
+        <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+          <span
+            v-for="(_, idx) in p.media"
+            :key="idx"
+            class="w-1.5 h-1.5 rounded-full transition-all"
+            :class="currentIndex === idx ? 'bg-white scale-125' : 'bg-white/40'"
+          ></span>
+        </div>
+      </template>
+
+      <!-- Reel Indicator -->
+      <span v-if="p.media && p.media[currentIndex]?.type === 'video'" class="absolute top-3 right-3 bg-black/50 text-white text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
         <i data-lucide="play" class="w-3 h-3"></i>Reel
       </span>
     </div>
-    
+
     <div class="p-4">
       <div class="flex items-center gap-5 mb-2">
         <button class="flex items-center gap-1.5 font-black text-slate-700">
@@ -50,7 +85,7 @@
       <p v-if="p.sound" class="text-xs text-slate-500 mt-1 flex items-center gap-1">
         <i data-lucide="music" class="w-3 h-3"></i>{{ p.sound }}
       </p>
-      
+
       <!-- VibeTagCard -->
       <button v-if="p.tag" @click="openVibeTag" class="w-full flex items-center gap-3 rounded-2xl border border-slate-200 p-2 mt-3 text-left hover:border-lkblue transition">
         <div class="relative shrink-0">
@@ -70,7 +105,7 @@
         </span>
       </button>
     </div>
-    
+
     <VibeTagModal ref="vibeTagModalRef" />
   </article>
 </template>
@@ -83,9 +118,23 @@ const props = defineProps({
 });
 
 const vibeTagModalRef = ref(null);
+const currentIndex = ref(0);
 
-const num = (n) => Number(n).toLocaleString();
-const money = (n) => '$' + Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const next = () => {
+  if (props.p.media && props.p.media.length) {
+    currentIndex.value = (currentIndex.value + 1) % props.p.media.length;
+  }
+};
+
+const prev = () => {
+  if (props.p.media && props.p.media.length) {
+    currentIndex.value = (currentIndex.value - 1 + props.p.media.length) % props.p.media.length;
+  }
+};
+
+const num = (n) => Number(n || 0).toLocaleString();
+const money = (n) => '$' + Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 
 const openVibeTag = () => {
   if (vibeTagModalRef.value && props.p.tag) {

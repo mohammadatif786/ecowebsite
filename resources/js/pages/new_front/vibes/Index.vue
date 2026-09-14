@@ -16,7 +16,7 @@
     <div class="grid lg:grid-cols-3 gap-6">
       <!-- Main Feed Column -->
       <div class="lg:col-span-2 space-y-4">
-        
+
         <!-- Stories Carousel -->
         <div class="card p-4">
           <div class="flex gap-4 overflow-x-auto hide-scroll">
@@ -60,7 +60,7 @@
             <span v-for="t in trendingTags" :key="t" class="chip"  @click="showToast(t)">{{ t }}</span>
           </div>
         </div>
-        
+
         <div class="card p-4">
           <h3 class="font-black mb-3">Suggested creators</h3>
           <div v-for="creator in suggestedCreators" :key="creator.handle" class="flex items-center gap-3 py-2">
@@ -86,12 +86,22 @@ import { getVibes, SEED, getUser } from '../../../components/new_frontend/MockDa
 
 defineOptions({ layout: MainLayout });
 
-defineProps({
+const props = defineProps({
   vibePublishers: { type: Object, default: () => ({ organizations: [], groups: [] }) },
+  vibes: { type: Array, default: () => [] },
 });
 
 const user = getUser();
-const posts = getVibes();
+const posts = ref([...props.vibes]);
+
+// Use mock data as fallback if database is empty for now
+if (posts.value.length === 0) {
+  posts.value = getVibes().map(v => ({
+    ...v,
+    media: [{ id: v.id, type: v.kind === 'reel' ? 'video' : 'image', url: v.media }]
+  }));
+}
+
 const stories = SEED.stories;
 
 const trendingTags = ['#carnival2026', '#soca', '#fete', '#amapiano', '#islandlife', '#linkup', '#shopcaribbean'];
@@ -106,7 +116,8 @@ const openCompose = () => {
 };
 
 const onPostCreated = (newPost) => {
-  posts.unshift(newPost);
+  // The ComposeVibeModal already emits a formatted post object
+  posts.value.unshift(newPost);
 };
 
 const followCreator = (event) => {

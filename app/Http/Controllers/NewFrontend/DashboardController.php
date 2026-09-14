@@ -18,6 +18,10 @@ use App\Models\User;
 use App\Models\UserContact;
 use App\Models\UserMoneyRequest;
 use App\Models\UserMatch;
+use App\Models\Vibe;
+use App\Domain\Vibes\Enums\VibeStatus;
+use App\Domain\Vibes\Enums\VibeMediaType;
+use Illuminate\Support\Facades\Storage;
 use App\Repositories\NewsRepository;
 use App\Support\CountryFlag;
 use Carbon\Carbon;
@@ -391,7 +395,66 @@ class DashboardController extends Controller
     {
         $user = request()->user();
 
+        $vibes = Vibe::with(['creator', 'media', 'products.user', 'events.user', 'events.tickets'])
+            ->withCount('likes')
+            ->where('status', VibeStatus::Published)
+            ->latest()
+            ->take(20)
+            ->get();
+
+        $formattedVibes = $vibes->map(function ($vibe) {
+            $tag = null;
+
+            if ($vibe->products->isNotEmpty()) {
+                $p = $vibe->products->first();
+                $tag = [
+                    'kind' => 'product',
+                    'id' => $p->id,
+                    'title' => $p->name,
+                    'price' => $p->price,
+                    'seller' => $p->user?->name ?? $p->seller?->name,
+                    'image' => $p->cover_image ? asset('storage/' . $p->cover_image) : null,
+                ];
+            } elseif ($vibe->events->isNotEmpty()) {
+                $e = $vibe->events->first();
+                $tag = [
+                    'kind' => 'event',
+                    'id' => $e->id,
+                    'title' => $e->title,
+                    'price' => $e->tickets->min('price') ?? 0,
+                    'date' => $e->start_date?->format('Y-m-d'),
+                    'location' => $e->venue,
+                    'seller' => $e->user?->name,
+                    'image' => $e->featured_image ? asset('storage/' . $e->featured_image) : null,
+                ];
+            }
+
+            $mediaItems = $vibe->media->map(function ($m) {
+                return [
+                    'id' => $m->id,
+                    'type' => $m->media_type->value,
+                    'url' => $m->disk === 'public' ? asset('storage/' . $m->path) : Storage::disk($m->disk)->url($m->path),
+                    'thumbnail' => $m->thumbnail_path ? ($m->disk === 'public' ? asset('storage/' . $m->thumbnail_path) : Storage::disk($m->disk)->url($m->thumbnail_path)) : null,
+                ];
+            });
+
+            return [
+                'id' => $vibe->id,
+                'handle' => $vibe->creator?->username ? '@' . $vibe->creator->username : ($vibe->creator?->name ?? 'User'),
+                'avatar' => $vibe->creator?->avatar ?? 'https://i.pravatar.cc/120?img=1',
+                'location' => $vibe->location_name,
+                'media' => $mediaItems,
+                'caption' => $vibe->caption,
+                'likes' => $vibe->likes_count,
+                'comments' => 0,
+                'bigup' => 0,
+                'shoppable' => $tag !== null,
+                'tag' => $tag,
+            ];
+        });
+
         return Inertia::render('new_front/vibes/Index', [
+            'vibes' => $formattedVibes,
             'vibePublishers' => [
                 'organizations' => $user->organizerProfile()->get(['id', 'organizer_name'])
                     ->map(fn ($organization) => ['id' => $organization->id, 'name' => $organization->organizer_name]),
@@ -572,7 +635,7 @@ class DashboardController extends Controller
     public function wallet()
     {
         $user = Auth::user();
-        
+
         return Inertia::render('new_front/wallet/Index', [
             'wallet' => $this->homeWalletData($user),
             'contacts' => $this->walletContacts($user),

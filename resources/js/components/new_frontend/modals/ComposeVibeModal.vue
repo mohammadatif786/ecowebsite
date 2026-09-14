@@ -56,7 +56,30 @@ const submit = async () => {
   const [type, id] = postAs.value === 'me' ? ['user', user.id] : selectedPublisher.value.split(':'); if (!id) { error.value = 'Select a publisher.'; return; }
   const form = new FormData(); Object.entries({ publisher_type: type, publisher_id: id, caption: caption.value, location_name: location.value, allow_coin_gifts: allowGifts.value ? 1 : 0, visibility: 'public' }).forEach(([k, v]) => form.append(k, v));
   media.value.forEach((item, i) => { form.append(`media[${i}]`, item.file); form.append(`media_sources[${i}]`, item.source); }); busy.value = true;
-  try { const vibe = (await axios.post(route('new_frontend.vibes.store'), form)).data.data; emit('postCreated', { id: vibe.id, handle: vibe.publisher.name, avatar: vibe.publisher.avatar || user.avatar, location: vibe.location.name, kind: vibe.media[0]?.type === 'video' ? 'reel' : 'photo', media: vibe.media[0]?.url, caption: vibe.caption, likes: 0, comments: 0, bigup: 0, shoppable: vibe.products.length + vibe.events.length > 0, realVideo: vibe.media[0]?.type === 'video' }); media.value.forEach(x => URL.revokeObjectURL(x.url)); media.value = []; caption.value = ''; close(); }
+  try {
+    const vibe = (await axios.post(route('new_frontend.vibes.store'), form)).data.data;
+    emit('postCreated', {
+      id: vibe.id,
+      handle: vibe.publisher.name,
+      avatar: vibe.publisher.avatar || user.avatar,
+      location: vibe.location.name,
+      media: vibe.media.map(m => ({
+        id: m.id,
+        type: m.type,
+        url: m.url,
+        thumbnail: m.thumbnail_url
+      })),
+      caption: vibe.caption,
+      likes: 0,
+      comments: 0,
+      bigup: 0,
+      shoppable: vibe.products.length + vibe.events.length > 0
+    });
+    media.value.forEach(x => URL.revokeObjectURL(x.url));
+    media.value = [];
+    caption.value = '';
+    close();
+  }
   catch (e) { error.value = Object.values(e.response?.data?.errors || {})[0]?.[0] || e.response?.data?.message || 'Unable to share this vibe.'; } finally { busy.value = false; }
 };
 </script>

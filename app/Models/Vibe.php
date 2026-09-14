@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Domain\Vibes\Enums\VibeStatus;
 use App\Domain\Vibes\Enums\VibeVisibility;
+use App\Models\Vote;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -55,5 +56,15 @@ class Vibe extends Model
     public function events()
     {
         return $this->morphedByMany(LinkUpEvent::class, 'attachable', 'vibe_attachments');
+    }
+
+    public function likes()
+    {
+        return $this->morphMany(Vote::class, 'votable')->where('type', 'like');
+    }
+
+    public function authUserLike()
+    {
+        return $this->morphOne(Vote::class, 'votable')->where('user_id', auth()->id())->where('type', 'like');
     }
 }
