@@ -11,6 +11,7 @@ use App\Http\Controllers\NewFrontend\NightLifeController;
 use App\Http\Controllers\NewFrontend\ProfileSecurityController;
 use App\Http\Controllers\NewFrontend\TicketPurchaseController;
 use App\Http\Controllers\NewFrontend\VibeController;
+use App\Http\Controllers\NewFrontend\VibeInteractionController;
 use App\Http\Controllers\NewFrontend\WalletController;
 use Illuminate\Support\Facades\Route;
 
@@ -21,6 +22,12 @@ Route::prefix('new_frontend')->name('new_frontend.')->group(function () {
 
     Route::middleware(['auth', 'otp.verified', 'isWizardComplete'])->group(function () {
         Route::post('/vibes', [VibeController::class, 'store'])->middleware('throttle:10,1')->name('vibes.store');
+        Route::post('/vibes/{vibe}/like', [VibeInteractionController::class, 'toggleLike'])->name('vibes.like');
+        Route::get('/vibes/{vibe}/comments', [VibeInteractionController::class, 'indexComments'])->name('vibes.comments.index');
+        Route::get('/vibes/{vibe}/top-comments', [VibeInteractionController::class, 'topComments'])->name('vibes.top-comments');
+        Route::post('/vibes/{vibe}/comments', [VibeInteractionController::class, 'storeComment'])->name('vibes.comments.store');
+        Route::post('/vibes/{vibe}/share', [VibeInteractionController::class, 'share'])->name('vibes.share');
+        Route::post('/vibe-comments/{comment}/like', [VibeInteractionController::class, 'toggleCommentLike'])->name('vibes.comments.like');
         Route::get('/home', [DashboardController::class, 'home'])->name('home');
         Route::get('/vibes', [DashboardController::class, 'vibes'])->name('vibes');
         Route::get('/uvibe', [DashboardController::class, 'uvibe'])->name('uvibe');

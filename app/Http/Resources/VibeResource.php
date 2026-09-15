@@ -26,6 +26,10 @@ class VibeResource extends JsonResource
             'media' => VibeMediaResource::collection($this->whenLoaded('media')),
             'products' => $this->whenLoaded('products', fn () => $this->products->map->only(['id', 'name', 'price', 'cover_image'])),
             'events' => $this->whenLoaded('events', fn () => $this->events->map->only(['id', 'title', 'featured_image', 'venue'])),
+            'likes_count' => $this->likes_count,
+            'comments_count' => $this->comments_count,
+            'shares_count' => $this->shares_count,
+            'is_liked' => $this->when(auth()->check(), fn () => $this->likes()->where('user_id', auth()->id())->exists()),
         ];
     }
 

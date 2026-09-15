@@ -67,4 +67,9 @@ class Vibe extends Model
     {
         return $this->morphOne(Vote::class, 'votable')->where('user_id', auth()->id())->where('type', 'like');
     }
+
+    public function comments()
+    {
+        return $this->hasMany(VibeComment::class);
+    }
 }

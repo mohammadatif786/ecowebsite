@@ -396,13 +396,12 @@ class DashboardController extends Controller
         $user = request()->user();
 
         $vibes = Vibe::with(['creator', 'media', 'products.user', 'events.user', 'events.tickets'])
-            ->withCount('likes')
             ->where('status', VibeStatus::Published)
             ->latest()
             ->take(20)
             ->get();
 
-        $formattedVibes = $vibes->map(function ($vibe) {
+        $formattedVibes = $vibes->map(function ($vibe) use ($user) {
             $tag = null;
 
             if ($vibe->products->isNotEmpty()) {
@@ -448,8 +447,9 @@ class DashboardController extends Controller
                 'media' => $mediaItems,
                 'kind' => $isReel ? 'reel' : 'photo',
                 'caption' => $vibe->caption,
-                'likes' => $vibe->likes_count,
-                'comments' => 0,
+                'likes_count' => $vibe->likes_count,
+                'comments_count' => $vibe->comments_count,
+                'is_liked' => $user ? $vibe->likes()->where('user_id', $user->id)->exists() : false,
                 'bigup' => 0,
                 'shoppable' => $tag !== null,
                 'tag' => $tag,
