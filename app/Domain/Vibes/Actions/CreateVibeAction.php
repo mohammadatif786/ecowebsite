@@ -47,7 +47,7 @@ class CreateVibeAction
                     'longitude' => $data->longitude,
                     'allow_coin_gifts' => $data->allowCoinGifts,
                     'visibility' => $data->visibility,
-                    'status' => $data->media === [] ? VibeStatus::Published : VibeStatus::Processing,
+                    'status' => VibeStatus::Published,
                     'published_at' => now(),
                 ]);
 
