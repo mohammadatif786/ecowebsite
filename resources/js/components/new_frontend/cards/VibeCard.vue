@@ -24,11 +24,11 @@
 
     <div class="relative bg-black group">
       <!-- Media Carousel -->
-      <div class="relative overflow-hidden w-full max-h-[560px]">
+      <div class="relative overflow-hidden w-full">
         <div class="flex transition-transform duration-300 ease-in-out" :style="{ transform: `translateX(-${currentIndex * 100}%)` }">
           <div v-for="(item, index) in p.media" :key="item.id || index" class="w-full shrink-0 flex items-center justify-center bg-black">
-            <video v-if="item.type === 'video'" :src="item.url" controls class="w-full max-h-[560px] object-contain"></video>
-            <img v-else :src="item.url" class="w-full max-h-[560px] object-cover" />
+            <video v-if="item.type === 'video'" :src="item.url" controls class="w-full object-contain"></video>
+            <img v-else :src="item.url" class="w-full object-contain" />
           </div>
         </div>
       </div>
