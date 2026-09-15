@@ -438,12 +438,15 @@ class DashboardController extends Controller
                 ];
             });
 
+            $isReel = $vibe->media->contains(fn ($m) => $m->media_type->value === 'video');
+
             return [
                 'id' => $vibe->id,
                 'handle' => $vibe->creator?->username ? '@' . $vibe->creator->username : ($vibe->creator?->name ?? 'User'),
                 'avatar' => $vibe->creator?->avatar ?? 'https://i.pravatar.cc/120?img=1',
                 'location' => $vibe->location_name,
                 'media' => $mediaItems,
+                'kind' => $isReel ? 'reel' : 'photo',
                 'caption' => $vibe->caption,
                 'likes' => $vibe->likes_count,
                 'comments' => 0,

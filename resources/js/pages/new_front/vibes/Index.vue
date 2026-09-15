@@ -78,11 +78,12 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
+import { usePage } from '@inertiajs/vue3';
 import MainLayout from '../../../layouts/new_front_layout/MainLayout.vue';
 import VibeCard from '../../../components/new_frontend/cards/VibeCard.vue';
 import ComposeVibeModal from '../../../components/new_frontend/modals/ComposeVibeModal.vue';
-import { getVibes, SEED, getUser } from '../../../components/new_frontend/MockDataStore';
+import { SEED } from '../../../components/new_frontend/MockDataStore';
 
 defineOptions({ layout: MainLayout });
 
@@ -91,16 +92,9 @@ const props = defineProps({
   vibes: { type: Array, default: () => [] },
 });
 
-const user = getUser();
+const page = usePage();
+const user = computed(() => page.props.auth?.user || {});
 const posts = ref([...props.vibes]);
-
-// Use mock data as fallback if database is empty for now
-if (posts.value.length === 0) {
-  posts.value = getVibes().map(v => ({
-    ...v,
-    media: [{ id: v.id, type: v.kind === 'reel' ? 'video' : 'image', url: v.media }]
-  }));
-}
 
 const stories = SEED.stories;
 
