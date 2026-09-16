@@ -1,14 +1,30 @@
 <template>
   <article class="card overflow-hidden">
     <div class="flex items-center gap-3 p-4">
-      <img :src="p.avatar" class="w-11 h-11 rounded-full object-cover" />
+      <img :src="p.avatar" class="w-11 h-11 rounded-full object-cover shadow-sm" />
       <div class="flex-1 min-w-0">
-        <p class="font-black text-sm flex items-center gap-1.5">
-          {{ p.handle }}
-          <span v-if="p.org" class="text-[9px] font-black text-white px-1.5 py-0.5 rounded-full" style="background:var(--lk-blue)">
-            {{ p.org.toUpperCase() }}
-          </span>
-        </p>
+        <div class="flex items-center flex-wrap gap-1.5">
+          <p class="font-black text-sm flex items-center gap-1.5">
+            <template v-if="p.publisher_type === 'organization'">
+              <span>🏢</span> {{ p.handle }}
+              <span class="text-[9px] font-black text-white px-2 py-0.5 rounded-full uppercase bg-lkblue">
+                Organization
+              </span>
+            </template>
+            <template v-else-if="p.publisher_type === 'group'">
+              <span>👥</span> {{ p.handle }}
+              <span class="text-[9px] font-black text-white px-2 py-0.5 rounded-full uppercase bg-lkblue">
+                Group
+              </span>
+            </template>
+            <template v-else>
+              {{ p.handle }}
+              <span v-if="p.org" class="text-[9px] font-black text-white px-1.5 py-0.5 rounded-full" style="background:var(--lk-blue)">
+                {{ p.org.toUpperCase() }}
+              </span>
+            </template>
+          </p>
+        </div>
         <p class="text-xs text-slate-500 flex items-center gap-1">
           <i data-lucide="map-pin" class="w-3 h-3"></i>{{ p.location }}
           <template v-if="p.kind === 'reel'">
@@ -81,10 +97,15 @@
         <button @click="shareVibe" class="flex items-center gap-1.5 font-black text-slate-700">
           <i data-lucide="send" class="w-5 h-5"></i>
         </button>
-        <button class="ml-auto flex items-center gap-1.5 text-white bg-gradient-to-r from-orange-500 to-amber-500 px-3 py-1.5 rounded-full text-sm font-black">
-          <i data-lucide="zap" class="w-4 h-4"></i>Big Up {{ num(p.bigup || 0) }}
+        <button
+          v-if="p.allow_coin_gifts"
+          @click="openBigUp"
+          class="ml-auto flex items-center gap-1.5 text-white bg-gradient-to-r from-orange-500 to-amber-500 px-3 py-1.5 rounded-full text-sm font-black transition-transform active:scale-95 shadow-lg shadow-orange-500/20"
+        >
+          <i data-lucide="zap" class="w-4 h-4 fill-white"></i>
+          Big Up {{ num(bigupsCount) }}
         </button>
-        <button @click="showToast('🔖 Saved')" class="text-slate-500"><i data-lucide="bookmark" class="w-5 h-5"></i></button>
+        <button @click="showToast('🔖 Saved')" class="text-slate-500" :class="{ 'ml-auto': !p.allow_coin_gifts }"><i data-lucide="bookmark" class="w-5 h-5"></i></button>
       </div>
       <p class="text-sm"><span class="font-black">{{ p.handle }}</span> {{ p.caption }}</p>
       <p v-if="p.sound" class="text-xs text-slate-500 mt-1 flex items-center gap-1">
@@ -163,6 +184,7 @@
 
     <VibeTagModal ref="vibeTagModalRef" />
     <VibeCommentsModal ref="vibeCommentsModalRef" @commentAdded="onCommentAdded" />
+    <VibeBigUpModal ref="vibeBigUpModalRef" :p="p" @sent="onBigUpSent" />
   </article>
 </template>
 
@@ -172,6 +194,7 @@ import { usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import VibeTagModal from '../modals/VibeTagModal.vue';
 import VibeCommentsModal from '../modals/VibeCommentsModal.vue';
+import VibeBigUpModal from '../modals/VibeBigUpModal.vue';
 import VibeCommentItem from './VibeCommentItem.vue';
 
 const props = defineProps({
@@ -183,11 +206,13 @@ const user = computed(() => page.props.auth?.user || {});
 
 const vibeTagModalRef = ref(null);
 const vibeCommentsModalRef = ref(null);
+const vibeBigUpModalRef = ref(null);
 const currentIndex = ref(0);
 
 const isLiked = ref(props.p.is_liked || false);
 const likesCount = ref(props.p.likes_count || props.p.likes || 0);
 const commentsCount = ref(props.p.comments_count || props.p.comments || 0);
+const bigupsCount = ref(props.p.bigups_count || props.p.bigup || 0);
 
 const next = () => {
   if (props.p.media && props.p.media.length) {
@@ -272,6 +297,16 @@ const openFullComments = () => {
 const onCommentAdded = () => {
   commentsCount.value++;
   fetchTopComments();
+};
+
+const openBigUp = () => {
+  if (vibeBigUpModalRef.value) {
+    vibeBigUpModalRef.value.open();
+  }
+};
+
+const onBigUpSent = (newCount) => {
+  bigupsCount.value = newCount;
 };
 
 const toggleLike = async () => {

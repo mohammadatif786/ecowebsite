@@ -9,7 +9,9 @@ class GiftCoins extends Model
     protected $fillable = [
         'sender_id',
         'recieved_id',
+        'vibe_id',
         'name',
+        'emoji',
         'coins',
         'status',
         'viewed_at',

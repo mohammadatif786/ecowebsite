@@ -54,6 +54,23 @@
 
       <!-- Right Column Sidebar -->
       <div class="space-y-4">
+        <!-- My Earnings Card -->
+        <div
+          @click="openEarnings"
+          class="bg-emerald-600 rounded-[1.5rem] p-5 text-white shadow-lg shadow-emerald-600/20 flex items-center justify-between cursor-pointer hover:scale-[1.02] transition-transform active:scale-95"
+        >
+          <div>
+            <div class="flex items-center gap-2 mb-0.5">
+              <i data-lucide="trending-up" class="w-5 h-5"></i>
+              <h3 class="font-black text-[17px] tracking-tight">My Earnings</h3>
+            </div>
+            <p class="text-emerald-100 text-[11px] font-bold">Affiliate Commissions</p>
+          </div>
+          <div class="text-2xl font-black tracking-tighter">
+            {{ money(props.earningsStats?.available || 0) }}
+          </div>
+        </div>
+
         <div class="card p-4">
           <h3 class="font-black mb-3">Trending tags</h3>
           <div class="flex flex-wrap gap-2">
@@ -73,7 +90,10 @@
     </div>
 
     <!-- Compose Modal -->
-    <ComposeVibeModal ref="composeModalRef" :publishers="vibePublishers" @postCreated="onPostCreated" />
+    <ComposeVibeModal ref="composeModalRef" :publishers="vibePublishers" :affiliateItems="affiliateItems" @postCreated="onPostCreated" />
+
+    <!-- Affiliate Hub Modal -->
+    <AffiliateHubModal ref="affiliateHubModalRef" :items="affiliateItems" :stats="earningsStats" />
   </div>
 </template>
 
@@ -83,18 +103,23 @@ import { usePage } from '@inertiajs/vue3';
 import MainLayout from '../../../layouts/new_front_layout/MainLayout.vue';
 import VibeCard from '../../../components/new_frontend/cards/VibeCard.vue';
 import ComposeVibeModal from '../../../components/new_frontend/modals/ComposeVibeModal.vue';
+import AffiliateHubModal from '../../../components/new_frontend/modals/AffiliateHubModal.vue';
 import { SEED } from '../../../components/new_frontend/MockDataStore';
 
 defineOptions({ layout: MainLayout });
 
 const props = defineProps({
-  vibePublishers: { type: Object, default: () => ({ organizations: [], groups: [] }) },
+  vibePublishers: { type: Object, default: () => ({ organizations: [], groups: [], custom: [] }) },
   vibes: { type: Array, default: () => [] },
+  affiliateItems: { type: Array, default: () => [] },
+  earningsStats: { type: Object, default: () => ({}) },
 });
 
 const page = usePage();
 const user = computed(() => page.props.auth?.user || {});
 const posts = ref([...props.vibes]);
+
+const money = (n) => '$' + Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const stories = SEED.stories;
 
@@ -102,10 +127,17 @@ const trendingTags = ['#carnival2026', '#soca', '#fete', '#amapiano', '#islandli
 const suggestedCreators = SEED.stories.slice(0, 4);
 
 const composeModalRef = ref(null);
+const affiliateHubModalRef = ref(null);
 
 const openCompose = () => {
   if (composeModalRef.value) {
     composeModalRef.value.open();
+  }
+};
+
+const openEarnings = () => {
+  if (affiliateHubModalRef.value) {
+    affiliateHubModalRef.value.open('earnings');
   }
 };
 

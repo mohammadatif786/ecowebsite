@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\UserCustomPublisher;
 use App\Models\ClubFete;
 use App\Models\OrganizerProfile;
 use App\Models\User;
@@ -39,6 +40,7 @@ class VibeResource extends JsonResource
             $model instanceof User => ['id' => $model->id, 'type' => 'user', 'name' => $model->name, 'avatar' => $model->avatar],
             $model instanceof OrganizerProfile => ['id' => $model->id, 'type' => 'organization', 'name' => $model->organizer_name],
             $model instanceof ClubFete => ['id' => $model->id, 'type' => 'group', 'name' => $model->name],
+            $model instanceof UserCustomPublisher => ['id' => $model->id, 'type' => $model->type, 'name' => $model->name],
         };
     }
 }

@@ -16,7 +16,7 @@
       </div>
       <!-- Tabs -->
       <div class="flex gap-2 mt-3">
-        <button v-for="t in tabs" :key="t[0]" @click="activeTab = t[0]" :class="['shrink-0 rounded-full px-4 py-1.5 text-sm font-black transition', activeTab === t[0] ? 'bg-white text-lkblue2' : 'bg-white/20 text-white']">
+        <button v-for="t in tabs" :key="t[0]" @click="activeTab = t[0]" :class="['shrink-0 rounded-full px-4 py-1.5 text-sm font-black transition', activeTab === t[0] ? 'bg-white text-[#2196F3] shadow-md' : 'bg-white/20 text-white']">
           {{ t[1] }}
         </button>
       </div>
@@ -72,57 +72,73 @@
           <!-- Stats -->
           <div class="grid grid-cols-3 gap-2">
             <div class="card p-3 text-center">
-              <p class="text-xl font-black">{{ earnings.sales.length }}</p>
+              <p class="text-xl font-black">{{ stats.sales_driven || 0 }}</p>
               <p class="text-[11px] text-slate-400">Sales driven</p>
             </div>
             <div class="card p-3 text-center">
-              <p class="text-xl font-black text-emerald-600">{{ money(totalCommission) }}</p>
+              <p class="text-xl font-black text-emerald-600">{{ money(stats.total_commission) }}</p>
               <p class="text-[11px] text-slate-400">Commission</p>
             </div>
             <div class="card p-3 text-center">
-              <p class="text-xl font-black">{{ earnings.clicks || 0 }}</p>
+              <p class="text-xl font-black">0</p>
               <p class="text-[11px] text-slate-400">Taps</p>
             </div>
           </div>
 
           <!-- Pending / Available -->
           <div class="grid grid-cols-2 gap-2">
-            <div class="rounded-2xl bg-amber-50 border border-amber-200 p-3">
-              <p class="text-[11px] font-black text-amber-700">Pending (escrow)</p>
-              <p class="text-2xl font-black text-amber-700">{{ money(earnings.pending) }}</p>
-              <p class="text-[10px] text-amber-600">Released when buyers receive orders</p>
+            <div class="rounded-2xl bg-[#FFF8E1] border border-[#FFECB3] p-3">
+              <p class="text-[11px] font-black text-[#A67C00]">Pending (escrow)</p>
+              <p class="text-2xl font-black text-[#A67C00]">{{ money(stats.pending) }}</p>
+              <p class="text-[10px] text-[#A67C00]/80">Released when buyers receive orders</p>
             </div>
-            <div class="rounded-2xl bg-emerald-50 border border-emerald-200 p-3">
-              <p class="text-[11px] font-black text-emerald-700">Available</p>
-              <p class="text-2xl font-black text-emerald-700">{{ money(earnings.available) }}</p>
+            <div class="rounded-2xl bg-[#E8F5E9] border border-[#C8E6C9] p-3">
+              <p class="text-[11px] font-black text-[#2E7D32]">Available</p>
+              <p class="text-2xl font-black text-[#2E7D32]">{{ money(stats.available) }}</p>
             </div>
           </div>
 
           <!-- Actions -->
           <div class="flex gap-2">
-            <button v-if="earnings.pending > 0" @click="releaseEarnings" class="btn btn-ghost flex-1 py-3">Simulate deliveries → release</button>
-            <button @click="transferEarnings" class="btn btn-primary flex-1 py-3">Transfer {{ money(earnings.available) }} to Wallet</button>
+            <button v-if="stats.pending > 0" @click="releaseEarnings" class="btn btn-ghost flex-1 py-3">Simulate deliveries → release</button>
+            <button @click="transferEarnings" class="btn btn-primary flex-1 py-3">Transfer {{ money(stats.available) }} to Wallet</button>
           </div>
-          <p class="text-[11px] text-slate-400 text-center">LinkUp keeps 5% · seller paid via escrow · already paid out {{ money(earnings.paid) }}</p>
+          <p class="text-[11px] text-slate-400 text-center">LinkUp keeps 5% · already paid out {{ money(stats.paid) }}</p>
 
           <!-- Recent commissions -->
-          <p class="font-black mt-1 mb-1">Recent commissions</p>
-          <div class="space-y-1.5 max-h-40 overflow-y-auto">
-            <div v-if="earnings.sales.length" v-for="s in earnings.sales" :key="s.title + s.amount" class="flex items-center justify-between border border-slate-100 rounded-xl p-2 text-sm">
+          <div class="flex items-center justify-between mt-4 mb-2">
+            <p class="font-black text-sm">Recent commissions</p>
+            <div class="flex gap-1">
+              <button
+                v-for="f in ['All', 'Vibes', 'U Vibe', 'Live']"
+                :key="f"
+                @click="commissionFilter = f"
+                :class="['px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition-all', commissionFilter === f ? 'bg-lkblue text-white shadow-sm' : 'bg-slate-100 text-slate-400 hover:bg-slate-200']"
+              >
+                {{ f }}
+              </button>
+            </div>
+          </div>
+
+          <div class="space-y-1.5 max-h-40 overflow-y-auto custom-scrollbar">
+            <div v-if="filteredRecent.length" v-for="s in filteredRecent" :key="s.title + s.amount" class="flex items-center justify-between border border-slate-100 rounded-xl p-2 text-sm hover:bg-slate-50 transition">
               <div class="min-w-0">
-                <p class="font-bold truncate">{{ s.title }}</p>
-                <p class="text-[11px] text-slate-400">
+                <p class="font-bold truncate text-slate-800">{{ s.title }}</p>
+                <p class="text-[11px] text-slate-400 font-medium">
                   {{ money(s.amount) }} · {{ s.rate }}% ·
-                  <span :class="['font-bold', s.source === 'vibe' ? 'text-purple-500' : 'text-rose-500']">
-                    {{ s.source === 'vibe' ? '✨ from Vibes' : '📡 from Live' }}
+                  <span :class="['font-bold', getSourceColor(s.source)]">
+                    {{ getSourceLabel(s.source) }}
                   </span>
                 </p>
               </div>
               <span class="font-black text-emerald-600 shrink-0">
-                +{{ money(s.commission) }} <span :class="['text-[10px]', s.status === 'paid' ? 'text-emerald-500' : 'text-amber-500']">{{ s.status }}</span>
+                +{{ money(s.commission) }} <span :class="['text-[10px] uppercase', s.status === 'paid' ? 'text-emerald-500' : 'text-amber-500']">{{ s.status }}</span>
               </span>
             </div>
-            <p v-else class="text-center text-slate-400 text-sm py-4">No commissions yet — tag a product or event on a Vibe post or a Live stream and make a sale.</p>
+            <div v-else class="text-center py-8">
+              <div class="text-slate-300 mb-1"><i data-lucide="info" class="w-8 h-8 mx-auto opacity-20"></i></div>
+              <p class="text-slate-400 text-[13px] font-bold">No {{ commissionFilter === 'All' ? '' : commissionFilter }} commissions yet</p>
+            </div>
           </div>
         </div>
       </template>
@@ -131,9 +147,14 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, nextTick } from 'vue';
 import Modal from '../ui/Modal.vue';
 import { DB, getProducts, getEvents, SEED } from '../MockDataStore';
+
+const props = defineProps({
+  items: { type: Array, default: () => [] },
+  stats: { type: Object, default: () => ({}) }
+});
 
 const modalRef = ref(null);
 const activeTab = ref('browse');
@@ -142,12 +163,38 @@ const tabs = [['browse', 'Promote'], ['promos', 'My Promotions'], ['earnings', '
 const defaultEarnings = { pending: 0, available: 0, paid: 0, clicks: 0, sales: [] };
 const earnings = ref({ ...defaultEarnings });
 const promos = ref([]);
+const commissionFilter = ref('All');
 
-const PLATFORM_FEE = 5;
+const filteredRecent = computed(() => {
+  const recent = props.stats?.recent || [];
+  if (commissionFilter.value === 'All') return recent;
+
+  const mapping = {
+    'Vibes': 'vibe',
+    'U Vibe': 'uvibe',
+    'Live': 'live'
+  };
+
+  const targetSource = mapping[commissionFilter.value];
+  return recent.filter(s => s.source === targetSource);
+});
+
+const getSourceLabel = (source) => {
+  const labels = { vibe: '✨ from Vibes', uvibe: '🎓 from U Vibe', live: '📡 from Live', marketplace: '🛍️ from Marketplace' };
+  return labels[source] || 'from LinkUp';
+};
+
+const getSourceColor = (source) => {
+  const colors = { vibe: 'text-purple-500', uvibe: 'text-indigo-500', live: 'text-rose-500', marketplace: 'text-emerald-500' };
+  return colors[source] || 'text-slate-500';
+};
 
 const money = (n) => '$' + Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+const PLATFORM_FEE = 5;
+
 const fmtDate = (d) => {
+  if (!d) return '';
   const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
   const dt = new Date(d);
   return MONTHS[dt.getMonth()] + ' ' + dt.getDate();
@@ -159,17 +206,8 @@ const commLabel = (t) => { const m = commMode(t); if (m === 'none') return 'no c
 
 const totalCommission = computed(() => +(earnings.value.pending + earnings.value.available + earnings.value.paid).toFixed(2));
 
-const allProducts = computed(() => getProducts());
-const allEvents = computed(() => getEvents());
-
 const browseList = computed(() => {
-  const prods = allProducts.value.filter(p => (p.stock == null || p.stock > 0) && tagCommAmt(p) > 0).map(p => ({
-    ...p, kind: 'product'
-  }));
-  const evs = allEvents.value.filter(e => tagCommAmt(e) > 0).map(e => ({
-    ...e, kind: 'event', seller: e.organizer || 'Event organizer'
-  }));
-  return [...prods, ...evs];
+  return props.items.filter(item => tagCommAmt(item) > 0);
 });
 
 const isPromoting = (item) => promos.value.some(p => String(p.id) === String(item.id) && p.kind === item.kind);
@@ -198,16 +236,13 @@ const releaseEarnings = () => {
 };
 
 const transferEarnings = () => {
-  if (earnings.value.available <= 0) {
+  const available = (props.stats?.available || 0);
+  if (available <= 0) {
     if (window.toast) window.toast('Nothing available yet — release delivered orders first');
     return;
   }
-  const amt = earnings.value.available;
-  earnings.value.paid = +(earnings.value.paid + amt).toFixed(2);
-  earnings.value.available = 0;
-  earnings.value.sales.forEach(s => { if (s.status === 'released') s.status = 'paid'; });
-  DB.set('lk_affiliate_earnings', earnings.value);
-  if (window.toast) window.toast('💸 ' + money(amt) + ' commission → Wallet');
+
+  if (window.toast) window.toast(`💸 ${money(available)} commission transfer requested!`);
 };
 
 const open = (tab) => {
@@ -216,7 +251,7 @@ const open = (tab) => {
   promos.value = DB.get('lk_affiliate_promos', []);
   if (modalRef.value) {
     modalRef.value.open();
-    if (window.lucide) setTimeout(() => lucide.createIcons(), 50);
+    if (window.lucide) setTimeout(() => window.lucide.createIcons(), 50);
   }
 };
 
@@ -224,3 +259,4 @@ const close = () => { if (modalRef.value) modalRef.value.close(); };
 
 defineExpose({ open, close });
 </script>
+

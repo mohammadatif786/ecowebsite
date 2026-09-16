@@ -69,6 +69,7 @@ class AppServiceProvider extends ServiceProvider
             'user' => \App\Models\User::class,
             'organization' => \App\Models\OrganizerProfile::class,
             'group' => \App\Models\ClubFete::class,
+            'custom_publisher' => \App\Models\UserCustomPublisher::class,
             'product' => \App\Models\Product::class,
             'event' => \App\Models\LinkUpEvent::class,
         ]);

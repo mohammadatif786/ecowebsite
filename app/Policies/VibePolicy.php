@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Domain\Vibes\Enums\VibePublisherType;
+use App\Models\UserCustomPublisher;
 use App\Models\ClubFete;
 use App\Models\OrganizerProfile;
 use App\Models\User;
@@ -29,6 +30,8 @@ class VibePolicy
                 ->whereHas('members', fn ($query) => $query->whereKey($user->getKey())
                     ->where('club_fete_members.is_active', true)
                     ->whereIn('club_fete_members.role', ['owner', 'admin']))->exists(),
+            VibePublisherType::CustomPublisher => UserCustomPublisher::query()
+                ->whereKey($publisherId)->where('user_id', $user->getKey())->exists(),
         };
     }
 }

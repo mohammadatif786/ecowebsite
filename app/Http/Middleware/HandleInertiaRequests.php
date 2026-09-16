@@ -98,7 +98,7 @@ class HandleInertiaRequests extends Middleware
             'messages' => fn() => $request->session()->get('messages') ?? [],
             'message' => fn() => $request->session()->get('message'),
             'messageType' => fn() => $request->session()->get('messageType'),
-            'walletBalance' => fn() => auth()?->user()?->balance('USD')->value->get(),
+            'walletBalance' => fn() => (float) (auth()?->user()?->balance('USD')->value->get() ?? 0),
             'userCountryFlag' => fn() => $request->user()
                 ? CountryFlag::emoji($request->user()->new_country ?? $request->user()->country)
                 : null,

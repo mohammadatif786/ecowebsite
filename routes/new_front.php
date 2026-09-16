@@ -27,7 +27,10 @@ Route::prefix('new_frontend')->name('new_frontend.')->group(function () {
         Route::get('/vibes/{vibe}/top-comments', [VibeInteractionController::class, 'topComments'])->name('vibes.top-comments');
         Route::post('/vibes/{vibe}/comments', [VibeInteractionController::class, 'storeComment'])->name('vibes.comments.store');
         Route::post('/vibes/{vibe}/share', [VibeInteractionController::class, 'share'])->name('vibes.share');
+        Route::post('/vibes/{vibe}/bigup', [VibeInteractionController::class, 'sendBigUp'])->name('vibes.bigup');
+        Route::post('/vibes/{vibe}/purchase', [VibeInteractionController::class, 'purchaseAttachment'])->name('vibes.purchase');
         Route::post('/vibe-comments/{comment}/like', [VibeInteractionController::class, 'toggleCommentLike'])->name('vibes.comments.like');
+        Route::post('/vibes/custom-publishers', [DashboardController::class, 'storeCustomPublisher'])->name('vibes.custom-publishers.store');
         Route::get('/home', [DashboardController::class, 'home'])->name('home');
         Route::get('/vibes', [DashboardController::class, 'vibes'])->name('vibes');
         Route::get('/uvibe', [DashboardController::class, 'uvibe'])->name('uvibe');

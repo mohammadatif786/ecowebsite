@@ -17,6 +17,7 @@ use App\Models\TicketSale;
 use App\Models\User;
 use App\Models\UserContact;
 use App\Models\UserMoneyRequest;
+use App\Models\UserCustomPublisher;
 use App\Models\UserMatch;
 use App\Models\Vibe;
 use App\Domain\Vibes\Enums\VibeStatus;
@@ -395,7 +396,7 @@ class DashboardController extends Controller
     {
         $user = request()->user();
 
-        $vibes = Vibe::with(['creator', 'media', 'products.user', 'events.user', 'events.tickets'])
+        $vibes = Vibe::with(['creator', 'publisher', 'media', 'products.user', 'events.user', 'events.tickets'])
             ->where('status', VibeStatus::Published)
             ->latest()
             ->take(20)
@@ -408,6 +409,7 @@ class DashboardController extends Controller
                 $p = $vibe->products->first();
                 $tag = [
                     'kind' => 'product',
+                    'vibe_id' => $vibe->id,
                     'id' => $p->id,
                     'title' => $p->name,
                     'price' => $p->price,
@@ -418,6 +420,7 @@ class DashboardController extends Controller
                 $e = $vibe->events->first();
                 $tag = [
                     'kind' => 'event',
+                    'vibe_id' => $vibe->id,
                     'id' => $e->id,
                     'title' => $e->title,
                     'price' => $e->tickets->min('price') ?? 0,
@@ -439,33 +442,166 @@ class DashboardController extends Controller
 
             $isReel = $vibe->media->contains(fn ($m) => $m->media_type->value === 'video');
 
+            $publisher = $vibe->publisher;
+            $publisherName = 'User';
+            $publisherType = 'user';
+            $publisherAvatar = $vibe->creator?->avatar ?? 'https://i.pravatar.cc/120?img=1';
+
+            if ($publisher instanceof User) {
+                $publisherName = $publisher->name;
+                $publisherType = 'user';
+                $publisherAvatar = $publisher->avatar;
+            } elseif ($publisher instanceof \App\Models\OrganizerProfile) {
+                $publisherName = $publisher->organizer_name;
+                $publisherType = 'organization';
+            } elseif ($publisher instanceof \App\Models\ClubFete) {
+                $publisherName = $publisher->name;
+                $publisherType = 'group';
+            } elseif ($publisher instanceof UserCustomPublisher) {
+                $publisherName = $publisher->name;
+                $publisherType = $publisher->type;
+            }
+
             return [
                 'id' => $vibe->id,
-                'handle' => $vibe->creator?->username ? '@' . $vibe->creator->username : ($vibe->creator?->name ?? 'User'),
-                'avatar' => $vibe->creator?->avatar ?? 'https://i.pravatar.cc/120?img=1',
+                'handle' => $publisherName,
+                'publisher_type' => $publisherType,
+                'avatar' => $publisherAvatar,
                 'location' => $vibe->location_name,
                 'media' => $mediaItems,
                 'kind' => $isReel ? 'reel' : 'photo',
                 'caption' => $vibe->caption,
                 'likes_count' => $vibe->likes_count,
                 'comments_count' => $vibe->comments_count,
+                'shares_count' => $vibe->shares_count,
+                'bigups_count' => $vibe->bigups_count,
                 'is_liked' => $user ? $vibe->likes()->where('user_id', $user->id)->exists() : false,
-                'bigup' => 0,
+                'allow_coin_gifts' => (bool) $vibe->allow_coin_gifts,
+                'bigup' => $vibe->bigups_count,
                 'shoppable' => $tag !== null,
                 'tag' => $tag,
             ];
         });
 
+        $customPublishers = UserCustomPublisher::where('user_id', $user->id)->get();
+
+        $totalBigUpCoins = \App\Models\GiftCoins::where('recieved_id', $user->id)
+            ->whereNotNull('vibe_id')
+            ->sum('coins');
+
+        $bigUpValue = (float) ($totalBigUpCoins * 0.01);
+
+        // Fetch Real Affiliate Earnings
+        $affEarnings = \App\Models\MarketplaceAffiliateEarning::where('affiliate_user_id', $user->id)
+            ->latest()
+            ->get();
+
+        $pendingAff = (float) $affEarnings->where('status', 'pending')->sum('commission_amount');
+        $availableAff = (float) $affEarnings->where('status', 'released')->sum('commission_amount');
+        $paidAff = (float) $affEarnings->where('status', 'paid')->sum('commission_amount');
+
+        $earningsStats = [
+            'sales_driven' => $affEarnings->count(),
+            'total_commission' => $pendingAff + $availableAff + $paidAff,
+            'pending' => $pendingAff,
+            'available' => $availableAff,
+            'paid' => $paidAff,
+            'recent' => $affEarnings->take(20)->map(fn($e) => [
+                'title' => 'Affiliate Sale',
+                'amount' => (float) $e->commission_amount,
+                'commission' => (float) $e->commission_amount,
+                'rate' => 0,
+                'status' => $e->status,
+                'source' => 'marketplace'
+            ])
+        ];
+
+        $affiliateProducts = MarketplaceProduct::with(['seller:id,name,avatar'])
+            ->where('status', true)
+            ->where('user_id', '!=', $user->id)
+            ->where(function ($query) {
+                $query->where('commMode', 'flat')->where('commFlat', '>', 0)
+                    ->orWhere('commMode', 'pct')->where('commission', '>', 0);
+            })
+            ->latest()
+            ->get()
+            ->map(fn ($p) => [
+                'id' => $p->id,
+                'kind' => 'product',
+                'title' => $p->name,
+                'price' => (float) $p->price,
+                'image' => $p->cover_image ?? $p->image_url,
+                'seller' => $p->seller?->name ?? 'Store',
+                'commMode' => $p->commMode,
+                'commission' => (float) $p->commission,
+                'commFlat' => (float) $p->commFlat,
+            ]);
+
+        $affiliateEvents = LinkUpEvent::with(['eventDetails', 'user', 'tickets'])
+            ->activeTodayAndFuture()
+            ->where('user_id', '!=', $user->id)
+            ->whereHas('tickets', function ($query) {
+                $query->where(function ($q) {
+                    $q->where('commMode', 'flat')->where('commFlat', '>', 0)
+                        ->orWhere('commMode', 'pct')->where('commission', '>', 0);
+                });
+            })
+            ->get()
+            ->map(function ($e) {
+                $ticket = $e->tickets->first(fn ($t) =>
+                    ($t->commMode === 'flat' && $t->commFlat > 0) ||
+                    ($t->commMode === 'pct' && $t->commission > 0)
+                );
+
+                return [
+                    'id' => $e->id,
+                    'kind' => 'event',
+                    'title' => $e->title,
+                    'price' => $e->is_free ? 0 : (float) ($e->tickets->min('price') ?? 0),
+                    'date' => $this->eventDate($e)?->toISOString(),
+                    'location' => $e->venue,
+                    'organizer' => $e->user?->name ?? 'Organizer',
+                    'commMode' => $ticket?->commMode ?? 'none',
+                    'commission' => (float) ($ticket?->commission ?? 0),
+                    'commFlat' => (float) ($ticket?->commFlat ?? 0),
+                    'image' => $e->image_url,
+                ];
+            });
+
         return Inertia::render('new_front/vibes/Index', [
             'vibes' => $formattedVibes,
             'vibePublishers' => [
                 'organizations' => $user->organizerProfile()->get(['id', 'organizer_name'])
-                    ->map(fn ($organization) => ['id' => $organization->id, 'name' => $organization->organizer_name]),
+                    ->map(fn ($organization) => ['id' => $organization->id, 'name' => $organization->organizer_name, 'type' => 'organization']),
                 'groups' => $user->clubFetes()->wherePivot('is_active', true)
                     ->wherePivotIn('role', ['owner', 'admin'])->where('club_fetes.status', true)
                     ->get(['club_fetes.id', 'club_fetes.name'])
-                    ->map(fn ($group) => ['id' => $group->id, 'name' => $group->name]),
+                    ->map(fn ($group) => ['id' => $group->id, 'name' => $group->name, 'type' => 'group']),
+                'custom' => $customPublishers->map(fn ($cp) => ['id' => $cp->id, 'name' => $cp->name, 'type' => $cp->type]),
             ],
+            'bigUpEarnings' => 0,
+            'affiliateItems' => $affiliateProducts->concat($affiliateEvents),
+            'earningsStats' => $earningsStats,
+        ]);
+    }
+
+    public function storeCustomPublisher(Request $request)
+    {
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'type' => 'required|in:organization,group',
+        ]);
+
+        $publisher = UserCustomPublisher::create([
+            'user_id' => auth()->id(),
+            'name' => $data['name'],
+            'type' => $data['type'],
+        ]);
+
+        return response()->json([
+            'id' => $publisher->id,
+            'name' => $publisher->name,
+            'type' => $publisher->type,
         ]);
     }
 
