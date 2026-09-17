@@ -67,15 +67,16 @@
             <p class="text-emerald-100 text-[11px] font-bold">Affiliate Commissions</p>
           </div>
           <div class="text-2xl font-black tracking-tighter">
-            {{ money(props.earningsStats?.available || 0) }}
+            {{ money(props.earningsStats?.total_commission || 0) }}
           </div>
         </div>
 
         <div class="card p-4">
           <h3 class="font-black mb-3">Trending tags</h3>
-          <div class="flex flex-wrap gap-2">
+          <div v-if="trendingTags.length" class="flex flex-wrap gap-2">
             <span v-for="t in trendingTags" :key="t" class="chip"  @click="showToast(t)">{{ t }}</span>
           </div>
+          <p v-else class="text-xs font-bold text-slate-400 py-4 text-center">No trending tags yet</p>
         </div>
 
         <div class="card p-4">
@@ -113,6 +114,7 @@ const props = defineProps({
   vibes: { type: Array, default: () => [] },
   affiliateItems: { type: Array, default: () => [] },
   earningsStats: { type: Object, default: () => ({}) },
+  trendingTags: { type: Array, default: () => [] },
 });
 
 const page = usePage();
@@ -123,7 +125,7 @@ const money = (n) => '$' + Number(n || 0).toLocaleString(undefined, { minimumFra
 
 const stories = SEED.stories;
 
-const trendingTags = ['#carnival2026', '#soca', '#fete', '#amapiano', '#islandlife', '#linkup', '#shopcaribbean'];
+const trendingTags = computed(() => props.trendingTags || []);
 const suggestedCreators = SEED.stories.slice(0, 4);
 
 const composeModalRef = ref(null);

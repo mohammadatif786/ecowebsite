@@ -464,6 +464,7 @@ class DashboardController extends Controller
 
             return [
                 'id' => $vibe->id,
+                'created_by' => $vibe->created_by,
                 'handle' => $publisherName,
                 'publisher_type' => $publisherType,
                 'avatar' => $publisherAvatar,
@@ -485,6 +486,15 @@ class DashboardController extends Controller
 
         $customPublishers = UserCustomPublisher::where('user_id', $user->id)->get();
 
+        $trendingTags = DB::table('vibe_hashtags')
+            ->select('tag', DB::raw('count(*) as count'))
+            ->groupBy('tag')
+            ->orderByDesc('count')
+            ->limit(10)
+            ->pluck('tag')
+            ->map(fn($tag) => '#' . $tag)
+            ->toArray();
+
         $totalBigUpCoins = \App\Models\GiftCoins::where('recieved_id', $user->id)
             ->whereNotNull('vibe_id')
             ->sum('coins');
@@ -502,17 +512,17 @@ class DashboardController extends Controller
 
         $earningsStats = [
             'sales_driven' => $affEarnings->count(),
-            'total_commission' => $pendingAff + $availableAff + $paidAff,
+            'total_commission' => (float) $affEarnings->sum('commission_amount'),
             'pending' => $pendingAff,
             'available' => $availableAff,
             'paid' => $paidAff,
             'recent' => $affEarnings->take(20)->map(fn($e) => [
-                'title' => 'Affiliate Sale',
+                'title' => $e->product_id ? (\App\Models\MarketplaceProduct::find($e->product_id)?->name ?? 'Affiliate Sale') : 'Affiliate Sale',
                 'amount' => (float) $e->commission_amount,
                 'commission' => (float) $e->commission_amount,
                 'rate' => 0,
                 'status' => $e->status,
-                'source' => 'marketplace'
+                'source' => $e->order_id ? 'marketplace' : 'vibe'
             ])
         ];
 
@@ -582,6 +592,7 @@ class DashboardController extends Controller
             'bigUpEarnings' => 0,
             'affiliateItems' => $affiliateProducts->concat($affiliateEvents),
             'earningsStats' => $earningsStats,
+            'trendingTags' => $trendingTags,
         ]);
     }
 

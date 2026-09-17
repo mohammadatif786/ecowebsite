@@ -46,6 +46,7 @@ import { ref, computed } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import Modal from '../ui/Modal.vue';
+import { DB } from '../MockDataStore';
 
 const modalRef = ref(null);
 const tag = ref(null);
@@ -110,7 +111,25 @@ const viewEvent = () => {
 };
 
 const addToCart = () => {
-  showToast('🛒 Added to cart');
+  if (!tag.value) return;
+
+  const currentCart = DB.get('lk_cart', []);
+  const existing = currentCart.find(i => i.id === tag.value.id);
+
+  if (existing) {
+    existing.qty++;
+  } else {
+    currentCart.push({
+      id: tag.value.id,
+      title: tag.value.title,
+      price: tag.value.price,
+      image: tag.value.image,
+      qty: 1
+    });
+  }
+
+  DB.set('lk_cart', currentCart);
+  showToast('🛍️ Added to cart');
   close();
 };
 const showToast = (msg) => {

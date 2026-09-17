@@ -101,9 +101,9 @@
           <!-- Actions -->
           <div class="flex gap-2">
             <button v-if="stats.pending > 0" @click="releaseEarnings" class="btn btn-ghost flex-1 py-3">Simulate deliveries → release</button>
-            <button @click="transferEarnings" class="btn btn-primary flex-1 py-3">Transfer {{ money(stats.available) }} to Wallet</button>
+            <button @click="transferEarnings" class="btn btn-primary flex-1 py-3 font-black">Transfer {{ money(stats.available * 0.95) }} to Wallet</button>
           </div>
-          <p class="text-[11px] text-slate-400 text-center">LinkUp keeps 5% · already paid out {{ money(stats.paid) }}</p>
+          <p class="text-[11px] text-slate-400 text-center">LinkUp keeps 5% fee on payouts · already paid out {{ money(stats.paid) }}</p>
 
           <!-- Recent commissions -->
           <div class="flex items-center justify-between mt-4 mb-2">
@@ -132,7 +132,7 @@
                 </p>
               </div>
               <span class="font-black text-emerald-600 shrink-0">
-                +{{ money(s.commission) }} <span :class="['text-[10px] uppercase', s.status === 'paid' ? 'text-emerald-500' : 'text-amber-500']">{{ s.status }}</span>
+                +{{ money(s.commission) }} <span :class="['text-[10px] uppercase', ['paid', 'released'].includes(s.status) ? 'text-emerald-500' : 'text-amber-500']">{{ s.status }}</span>
               </span>
             </div>
             <div v-else class="text-center py-8">
@@ -148,6 +148,8 @@
 
 <script setup>
 import { ref, computed, nextTick } from 'vue';
+import { router } from '@inertiajs/vue3';
+import axios from 'axios';
 import Modal from '../ui/Modal.vue';
 import { DB, getProducts, getEvents, SEED } from '../MockDataStore';
 
@@ -227,22 +229,30 @@ const removePromo = (p) => {
   DB.set('lk_affiliate_promos', promos.value);
 };
 
-const releaseEarnings = () => {
-  earnings.value.available = +(earnings.value.available + earnings.value.pending).toFixed(2);
-  earnings.value.sales.forEach(s => { if (s.status === 'pending') s.status = 'released'; });
-  earnings.value.pending = 0;
-  DB.set('lk_affiliate_earnings', earnings.value);
-  if (window.toast) window.toast('✅ Deliveries confirmed — commission released');
+const releaseEarnings = async () => {
+  try {
+    await axios.post(route('new_frontend.vibes.earnings.release'));
+    if (window.toast) window.toast('✅ Deliveries confirmed — commission released');
+    router.reload({ only: ['earningsStats'] });
+  } catch (e) {
+    console.error(e);
+  }
 };
 
-const transferEarnings = () => {
+const transferEarnings = async () => {
   const available = (props.stats?.available || 0);
   if (available <= 0) {
     if (window.toast) window.toast('Nothing available yet — release delivered orders first');
     return;
   }
 
-  if (window.toast) window.toast(`💸 ${money(available)} commission transfer requested!`);
+  try {
+    const response = await axios.post(route('new_frontend.vibes.earnings.transfer'));
+    if (window.toast) window.toast('💸 ' + response.data.message);
+    router.reload({ only: ['earningsStats', 'walletBalance'] });
+  } catch (e) {
+    if (window.toast) window.toast(e.response?.data?.message || 'Transfer failed');
+  }
 };
 
 const open = (tab) => {

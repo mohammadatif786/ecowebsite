@@ -10,6 +10,7 @@ use App\Models\VibeComment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use O21\LaravelWallet\Models\Custodian;
 
 class VibeInteractionController extends Controller
 {
@@ -186,28 +187,115 @@ class VibeInteractionController extends Controller
             return response()->json(['message' => 'Insufficient wallet balance'], 422);
         }
 
-        // 1. Deduct funds from buyer
-        withdraw($price, 'USD')
-            ->to($user)
+        // 1. Deduct funds from buyer and transfer to system custodian
+        transfer($price, 'USD')
+            ->from($user)
+            ->to(Custodian::of('e_money'))
             ->overcharge(false)
             ->meta(['note' => "Purchased tagged {$request->kind} on Vibe #{$vibe->id}"])
             ->commit();
 
         // 2. Calculate and record Affiliate Commission
-        // For simulation, we'll give 10% commission to the Vibe creator
-        $commission = $price * 0.10;
+        // Use the product's actual commission rate if available, otherwise default to 10%
+        $product = \App\Models\MarketplaceProduct::find($request->id);
+        $commissionRate = 0.10;
+
+        if ($product) {
+            if ($product->commMode === 'pct') {
+                $commissionRate = $product->commission / 100;
+            } elseif ($product->commMode === 'flat') {
+                // If flat, we calculate a virtual rate for this one sale
+                $commissionRate = ($product->commFlat > 0 && $price > 0) ? ($product->commFlat / $price) : 0.10;
+            }
+        }
+
+        $commission = $price * $commissionRate;
+
+        // LinkUp Platform Fee: Remove 5% from the commission
+        $linkupFee = $commission * 0.05;
+        $finalCommission = $commission - $linkupFee;
+
+        // Ensure a promotion record exists for this creator/product link
+        $promotion = \App\Models\MarketplaceAffiliatePromotion::firstOrCreate([
+            'user_id' => $vibe->created_by,
+            'product_id' => $request->kind === 'product' ? $request->id : null,
+        ]);
 
         \App\Models\MarketplaceAffiliateEarning::create([
+            'promotion_id' => $promotion->id,
             'affiliate_user_id' => $vibe->created_by,
             'product_id' => $request->kind === 'product' ? $request->id : null,
-            'commission_amount' => $commission,
-            'status' => 'released', // Immediate release for testing
-            'released_at' => now(),
+            'commission_amount' => $finalCommission,
+            'status' => 'pending', // New earnings start as pending
         ]);
 
         return response()->json([
             'message' => 'Purchase successful',
             'new_balance' => (float) $user->balance('USD')->value->get()
         ]);
+    }
+
+    public function releasePendingEarnings(): JsonResponse
+    {
+        $user = auth()->user();
+
+        $updated = \App\Models\MarketplaceAffiliateEarning::where('affiliate_user_id', $user->id)
+            ->where('status', 'pending')
+            ->update([
+                'status' => 'released',
+                'released_at' => now()
+            ]);
+
+        return response()->json([
+            'success' => true,
+            'count' => $updated,
+            'message' => "Successfully released {$updated} pending commissions."
+        ]);
+    }
+
+    public function transferToWallet(): JsonResponse
+    {
+        $user = auth()->user();
+
+        $earnings = \App\Models\MarketplaceAffiliateEarning::where('affiliate_user_id', $user->id)
+            ->where('status', 'released')
+            ->get();
+
+        $totalAmount = (float) $earnings->sum('commission_amount');
+
+        if ($totalAmount <= 0) {
+            return response()->json(['message' => 'Nothing available to transfer'], 422);
+        }
+
+        // LinkUp Platform Fee: Take 5% during transfer to be absolutely sure
+        $linkupFee = $totalAmount * 0.05;
+        $userPayout = $totalAmount - $linkupFee;
+
+        try {
+            DB::transaction(function () use ($user, $earnings, $userPayout) {
+                // 1. Mark as paid
+                \App\Models\MarketplaceAffiliateEarning::whereIn('id', $earnings->pluck('id'))
+                    ->update([
+                        'status' => 'paid',
+                        'paid_at' => now()
+                    ]);
+
+                // 2. Deposit the NET amount to user wallet
+                deposit($userPayout, 'USD')
+                    ->from(Custodian::of('e_money'))
+                    ->to($user)
+                    ->overcharge()
+                    ->meta(['note' => 'Affiliate commission payout (after 5% platform fee)'])
+                    ->commit();
+            });
+
+            return response()->json([
+                'success' => true,
+                'amount' => $userPayout,
+                'message' => '$' . number_format($userPayout, 2) . ' transferred to your wallet! (5% LinkUp fee applied)'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Transfer failed: ' . $e->getMessage()], 500);
+        }
     }
 }

@@ -1092,9 +1092,13 @@ const SHOP_CATS = ['Home', 'Accessories', 'Outdoors', 'Collectibles', 'Carnival'
 
 // ---------- STATE ----------
 const activeCat = ref('All');
-const cart = ref([]);
+const cart = ref(DB.get('lk_cart', []));
 const showCart = ref(false);
 const showCheckout = ref(false);
+
+watch(cart, (newCart) => {
+  DB.set('lk_cart', newCart);
+}, { deep: true });
 const showCreate = ref(false);
 const activeCreateTab = ref('');
 const showAddProduct = ref(false);

@@ -59,6 +59,17 @@ class CreateVibeAction
                 $vibe->products()->sync($data->productIds);
                 $vibe->events()->sync($data->eventIds);
 
+                // Extract and save hashtags
+                if ($data->caption) {
+                    preg_match_all('/#(\w+)/', $data->caption, $matches);
+                    if (!empty($matches[1])) {
+                        $tags = collect($matches[1])->map(fn($tag) => ['tag' => strtolower($tag), 'created_at' => now(), 'updated_at' => now()])->toArray();
+                        DB::table('vibe_hashtags')->insert(
+                            collect($tags)->map(fn($t) => array_merge($t, ['vibe_id' => $vibe->id]))->toArray()
+                        );
+                    }
+                }
+
                 return $vibe;
             });
         } catch (\Throwable $exception) {

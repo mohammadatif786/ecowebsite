@@ -35,7 +35,7 @@
       <span v-if="p.shoppable" class="text-xs font-black text-purple-600 bg-purple-50 px-2.5 py-1 rounded-full flex items-center gap-1">
         <i data-lucide="shopping-bag" class="w-3 h-3"></i>Shop
       </span>
-      <button @click="showToast('More')" class="text-slate-400"><i data-lucide="more-horizontal" class="w-5 h-5"></i></button>
+      <button @click="openOptions" class="text-slate-400 hover:text-slate-600 transition p-1"><i data-lucide="more-horizontal" class="w-5 h-5"></i></button>
     </div>
 
     <div class="relative bg-black group">
@@ -185,6 +185,7 @@
     <VibeTagModal ref="vibeTagModalRef" />
     <VibeCommentsModal ref="vibeCommentsModalRef" @commentAdded="onCommentAdded" />
     <VibeBigUpModal ref="vibeBigUpModalRef" :p="p" @sent="onBigUpSent" />
+    <VibeOptionsModal ref="vibeOptionsModalRef" :vibe="p" :isOwner="isOwner" @delete="handleDelete" />
   </article>
 </template>
 
@@ -195,6 +196,7 @@ import axios from 'axios';
 import VibeTagModal from '../modals/VibeTagModal.vue';
 import VibeCommentsModal from '../modals/VibeCommentsModal.vue';
 import VibeBigUpModal from '../modals/VibeBigUpModal.vue';
+import VibeOptionsModal from '../modals/VibeOptionsModal.vue';
 import VibeCommentItem from './VibeCommentItem.vue';
 
 const props = defineProps({
@@ -203,10 +205,12 @@ const props = defineProps({
 
 const page = usePage();
 const user = computed(() => page.props.auth?.user || {});
+const isOwner = computed(() => props.p.created_by === user.value.id);
 
 const vibeTagModalRef = ref(null);
 const vibeCommentsModalRef = ref(null);
 const vibeBigUpModalRef = ref(null);
+const vibeOptionsModalRef = ref(null);
 const currentIndex = ref(0);
 
 const isLiked = ref(props.p.is_liked || false);
@@ -352,6 +356,21 @@ const money = (n) => '$' + Number(n || 0).toLocaleString(undefined, { minimumFra
 const openVibeTag = () => {
   if (vibeTagModalRef.value && props.p.tag) {
     vibeTagModalRef.value.open(props.p.tag);
+  }
+};
+
+const openOptions = () => {
+  vibeOptionsModalRef.value?.open();
+};
+
+const handleDelete = async (vibeId) => {
+  try {
+    await axios.delete(route('new_frontend.vibes.destroy', { vibe: vibeId }));
+    showToast('🗑️ Post deleted');
+    // We could emit an event here to the parent list to remove the card from UI
+    window.location.reload(); // Simple way to refresh the list
+  } catch (error) {
+    console.error('Failed to delete vibe', error);
   }
 };
 

@@ -22,6 +22,7 @@ Route::prefix('new_frontend')->name('new_frontend.')->group(function () {
 
     Route::middleware(['auth', 'otp.verified', 'isWizardComplete'])->group(function () {
         Route::post('/vibes', [VibeController::class, 'store'])->middleware('throttle:10,1')->name('vibes.store');
+        Route::delete('/vibes/{vibe}', [VibeController::class, 'destroy'])->name('vibes.destroy');
         Route::post('/vibes/{vibe}/like', [VibeInteractionController::class, 'toggleLike'])->name('vibes.like');
         Route::get('/vibes/{vibe}/comments', [VibeInteractionController::class, 'indexComments'])->name('vibes.comments.index');
         Route::get('/vibes/{vibe}/top-comments', [VibeInteractionController::class, 'topComments'])->name('vibes.top-comments');
@@ -29,6 +30,8 @@ Route::prefix('new_frontend')->name('new_frontend.')->group(function () {
         Route::post('/vibes/{vibe}/share', [VibeInteractionController::class, 'share'])->name('vibes.share');
         Route::post('/vibes/{vibe}/bigup', [VibeInteractionController::class, 'sendBigUp'])->name('vibes.bigup');
         Route::post('/vibes/{vibe}/purchase', [VibeInteractionController::class, 'purchaseAttachment'])->name('vibes.purchase');
+        Route::post('/vibes/earnings/release', [VibeInteractionController::class, 'releasePendingEarnings'])->name('vibes.earnings.release');
+        Route::post('/vibes/earnings/transfer', [VibeInteractionController::class, 'transferToWallet'])->name('vibes.earnings.transfer');
         Route::post('/vibe-comments/{comment}/like', [VibeInteractionController::class, 'toggleCommentLike'])->name('vibes.comments.like');
         Route::post('/vibes/custom-publishers', [DashboardController::class, 'storeCustomPublisher'])->name('vibes.custom-publishers.store');
         Route::get('/home', [DashboardController::class, 'home'])->name('home');
