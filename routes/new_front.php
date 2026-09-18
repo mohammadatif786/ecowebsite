@@ -9,6 +9,8 @@ use App\Http\Controllers\NewFrontend\LiveStreamController;
 use App\Http\Controllers\NewFrontend\MarketplaceAffiliateController;
 use App\Http\Controllers\NewFrontend\NightLifeController;
 use App\Http\Controllers\NewFrontend\ProfileSecurityController;
+use App\Http\Controllers\NewFrontend\ReelController;
+use App\Http\Controllers\NewFrontend\ReelInteractionController;
 use App\Http\Controllers\NewFrontend\TicketPurchaseController;
 use App\Http\Controllers\NewFrontend\VibeController;
 use App\Http\Controllers\NewFrontend\VibeInteractionController;
@@ -29,6 +31,19 @@ Route::prefix('new_frontend')->name('new_frontend.')->group(function () {
         Route::post('/vibes/{vibe}/comments', [VibeInteractionController::class, 'storeComment'])->name('vibes.comments.store');
         Route::post('/vibes/{vibe}/share', [VibeInteractionController::class, 'share'])->name('vibes.share');
         Route::post('/vibes/{vibe}/bigup', [VibeInteractionController::class, 'sendBigUp'])->name('vibes.bigup');
+        
+        // Reels routes
+        Route::post('/reels', [ReelController::class, 'store'])->name('reels.store');
+        Route::get('/reels/followed', [ReelController::class, 'getFollowedReels'])->name('reels.followed');
+        Route::get('/reels/user/{user}', [ReelController::class, 'getUserReels'])->name('reels.user');
+        Route::get('/reels/{reel}', [ReelController::class, 'show'])->name('reels.show');
+        Route::delete('/reels/{reel}', [ReelController::class, 'destroy'])->name('reels.destroy');
+        Route::post('/reels/{reel}/like', [ReelInteractionController::class, 'toggleLike'])->name('reels.like');
+        Route::post('/reels/{reel}/comments', [ReelInteractionController::class, 'storeComment'])->name('reels.comments.store');
+        Route::get('/reels/{reel}/comments', [ReelInteractionController::class, 'indexComments'])->name('reels.comments.index');
+        Route::post('/reels/{reel}/share', [ReelInteractionController::class, 'share'])->name('reels.share');
+        Route::post('/reels/{reel}/gift', [ReelInteractionController::class, 'sendGift'])->name('reels.gift');
+        Route::post('/reel-comments/{comment}/like', [ReelInteractionController::class, 'toggleCommentLike'])->name('reels.comments.like');
         Route::post('/vibes/{vibe}/purchase', [VibeInteractionController::class, 'purchaseAttachment'])->name('vibes.purchase');
         Route::post('/vibes/earnings/release', [VibeInteractionController::class, 'releasePendingEarnings'])->name('vibes.earnings.release');
         Route::post('/vibes/earnings/transfer', [VibeInteractionController::class, 'transferToWallet'])->name('vibes.earnings.transfer');

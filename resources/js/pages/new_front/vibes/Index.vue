@@ -7,7 +7,7 @@
         <p class="text-slate-500 font-semibold mt-1">Photos, reels & shoppable moments</p>
       </div>
       <div class="flex items-center gap-2">
-        <button @click="openCompose" class="btn btn-primary px-4 py-2.5 flex items-center gap-2">
+        <button @click="openNewReelModal" class="btn btn-primary px-4 py-2.5 flex items-center gap-2">
           <i data-lucide="plus" class="w-4 h-4"></i>Post
         </button>
       </div>
@@ -20,13 +20,18 @@
         <!-- Stories Carousel -->
         <div class="card p-4">
           <div class="flex gap-4 overflow-x-auto hide-scroll">
-            <button @click="openCompose" class="flex flex-col items-center gap-1 shrink-0">
+            <button @click="openNewReelModal" class="flex flex-col items-center gap-1 shrink-0">
               <span class="w-16 h-16 rounded-full border-2 border-dashed border-slate-300 grid place-items-center text-slate-400">
                 <i data-lucide="plus" class="w-6 h-6"></i>
               </span>
               <span class="text-xs font-bold text-slate-500">Add</span>
             </button>
-            <button v-for="story in stories" :key="story.handle" class="flex flex-col items-center gap-1 shrink-0">
+            <button 
+              v-for="story in stories" 
+              :key="story.id" 
+              @click="openReelView(story)"
+              class="flex flex-col items-center gap-1 shrink-0"
+            >
               <span class="w-16 h-16 rounded-full p-[3px] bg-gradient-to-tr from-lkyellow via-pink-500 to-lkblue">
                 <img :src="story.avatar" class="w-full h-full rounded-full object-cover border-2 border-white" />
               </span>
@@ -95,6 +100,29 @@
 
     <!-- Affiliate Hub Modal -->
     <AffiliateHubModal ref="affiliateHubModalRef" :items="affiliateItems" :stats="earningsStats" />
+
+    <!-- New Reel Modal -->
+    <NewReelModal ref="newReelModalRef" @reelCreated="onReelCreated" />
+
+    <!-- Reel View Modal -->
+    <ReelViewModal 
+      ref="reelViewModalRef" 
+      :reel="currentReel"
+      @likeToggled="onReelLikeToggled"
+      @commentAdded="onReelCommentAdded"
+      @giftSent="onReelGiftSent"
+      @shareClicked="onReelShareClicked"
+      @userProfileClicked="onUserProfileClicked"
+    />
+
+    <!-- User Profile Modal -->
+    <UserProfileModal 
+      ref="userProfileModalRef" 
+      :user-id="currentUserId"
+      @reelClicked="onProfileReelClicked"
+      @messageClicked="onMessageClicked"
+      @followToggled="onFollowToggled"
+    />
   </div>
 </template>
 
@@ -105,7 +133,9 @@ import MainLayout from '../../../layouts/new_front_layout/MainLayout.vue';
 import VibeCard from '../../../components/new_frontend/cards/VibeCard.vue';
 import ComposeVibeModal from '../../../components/new_frontend/modals/ComposeVibeModal.vue';
 import AffiliateHubModal from '../../../components/new_frontend/modals/AffiliateHubModal.vue';
-import { SEED } from '../../../components/new_frontend/MockDataStore';
+import NewReelModal from '../../../components/new_frontend/modals/NewReelModal.vue';
+import ReelViewModal from '../../../components/new_frontend/modals/ReelViewModal.vue';
+import UserProfileModal from '../../../components/new_frontend/modals/UserProfileModal.vue';
 
 defineOptions({ layout: MainLayout });
 
@@ -115,6 +145,7 @@ const props = defineProps({
   affiliateItems: { type: Array, default: () => [] },
   earningsStats: { type: Object, default: () => ({}) },
   trendingTags: { type: Array, default: () => [] },
+  stories: { type: Array, default: () => [] },
 });
 
 const page = usePage();
@@ -123,13 +154,16 @@ const posts = ref([...props.vibes]);
 
 const money = (n) => '$' + Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const stories = SEED.stories;
+const stories = computed(() => props.stories || []);
 
 const trendingTags = computed(() => props.trendingTags || []);
-const suggestedCreators = SEED.stories.slice(0, 4);
+const suggestedCreators = computed(() => stories.value.slice(0, 4));
 
 const composeModalRef = ref(null);
 const affiliateHubModalRef = ref(null);
+const newReelModalRef = ref(null);
+const reelViewModalRef = ref(null);
+const userProfileModalRef = ref(null);
 
 const openCompose = () => {
   if (composeModalRef.value) {
@@ -143,15 +177,103 @@ const openEarnings = () => {
   }
 };
 
+const openNewReelModal = () => {
+  if (newReelModalRef.value) {
+    newReelModalRef.value.open();
+  }
+};
+
+const currentReel = ref(null);
+const currentUserId = ref(null);
+
+const openReelView = (story) => {
+  currentReel.value = story;
+  if (reelViewModalRef.value) {
+    reelViewModalRef.value.open();
+  }
+};
+
 const onPostCreated = (newPost) => {
   // The ComposeVibeModal already emits a formatted post object
   posts.value.unshift(newPost);
+};
+
+const onReelCreated = (newReel) => {
+  // Add the new reel to the stories
+  stories.value.unshift({
+    id: newReel.id,
+    uid: newReel.uid,
+    handle: newReel.handle,
+    avatar: newReel.avatar,
+    type: newReel.type,
+    file_path: newReel.file_path,
+    thumbnail_path: newReel.thumbnail_path,
+  });
+};
+
+const onReelLikeToggled = (data) => {
+  // Update the like status in the stories
+  const story = stories.value.find(s => s.id === data.reelId);
+  if (story) {
+    story.likes_count = data.likesCount;
+    story.is_liked = data.isLiked;
+  }
+};
+
+const onReelCommentAdded = (data) => {
+  // Update the comment count
+  const story = stories.value.find(s => s.id === data.reelId);
+  if (story) {
+    story.comments_count = (story.comments_count || 0) + 1;
+  }
+};
+
+const onReelGiftSent = (data) => {
+  // Update the gift count
+  const story = stories.value.find(s => s.id === data.reelId);
+  if (story) {
+    story.gifts_count = (story.gifts_count || 0) + 1;
+  }
+};
+
+const onReelShareClicked = (data) => {
+  // Update the share count
+  const story = stories.value.find(s => s.id === data.reelId);
+  if (story) {
+    story.shares_count = (story.shares_count || 0) + 1;
+  }
+};
+
+const onUserProfileClicked = (data) => {
+  currentUserId.value = data.userId;
+  if (userProfileModalRef.value) {
+    userProfileModalRef.value.open();
+  }
+};
+
+const onProfileReelClicked = (reel) => {
+  currentReel.value = reel;
+  if (reelViewModalRef.value) {
+    reelViewModalRef.value.open();
+  }
+};
+
+const onMessageClicked = (data) => {
+  // Navigate to chat with the user
+  // This would typically use Inertia router
+  window.location.href = route('new_frontend.dating.chats');
+};
+
+const onFollowToggled = (data) => {
+  // Handle follow toggle
+  console.log('Follow toggled:', data);
 };
 
 const followCreator = (event) => {
   event.target.textContent = 'Following';
   event.target.classList.add('opacity-60');
 };
+
 const showToast = (msg) => {
   if (window.toast) window.toast(msg);
 };
