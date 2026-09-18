@@ -4,12 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class VibeComment extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['vibe_id', 'user_id', 'comment', 'parent_id'];
+    protected $fillable = ['vibe_id', 'user_id', 'comment', 'parent_id', 'commentable_id', 'commentable_type'];
 
     public function user()
     {
@@ -19,6 +20,11 @@ class VibeComment extends Model
     public function vibe()
     {
         return $this->belongsTo(Vibe::class);
+    }
+
+    public function commentable(): MorphTo
+    {
+        return $this->morphTo();
     }
 
     public function parent()

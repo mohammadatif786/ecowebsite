@@ -19,6 +19,7 @@ use App\Models\UserContact;
 use App\Models\UserMoneyRequest;
 use App\Models\UserCustomPublisher;
 use App\Models\UserMatch;
+use App\Models\UserReel;
 use App\Models\Vibe;
 use App\Domain\Vibes\Enums\VibeStatus;
 use App\Domain\Vibes\Enums\VibeMediaType;
@@ -578,8 +579,28 @@ class DashboardController extends Controller
                 ];
             });
 
+        // Fetch followed users' reels for the stories carousel
+        $stories = UserReel::active()
+            ->fromFollowedUsers($user->id)
+            ->with('user:id,name,avatar,linkup_id')
+            ->latest()
+            ->take(10)
+            ->get()
+            ->map(function ($reel) {
+                return [
+                    'id' => $reel->id,
+                    'uid' => $reel->uid,
+                    'handle' => $reel->user->linkup_id,
+                    'avatar' => $reel->user->avatar,
+                    'type' => $reel->type,
+                    'file_path' => $reel->file_path,
+                    'thumbnail_path' => $reel->thumbnail_path,
+                ];
+            });
+
         return Inertia::render('new_front/vibes/Index', [
             'vibes' => $formattedVibes,
+            'stories' => $stories,
             'vibePublishers' => [
                 'organizations' => $user->organizerProfile()->get(['id', 'organizer_name'])
                     ->map(fn ($organization) => ['id' => $organization->id, 'name' => $organization->organizer_name, 'type' => 'organization']),

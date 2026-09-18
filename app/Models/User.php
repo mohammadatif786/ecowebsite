@@ -606,6 +606,11 @@ class User extends Authenticatable implements Payable
         return $this->morphMany(Vibe::class, 'publisher');
     }
 
+    public function reels()
+    {
+        return $this->hasMany(UserReel::class);
+    }
+
     public function clubFetes()
     {
         return $this->belongsToMany(ClubFete::class, 'club_fete_members')->withPivot(['role', 'is_active'])->withTimestamps();
