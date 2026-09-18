@@ -24,6 +24,7 @@ return new class extends Migration
             $table->unsignedInteger('comments_count')->default(0);
             $table->unsignedInteger('shares_count')->default(0);
             $table->unsignedInteger('gifts_count')->default(0);
+            $table->unsignedInteger('bigups_count')->default(0);
             $table->enum('status', ['active', 'archived'])->default('active');
             $table->timestamps();
         });

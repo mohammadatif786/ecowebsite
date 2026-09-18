@@ -579,30 +579,83 @@ class DashboardController extends Controller
                 ];
             });
 
-        // Fetch followed users' reels for the stories carousel
+        // Latest reel per user for the stories carousel
+        $latestStoryIds = DB::query()
+            ->fromSub(
+                UserReel::active()
+                    ->select([
+                        'id',
+                        'user_id',
+                        DB::raw('ROW_NUMBER() OVER (
+                            PARTITION BY user_id
+                            ORDER BY created_at DESC, id DESC
+                        ) AS row_num'),
+                    ]),
+                'ranked_reels'
+            )
+            ->where('row_num', 1)
+            ->orderByDesc('id')
+            ->limit(10)
+            ->pluck('id');
+
         $stories = UserReel::active()
-            ->fromFollowedUsers($user->id)
             ->with('user:id,name,avatar,linkup_id')
-            ->latest()
-            ->take(10)
+            ->whereIn('id', $latestStoryIds)
+            ->get()
+            ->sortByDesc(function ($reel) {
+                return $reel->created_at?->timestamp ?? 0;
+            })
+            ->values()
+            ->map(function ($reel) use ($user) {
+                return [
+                    'id' => $reel->id,
+                    'uid' => $reel->uid,
+                    'handle' => $reel->user_id === $user->id
+                        ? 'Your Reel'
+                        : ($reel->user?->linkup_id ?? $reel->user?->name ?? 'User'),
+                    'avatar' => $reel->user?->avatar,
+                    'type' => $reel->type,
+                    'file_path' => $reel->file_path,
+                    'thumbnail_path' => $reel->thumbnail_path,
+                    'user_id' => $reel->user_id,
+                    'name' => $reel->user?->name ?? 'User',
+                    'created_at' => $reel->created_at?->toISOString(),
+                ];
+            })
+            ->values();
+
+
+        // ============================================================
+        // ALL ACTIVE REELS FOR THE REEL VIEWER
+        // ============================================================
+
+        $allReels = UserReel::active()
+            ->with('user:id,name,avatar,linkup_id')
+            ->latest('created_at')
+            ->latest('id')
             ->get()
             ->map(function ($reel) use ($user) {
                 return [
                     'id' => $reel->id,
                     'uid' => $reel->uid,
-                    'handle' => $reel->user_id === $user->id ? 'Your Reel' : $reel->user->linkup_id,
-                    'avatar' => $reel->user->avatar,
+                    'handle' => $reel->user_id === $user->id
+                        ? 'Your Reel'
+                        : ($reel->user?->linkup_id ?? $reel->user?->name ?? 'User'),
+                    'avatar' => $reel->user?->avatar,
                     'type' => $reel->type,
                     'file_path' => $reel->file_path,
                     'thumbnail_path' => $reel->thumbnail_path,
                     'user_id' => $reel->user_id,
-                    'name' => $reel->user->name,
+                    'name' => $reel->user?->name ?? 'User',
+                    'created_at' => $reel->created_at?->toISOString(),
                 ];
-            });
+            })
+            ->values();
 
         return Inertia::render('new_front/vibes/Index', [
             'vibes' => $formattedVibes,
             'stories' => $stories,
+            'allReels' => $allReels,
             'vibePublishers' => [
                 'organizations' => $user->organizerProfile()->get(['id', 'organizer_name'])
                     ->map(fn ($organization) => ['id' => $organization->id, 'name' => $organization->organizer_name, 'type' => 'organization']),

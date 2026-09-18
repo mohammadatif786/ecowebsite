@@ -54,7 +54,11 @@ import { usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 
 const props = defineProps({
-  p: Object
+  p: Object,
+  isReel: {
+    type: Boolean,
+    default: false
+  }
 });
 
 const emit = defineEmits(['sent']);
@@ -103,9 +107,10 @@ const sendBigUp = async (gift) => {
   error.value = '';
 
   try {
-    const response = await axios.post(route('new_frontend.vibes.bigup', { vibe: props.p.id }), {
-      gift_name: gift.name,
-      emoji: gift.emoji,
+    const routeName = props.isReel ? 'new_frontend.reels.bigup' : 'new_frontend.vibes.bigup';
+    const routeParam = props.isReel ? { reel: props.p.id } : { vibe: props.p.id };
+
+    const response = await axios.post(route(routeName, routeParam), {
       coins: gift.cost
     });
 

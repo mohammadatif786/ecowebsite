@@ -5,7 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class UserReel extends Model
 {
@@ -23,6 +24,7 @@ class UserReel extends Model
         'comments_count',
         'shares_count',
         'gifts_count',
+        'bigups_count',
         'status',
     ];
 
@@ -33,6 +35,7 @@ class UserReel extends Model
             'comments_count' => 'integer',
             'shares_count' => 'integer',
             'gifts_count' => 'integer',
+            'bigups_count' => 'integer',
         ];
     }
 
@@ -41,14 +44,44 @@ class UserReel extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function likes(): MorphMany
+    public function likes()
     {
-        return $this->morphMany(Vote::class, 'votable')->where('type', 'like');
+        return $this->hasMany(ReelLike::class);
     }
 
     public function comments()
     {
-        return $this->morphMany(VibeComment::class, 'commentable');
+        return $this->hasMany(ReelComment::class);
+    }
+
+    public function shares()
+    {
+        return $this->hasMany(ReelShare::class);
+    }
+
+    public function saves()
+    {
+        return $this->hasMany(ReelSave::class);
+    }
+
+    public function authUserLike()
+    {
+        return $this->hasOne(ReelLike::class)->where('user_id', auth()->id());
+    }
+
+    public function authUserSave()
+    {
+        return $this->hasOne(ReelSave::class)->where('user_id', auth()->id());
+    }
+
+    public function getIsLikedAttribute()
+    {
+        return $this->authUserLike()->exists();
+    }
+
+    public function getIsSavedAttribute()
+    {
+        return $this->authUserSave()->exists();
     }
 
     public function scopeFromFollowedUsers($query, $userId)
@@ -108,5 +141,10 @@ class UserReel extends Model
     public function incrementGiftsCount()
     {
         $this->increment('gifts_count');
+    }
+
+    public function incrementBigupsCount()
+    {
+        $this->increment('bigups_count');
     }
 }

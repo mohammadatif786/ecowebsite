@@ -42,6 +42,8 @@ Route::prefix('new_frontend')->name('new_frontend.')->group(function () {
         Route::post('/reels/{reel}/comments', [ReelInteractionController::class, 'storeComment'])->name('reels.comments.store');
         Route::get('/reels/{reel}/comments', [ReelInteractionController::class, 'indexComments'])->name('reels.comments.index');
         Route::post('/reels/{reel}/share', [ReelInteractionController::class, 'share'])->name('reels.share');
+        Route::post('/reels/{reel}/save', [ReelInteractionController::class, 'toggleSave'])->name('reels.save');
+        Route::post('/reels/{reel}/bigup', [ReelInteractionController::class, 'sendBigUp'])->name('reels.bigup');
         Route::post('/reels/{reel}/gift', [ReelInteractionController::class, 'sendGift'])->name('reels.gift');
         Route::post('/reel-comments/{comment}/like', [ReelInteractionController::class, 'toggleCommentLike'])->name('reels.comments.like');
         Route::post('/vibes/{vibe}/purchase', [VibeInteractionController::class, 'purchaseAttachment'])->name('vibes.purchase');
