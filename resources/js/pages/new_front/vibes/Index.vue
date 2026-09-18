@@ -86,11 +86,14 @@
 
         <div class="card p-4">
           <h3 class="font-black mb-3">Suggested creators</h3>
-          <div v-for="creator in suggestedCreators" :key="creator.handle" class="flex items-center gap-3 py-2">
-            <img :src="creator.avatar" class="w-10 h-10 rounded-full object-cover" />
-            <span class="font-bold text-sm flex-1">{{ creator.handle }}</span>
-            <button class="btn btn-ghost text-xs px-3 py-1.5" @click="followCreator($event)">Follow</button>
+          <div v-if="suggestedCreators.length" class="space-y-2">
+            <div v-for="creator in suggestedCreators" :key="creator.user_id" class="flex items-center gap-3 py-2">
+              <img :src="creator.avatar" class="w-10 h-10 rounded-full object-cover" />
+              <span class="font-bold text-sm flex-1">{{ creator.handle }}</span>
+              <button class="btn btn-ghost text-xs px-3 py-1.5" @click="followCreator($event)">Follow</button>
+            </div>
           </div>
+          <p v-else class="text-xs font-bold text-slate-400 py-4 text-center">No suggested creators yet</p>
         </div>
       </div>
     </div>
@@ -157,7 +160,25 @@ const money = (n) => '$' + Number(n || 0).toLocaleString(undefined, { minimumFra
 const stories = computed(() => props.stories || []);
 
 const trendingTags = computed(() => props.trendingTags || []);
-const suggestedCreators = computed(() => stories.value.slice(0, 4));
+const suggestedCreators = computed(() => {
+  // Filter stories to get unique users (excluding current user)
+  const uniqueUsers = stories.value
+    .filter(story => story.user_id !== user.value.id)
+    .reduce((acc, story) => {
+      if (!acc.find(u => u.user_id === story.user_id)) {
+        acc.push({
+          handle: story.handle,
+          avatar: story.avatar,
+          user_id: story.user_id,
+          name: story.name
+        });
+      }
+      return acc;
+    }, [])
+    .slice(0, 4);
+  
+  return uniqueUsers;
+});
 
 const composeModalRef = ref(null);
 const affiliateHubModalRef = ref(null);
@@ -203,11 +224,13 @@ const onReelCreated = (newReel) => {
   stories.value.unshift({
     id: newReel.id,
     uid: newReel.uid,
-    handle: newReel.handle,
+    handle: 'Your Reel',
     avatar: newReel.avatar,
     type: newReel.type,
     file_path: newReel.file_path,
     thumbnail_path: newReel.thumbnail_path,
+    user_id: user.value.id,
+    name: user.value.name,
   });
 };
 

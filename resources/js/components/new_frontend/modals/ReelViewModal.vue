@@ -1,13 +1,19 @@
 <template>
   <Modal ref="modalRef" class="reel-modal">
     <div class="relative h-full bg-black">
-      <!-- Close Button -->
+      <!-- Top Left - Close Button -->
       <button
         @click="close"
-        class="absolute top-4 right-4 z-20 rounded-full bg-black/50 p-2 text-white hover:bg-black/70 transition"
+        class="absolute top-4 left-4 z-20 p-2 text-white hover:text-slate-300 transition"
       >
         <i data-lucide="x" class="w-6 h-6"></i>
       </button>
+
+      <!-- Top Right - Reels Icon -->
+      <div class="absolute top-4 right-4 z-20 flex items-center gap-2 text-white">
+        <i data-lucide="play" class="w-5 h-5"></i>
+        <span class="font-black text-sm">Reels</span>
+      </div>
 
       <!-- Media Display -->
       <div class="h-full flex items-center justify-center">
@@ -33,64 +39,53 @@
         <!-- Like Button -->
         <button
           @click="toggleLike"
-          class="flex flex-col items-center gap-1 text-white transition hover:scale-110"
+          class="flex items-center gap-1.5 font-black transition-colors text-white hover:text-rose-500"
+          :class="isLiked ? 'text-rose-500' : ''"
         >
-          <div class="rounded-full bg-black/50 p-3">
-            <i
-              data-lucide="heart"
-              class="w-6 h-6"
-              :class="isLiked ? 'fill-red-500 text-red-500' : ''"
-            ></i>
-          </div>
-          <span class="text-xs font-bold">{{ reel?.likes_count || 0 }}</span>
+          <i data-lucide="heart" class="w-7 h-7" :fill="isLiked ? 'currentColor' : 'none'"></i>
+          <span class="text-xs">{{ reel?.likes_count || 0 }}</span>
         </button>
 
         <!-- Comment Button -->
         <button
           @click="openComments"
-          class="flex flex-col items-center gap-1 text-white transition hover:scale-110"
+          class="flex items-center gap-1.5 font-black text-white hover:text-lkblue"
         >
-          <div class="rounded-full bg-black/50 p-3">
-            <i data-lucide="message-circle" class="w-6 h-6"></i>
-          </div>
-          <span class="text-xs font-bold">{{ reel?.comments_count || 0 }}</span>
+          <i data-lucide="message-circle" class="w-7 h-7"></i>
+          <span class="text-xs">{{ reel?.comments_count || 0 }}</span>
         </button>
 
         <!-- Gift Button -->
         <button
           @click="sendGift"
-          class="flex flex-col items-center gap-1 text-white transition hover:scale-110"
+          class="flex items-center gap-1.5 text-white bg-gradient-to-r from-orange-500 to-amber-500 px-3 py-1.5 rounded-full text-sm font-black transition-transform active:scale-95 shadow-lg shadow-orange-500/20 hover:scale-105"
         >
-          <div class="rounded-full bg-black/50 p-3">
-            <i data-lucide="gift" class="w-6 h-6"></i>
-          </div>
-          <span class="text-xs font-bold">{{ reel?.gifts_count || 0 }}</span>
+          <i data-lucide="zap" class="w-4 h-4 fill-white"></i>
+          <span class="text-xs">{{ reel?.gifts_count || 0 }}</span>
         </button>
 
         <!-- Share Button -->
         <button
           @click="shareReel"
-          class="flex flex-col items-center gap-1 text-white transition hover:scale-110"
+          class="flex items-center gap-1.5 font-black text-white hover:text-lkblue"
         >
-          <div class="rounded-full bg-black/50 p-3">
-            <i data-lucide="share-2" class="w-6 h-6"></i>
-          </div>
-          <span class="text-xs font-bold">{{ reel?.shares_count || 0 }}</span>
+          <i data-lucide="send" class="w-7 h-7"></i>
+          <span class="text-xs">{{ reel?.shares_count || 0 }}</span>
         </button>
       </div>
 
-      <!-- Bottom Right Overlay - User Info -->
-      <div class="absolute bottom-4 right-4 left-20 z-10">
-        <div class="flex items-center gap-3 bg-black/50 rounded-2xl p-3 backdrop-blur-sm">
+      <!-- Bottom Left Overlay - User Info -->
+      <div class="absolute bottom-4 left-4 right-20 z-10">
+        <div class="flex items-center gap-3">
           <button
             @click="openUserProfile"
-            class="flex items-center gap-3 flex-1"
+            class="flex items-center gap-3"
           >
             <img
               :src="reel?.avatar"
-              class="w-12 h-12 rounded-full object-cover border-2 border-white"
+              class="w-10 h-10 rounded-full object-cover border-2 border-white"
             />
-            <div class="flex-1">
+            <div>
               <p class="text-white font-bold text-sm">{{ reel?.handle }}</p>
               <p v-if="reel?.location" class="text-white/70 text-xs">📍 {{ reel.location }}</p>
             </div>
@@ -98,7 +93,7 @@
         </div>
 
         <!-- Caption -->
-        <div v-if="reel?.caption" class="mt-2 bg-black/50 rounded-2xl p-3 backdrop-blur-sm">
+        <div v-if="reel?.caption" class="mt-2">
           <p class="text-white text-sm">{{ reel.caption }}</p>
         </div>
       </div>
@@ -190,13 +185,17 @@ const checkLikeStatus = async () => {
 };
 
 const openComments = () => {
-  // For now, just emit an event - comments modal can be added later
+  // Open comments modal
   emit('commentAdded', { reelId: props.reel?.id });
+  // For now, just show a toast message
+  if (window.toast) window.toast('Comments feature coming soon!');
 };
 
 const sendGift = () => {
-  // For now, just emit an event - gift modal can be added later
+  // Open gift modal
   emit('giftSent', { reelId: props.reel?.id });
+  // For now, just show a toast message
+  if (window.toast) window.toast('Gift feature coming soon!');
 };
 
 const shareReel = async () => {
@@ -241,7 +240,9 @@ defineExpose({ open, close });
 .reel-modal :deep(.modal-content) {
   padding: 0;
   border-radius: 0;
-  max-height: 100vh;
-  height: 100vh;
+  max-height: 90vh;
+  height: 80vh;
+  max-width: 500px;
+  margin: auto;
 }
 </style>
