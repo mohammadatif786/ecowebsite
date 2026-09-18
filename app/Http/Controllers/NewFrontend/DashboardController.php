@@ -586,15 +586,17 @@ class DashboardController extends Controller
             ->latest()
             ->take(10)
             ->get()
-            ->map(function ($reel) {
+            ->map(function ($reel) use ($user) {
                 return [
                     'id' => $reel->id,
                     'uid' => $reel->uid,
-                    'handle' => $reel->user->linkup_id,
+                    'handle' => $reel->user_id === $user->id ? 'Your Reel' : $reel->user->linkup_id,
                     'avatar' => $reel->user->avatar,
                     'type' => $reel->type,
                     'file_path' => $reel->file_path,
                     'thumbnail_path' => $reel->thumbnail_path,
+                    'user_id' => $reel->user_id,
+                    'name' => $reel->user->name,
                 ];
             });
 

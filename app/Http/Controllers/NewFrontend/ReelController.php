@@ -68,12 +68,12 @@ class ReelController extends Controller
             ->with('user:id,name,avatar,linkup_id,city,country')
             ->latest()
             ->get()
-            ->map(function ($reel) {
+            ->map(function ($reel) use ($user) {
                 return [
                     'id' => $reel->id,
                     'uid' => $reel->uid,
                     'user_id' => $reel->user_id,
-                    'handle' => $reel->user->linkup_id,
+                    'handle' => $reel->user_id === $user->id ? 'Your Reel' : $reel->user->linkup_id,
                     'avatar' => $reel->user->avatar,
                     'name' => $reel->user->name,
                     'type' => $reel->type,
@@ -94,17 +94,21 @@ class ReelController extends Controller
 
     public function getUserReels(User $user): JsonResponse
     {
+        $currentUser = auth()->user();
+        
         $reels = UserReel::active()
             ->where('user_id', $user->id)
             ->with('user:id,name,avatar,linkup_id,city,country')
             ->latest()
             ->get()
-            ->map(function ($reel) {
+            ->map(function ($reel) use ($currentUser) {
+                $isLiked = $reel->likes()->where('user_id', $currentUser->id)->exists();
+                
                 return [
                     'id' => $reel->id,
                     'uid' => $reel->uid,
                     'user_id' => $reel->user_id,
-                    'handle' => $reel->user->linkup_id,
+                    'handle' => $reel->user_id === $currentUser->id ? 'Your Reel' : $reel->user->linkup_id,
                     'avatar' => $reel->user->avatar,
                     'name' => $reel->user->name,
                     'type' => $reel->type,
@@ -116,6 +120,7 @@ class ReelController extends Controller
                     'comments_count' => $reel->comments_count,
                     'shares_count' => $reel->shares_count,
                     'gifts_count' => $reel->gifts_count,
+                    'is_liked' => $isLiked,
                     'created_at' => $reel->created_at,
                 ];
             });
@@ -136,12 +141,16 @@ class ReelController extends Controller
     public function show(UserReel $reel): JsonResponse
     {
         $reel->load('user:id,name,avatar,linkup_id,city,country');
+        $currentUser = auth()->user();
+        
+        // Check if current user has liked this reel
+        $isLiked = $reel->likes()->where('user_id', $currentUser->id)->exists();
 
         return response()->json([
             'id' => $reel->id,
             'uid' => $reel->uid,
             'user_id' => $reel->user_id,
-            'handle' => $reel->user->linkup_id,
+            'handle' => $reel->user_id === $currentUser->id ? 'Your Reel' : $reel->user->linkup_id,
             'avatar' => $reel->user->avatar,
             'name' => $reel->user->name,
             'type' => $reel->type,
@@ -153,6 +162,7 @@ class ReelController extends Controller
             'comments_count' => $reel->comments_count,
             'shares_count' => $reel->shares_count,
             'gifts_count' => $reel->gifts_count,
+            'is_liked' => $isLiked,
             'created_at' => $reel->created_at,
         ]);
     }
