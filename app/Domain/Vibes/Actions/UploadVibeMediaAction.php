@@ -30,7 +30,7 @@ class UploadVibeMediaAction
                 'original_name' => $file->getClientOriginalName(),
                 'mime_type' => (string) $file->getMimeType(),
                 'size' => $file->getSize(),
-                'processing_status' => MediaProcessingStatus::Completed,
+                'processing_status' => MediaProcessingStatus::Pending,
                 'sort_order' => $order,
             ]);
         } catch (\Throwable $exception) {

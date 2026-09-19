@@ -1,5 +1,5 @@
 <template>
-    <article class="card overflow-hidden">
+    <article class="card overflow-hidden max-w-[720px] mx-auto w-full border border-slate-200 shadow-sm">
         <div class="flex items-center gap-3 p-4">
             <img :src="p.avatar" class="w-11 h-11 rounded-full object-cover shadow-sm" />
             <div class="flex-1 min-w-0">
@@ -41,18 +41,18 @@
                     data-lucide="more-horizontal" class="w-5 h-5"></i></button>
         </div>
 
-        <div class="relative bg-black group">
+        <div class="relative bg-black group w-180">
             <!-- Media Carousel -->
-            <div class="relative overflow-hidden w-full aspect-[4/5] max-h-[560px]">
+            <div class="relative overflow-hidden w-180 h-200">
                 <div class="flex h-full transition-transform duration-300 ease-in-out"
                     :style="{ transform: `translateX(-${currentIndex * 100}%)` }">
                     <div v-for="(item, index) in p.media" :key="item.id || index"
-                        class="w-full h-full shrink-0 bg-black">
+                        class="w-full shrink-0 bg-black">
                         <video v-if="item.type === 'video'" :src="item.url" controls playsinline
-                            class="w-full h-full object-cover block"></video>
+                            class="w-180 h-200 object-fill block"></video>
 
                         <img v-else :src="item.url" :alt="p.caption || 'Vibe image'"
-                            class="w-full h-full object-cover block" />
+                            class="w-180 h-200 object-fill" />
                     </div>
                 </div>
             </div>
@@ -182,9 +182,10 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue';
+import { ref, computed, nextTick, onMounted } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import axios from 'axios';
+import { formatMoney, formatNumber } from '../../../lib/utils';
 import VibeTagModal from '../modals/VibeTagModal.vue';
 import VibeCommentsModal from '../modals/VibeCommentsModal.vue';
 import VibeBigUpModal from '../modals/VibeBigUpModal.vue';
@@ -195,9 +196,14 @@ const props = defineProps({
     p: Object
 });
 
+const emit = defineEmits(['deleted']);
+
 const page = usePage();
 const user = computed(() => page.props.auth?.user || {});
-const isOwner = computed(() => props.p.created_by === user.value.id);
+const isOwner = computed(() => {
+    if (!props.p.created_by || !user.value.id) return false;
+    return String(props.p.created_by) === String(user.value.id);
+});
 
 const vibeTagModalRef = ref(null);
 const vibeCommentsModalRef = ref(null);
@@ -342,8 +348,8 @@ const shareVibe = async () => {
     }
 };
 
-const num = (n) => Number(n || 0).toLocaleString();
-const money = (n) => '$' + Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const num = (n) => formatNumber(n);
+const money = (n) => formatMoney(n);
 
 const openVibeTag = () => {
     if (vibeTagModalRef.value && props.p.tag) {
@@ -359,12 +365,17 @@ const handleDelete = async (vibeId) => {
     try {
         await axios.delete(route('new_frontend.vibes.destroy', { vibe: vibeId }));
         showToast('🗑️ Post deleted');
-        // We could emit an event here to the parent list to remove the card from UI
-        window.location.reload(); // Simple way to refresh the list
+        emit('deleted', vibeId);
     } catch (error) {
         console.error('Failed to delete vibe', error);
     }
 };
+
+onMounted(() => {
+    nextTick(() => {
+        if (window.lucide) window.lucide.createIcons();
+    });
+});
 
 const showToast = (msg) => {
     if (window.toast) window.toast(msg);

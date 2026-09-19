@@ -15,6 +15,7 @@ class VibeResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'created_by' => $this->created_by,
             'creator' => $this->whenLoaded('creator', fn () => $this->identity($this->creator)),
             'publisher' => $this->whenLoaded('publisher', fn () => $this->identity($this->publisher)),
             'publisher_type' => $this->publisher_type,

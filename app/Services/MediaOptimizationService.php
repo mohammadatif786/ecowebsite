@@ -83,6 +83,10 @@ class MediaOptimizationService
             $newWidth = (int) round($width * 0.5);
             $newHeight = (int) round($height * 0.5);
 
+            // FFMpeg requires even numbers for many encoders
+            if ($newWidth % 2 !== 0) $newWidth--;
+            if ($newHeight % 2 !== 0) $newHeight--;
+
             // Resize video with reduced bitrate
             $video->filters()
                   ->resize(new Dimension($newWidth, $newHeight))
@@ -97,6 +101,56 @@ class MediaOptimizationService
                 'error' => $e->getMessage()
             ]);
             return $videoPath; // Return original if optimization fails
+        }
+    }
+
+    /**
+     * Fit media to Vibe card ratio (4:5 / 1080x1350)
+     */
+    public function fitToVibeRatio(string $inputPath, string $outputPath, string $type = 'image'): string
+    {
+        try {
+            if ($type === 'image') {
+                $image = $this->imageManager->read($inputPath);
+                $image->contain(1080, 1350, '000000') // Black background
+                      ->save($outputPath);
+                return $outputPath;
+            }
+
+            if ($type === 'video') {
+                $video = $this->ffmpeg->open($inputPath);
+                $video->filters()
+                      ->resize(new Dimension(1080, 1350), \FFMpeg\Filters\Video\ResizeFilter::RESIZEMODE_INSET)
+                      ->pad(new \FFMpeg\Coordinate\Dimension(1080, 1350))
+                      ->synchronize();
+
+                $video->save(new \FFMpeg\Format\Video\X264('aac', 'libx264'), $outputPath);
+                return $outputPath;
+            }
+        } catch (\Exception $e) {
+            Log::error('Media fit to vibe ratio failed', [
+                'path' => $inputPath,
+                'type' => $type,
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        return $inputPath;
+    }
+
+    /**
+     * Generate a thumbnail from a video file
+     */
+    public function generateVideoThumbnail(string $videoPath, string $outputPath, int $second = 1): bool
+    {
+        try {
+            $video = $this->ffmpeg->open($videoPath);
+            $video->frame(\FFMpeg\Coordinate\TimeCode::fromSeconds($second))
+                  ->save($outputPath);
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Video thumbnail generation failed', ['path' => $videoPath, 'error' => $e->getMessage()]);
+            return false;
         }
     }
 

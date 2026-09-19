@@ -55,7 +55,7 @@
 
                 <!-- Feed List -->
                 <div id="vibeFeed" class="space-y-4">
-                    <VibeCard v-for="post in posts" :key="post.id" :p="post" />
+                    <VibeCard v-for="post in posts" :key="post.id" :p="post" @deleted="onPostDeleted" />
                 </div>
             </div>
 
@@ -122,8 +122,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import { usePage } from '@inertiajs/vue3';
+import { formatMoney } from '../../../lib/utils';
 import MainLayout from '../../../layouts/new_front_layout/MainLayout.vue';
 import VibeCard from '../../../components/new_frontend/cards/VibeCard.vue';
 import ComposeVibeModal from '../../../components/new_frontend/modals/ComposeVibeModal.vue';
@@ -151,7 +152,7 @@ const page = usePage();
 const user = computed(() => page.props.auth?.user || {});
 const posts = ref([...props.vibes]);
 
-const money = (n) => '$' + Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const money = (n) => formatMoney(n);
 
 const stories = ref([...(props.stories || [])]);
 const allReels = computed(() => props.allReels || []);
@@ -214,6 +215,10 @@ const openReelView = (story) => {
 const onPostCreated = (newPost) => {
     // The ComposeVibeModal already emits a formatted post object
     posts.value.unshift(newPost);
+};
+
+const onPostDeleted = (vibeId) => {
+    posts.value = posts.value.filter(p => p.id !== vibeId);
 };
 
 const onReelCreated = (newReel) => {
@@ -297,6 +302,12 @@ const followCreator = (event) => {
 const showToast = (msg) => {
     if (window.toast) window.toast(msg);
 };
+
+onMounted(() => {
+    nextTick(() => {
+        if (window.lucide) window.lucide.createIcons();
+    });
+});
 
 watch(
     () => props.stories,

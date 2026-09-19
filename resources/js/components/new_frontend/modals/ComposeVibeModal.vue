@@ -226,6 +226,7 @@ const submit = async () => {
     const vibe = (await axios.post(route('new_frontend.vibes.store'), form)).data.data;
     emit('postCreated', {
       id: vibe.id,
+      created_by: vibe.created_by || user.id,
       handle: vibe.publisher.name,
       publisher_type: vibe.publisher.type, // Map correct type
       avatar: vibe.publisher.avatar || user.avatar,
