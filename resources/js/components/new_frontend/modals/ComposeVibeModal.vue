@@ -187,6 +187,16 @@ const removeMedia = i => { URL.revokeObjectURL(media.value[i].url); media.value.
 const openTagModal = () => tagModalRef.value?.open();
 const onItemSelected = (item) => { taggedItem.value = item; };
 
+const formatTagImageUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  let clean = path.replace(/^\/+/, '');
+  while (clean.startsWith('storage/')) {
+    clean = clean.substring(8).replace(/^\/+/, '');
+  }
+  return '/storage/' + clean;
+};
+
 const submit = async () => {
   error.value = ''; if (!caption.value.trim() && !media.value.length) { error.value = 'Add a caption or media.'; return; }
 
@@ -247,7 +257,7 @@ const submit = async () => {
         id: (vibe.products[0] || vibe.events[0]).id,
         title: (vibe.products[0] || vibe.events[0]).name || (vibe.products[0] || vibe.events[0]).title,
         price: (vibe.products[0] || vibe.events[0]).price,
-        image: (vibe.products[0] || vibe.events[0]).cover_image || (vibe.products[0] || vibe.events[0]).featured_image,
+        image: taggedItem.value?.image || formatTagImageUrl((vibe.products[0] || vibe.events[0]).cover_image || (vibe.products[0] || vibe.events[0]).featured_image || (vibe.products[0] || vibe.events[0]).image_url),
         seller: (vibe.products[0] || vibe.events[0]).user?.name
       } : null
     });

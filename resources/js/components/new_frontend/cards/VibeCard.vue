@@ -41,18 +41,18 @@
                     data-lucide="more-horizontal" class="w-5 h-5"></i></button>
         </div>
 
-        <div class="relative bg-black group w-180">
+        <div class="relative bg-black group w-full">
             <!-- Media Carousel -->
-            <div class="relative overflow-hidden w-180 h-200">
+            <div class="relative overflow-hidden w-full h-[500px] md:h-[600px]">
                 <div class="flex h-full transition-transform duration-300 ease-in-out"
                     :style="{ transform: `translateX(-${currentIndex * 100}%)` }">
                     <div v-for="(item, index) in p.media" :key="item.id || index"
-                        class="w-full shrink-0 bg-black">
+                        class="w-full shrink-0 bg-black flex items-center justify-center">
                         <video v-if="item.type === 'video'" :src="item.url" controls playsinline
-                            class="w-180 h-200 object-fill block"></video>
+                            class="w-full h-full object-contain block"></video>
 
                         <img v-else :src="item.url" :alt="p.caption || 'Vibe image'"
-                            class="w-180 h-200 object-fill" />
+                            class="w-full h-full object-contain" />
                     </div>
                 </div>
             </div>

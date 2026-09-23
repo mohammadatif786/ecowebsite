@@ -100,16 +100,19 @@ class VibeInteractionController extends Controller
         }
 
         $request->validate([
-            'gift_name' => 'required|string',
-            'emoji' => 'required|string',
+            'gift_name' => 'nullable|string',
+            'emoji' => 'nullable|string',
             'coins' => 'required|integer|min:1',
         ]);
+
+        $giftName = $request->input('gift_name', 'Big Up');
+        $emoji = $request->input('emoji', '⚡');
 
         if ($sender->coins < $request->coins) {
             return response()->json(['message' => 'Insufficient coins'], 422);
         }
 
-        DB::transaction(function () use ($sender, $receiver, $vibe, $request) {
+        DB::transaction(function () use ($sender, $receiver, $vibe, $request, $giftName, $emoji) {
             $sender->decrement('coins', $request->coins);
             $receiver->increment('coins', $request->coins);
 
@@ -117,8 +120,8 @@ class VibeInteractionController extends Controller
                 'sender_id' => $sender->id,
                 'recieved_id' => $receiver->id,
                 'vibe_id' => $vibe->id,
-                'name' => $request->gift_name,
-                'emoji' => $request->emoji,
+                'name' => $giftName,
+                'emoji' => $emoji,
                 'coins' => $request->coins,
             ]);
 

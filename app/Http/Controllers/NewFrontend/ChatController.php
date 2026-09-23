@@ -161,7 +161,11 @@ class ChatController extends Controller
         }
 
         $this->createMessageNotification($message);
-        broadcast(new MessageSent($message));
+        try {
+            broadcast(new MessageSent($message));
+        } catch (\Throwable $exception) {
+            Log::warning('Broadcast MessageSent failed: ' . $exception->getMessage());
+        }
         SendChatMessageEmailJob::dispatch($message->id);
 
         return $message;

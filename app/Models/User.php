@@ -498,9 +498,20 @@ class User extends Authenticatable implements Payable
 
     public function getAvatarAttribute()
     {
-        $avatar = $this->attributes['avatar'] ?? null;
+        $avatar = $this->attributes['avatar'] ?? $this->attributes['image'] ?? null;
+
+        if (! $avatar && ! empty($this->attributes['more_photos'])) {
+            $photos = is_array($this->attributes['more_photos'])
+                ? $this->attributes['more_photos']
+                : json_decode($this->attributes['more_photos'], true);
+            if (! empty($photos) && is_array($photos)) {
+                $avatar = $photos[0] ?? null;
+            }
+        }
+
         if (! $avatar) {
-            return null;
+            $id = $this->attributes['id'] ?? 'user';
+            return "https://i.pravatar.cc/150?u={$id}";
         }
 
         // If it's a valid URL (e.g., Firebase), return as is
@@ -508,8 +519,11 @@ class User extends Authenticatable implements Payable
             return $avatar;
         }
 
-        // Otherwise, assume it's a local path and prepend storage
-        return asset('storage/'.$avatar);
+        if (str_starts_with($avatar, 'storage/') || str_starts_with($avatar, '/storage/')) {
+            return asset(ltrim($avatar, '/'));
+        }
+
+        return asset('storage/' . ltrim($avatar, '/'));
     }
 
     public function isMatchedWith(User $otherUser)
