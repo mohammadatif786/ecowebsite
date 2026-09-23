@@ -245,11 +245,12 @@ class DashboardController extends Controller
 
         $path = ltrim($path, '/');
 
-        if (! str_starts_with($path, 'storage/')) {
-            $path = 'storage/' . $path;
+        while (str_starts_with($path, 'storage/')) {
+            $path = substr($path, 8);
+            $path = ltrim($path, '/');
         }
 
-        return asset($path);
+        return asset('storage/' . $path);
     }
 
     public function notifications()
@@ -415,7 +416,7 @@ class DashboardController extends Controller
                     'title' => $p->name,
                     'price' => $p->price,
                     'seller' => $p->user?->name ?? $p->seller?->name,
-                    'image' => $p->cover_image ? asset('storage/' . $p->cover_image) : null,
+                    'image' => $this->resolveStorageImage($p->cover_image) ?? $p->image_url,
                 ];
             } elseif ($vibe->events->isNotEmpty()) {
                 $e = $vibe->events->first();
@@ -428,7 +429,7 @@ class DashboardController extends Controller
                     'date' => $e->start_date?->format('Y-m-d'),
                     'location' => $e->venue,
                     'seller' => $e->user?->name,
-                    'image' => $e->featured_image ? asset('storage/' . $e->featured_image) : null,
+                    'image' => $this->resolveStorageImage($e->featured_image) ?? $e->image_url,
                 ];
             }
 
@@ -541,7 +542,7 @@ class DashboardController extends Controller
                 'kind' => 'product',
                 'title' => $p->name,
                 'price' => (float) $p->price,
-                'image' => $p->cover_image ?? $p->image_url,
+                'image' => $this->resolveStorageImage($p->cover_image) ?? $p->image_url,
                 'seller' => $p->seller?->name ?? 'Store',
                 'commMode' => $p->commMode,
                 'commission' => (float) $p->commission,
@@ -579,10 +580,21 @@ class DashboardController extends Controller
                 ];
             });
 
-        // Latest reel per user for the stories carousel
+        // Followed users plus current user for stories
+        $followedUserIds = \App\Models\Frontend\FriendRequest::where(function ($q) use ($user) {
+            $q->where('user_id', $user->id)->orWhere('receiver_id', $user->id);
+        })->where('status', 1)
+        ->get()
+        ->map(fn($r) => $r->user_id === $user->id ? $r->receiver_id : $r->user_id)
+        ->push($user->id)
+        ->unique()
+        ->toArray();
+
+        // Latest reel per followed user for the stories carousel
         $latestStoryIds = DB::query()
             ->fromSub(
                 UserReel::active()
+                    ->whereIn('user_id', $followedUserIds)
                     ->select([
                         'id',
                         'user_id',
@@ -595,7 +607,7 @@ class DashboardController extends Controller
             )
             ->where('row_num', 1)
             ->orderByDesc('id')
-            ->limit(10)
+            ->limit(20)
             ->pluck('id');
 
         $stories = UserReel::active()
@@ -619,6 +631,13 @@ class DashboardController extends Controller
                     'thumbnail_path' => $reel->thumbnail_path,
                     'user_id' => $reel->user_id,
                     'name' => $reel->user?->name ?? 'User',
+                    'likes_count' => $reel->likes_count,
+                    'comments_count' => $reel->comments_count,
+                    'shares_count' => $reel->shares_count,
+                    'gifts_count' => $reel->gifts_count,
+                    'bigups_count' => $reel->bigups_count,
+                    'is_liked' => $reel->likes()->where('user_id', $user->id)->exists(),
+                    'is_saved' => $reel->saves()->where('user_id', $user->id)->exists(),
                     'created_at' => $reel->created_at?->toISOString(),
                 ];
             })
@@ -647,7 +666,34 @@ class DashboardController extends Controller
                     'thumbnail_path' => $reel->thumbnail_path,
                     'user_id' => $reel->user_id,
                     'name' => $reel->user?->name ?? 'User',
+                    'likes_count' => $reel->likes_count,
+                    'comments_count' => $reel->comments_count,
+                    'shares_count' => $reel->shares_count,
+                    'gifts_count' => $reel->gifts_count,
+                    'bigups_count' => $reel->bigups_count,
+                    'is_liked' => $reel->likes()->where('user_id', $user->id)->exists(),
+                    'is_saved' => $reel->saves()->where('user_id', $user->id)->exists(),
                     'created_at' => $reel->created_at?->toISOString(),
+                ];
+            })
+            ->values();
+
+        $followingUserIds = \App\Models\Frontend\FriendRequest::where(function ($q) use ($user) {
+            $q->where('user_id', $user->id)->orWhere('receiver_id', $user->id);
+        })->where('status', 1)
+        ->get()
+        ->map(fn($r) => $r->user_id === $user->id ? $r->receiver_id : $r->user_id)
+        ->toArray();
+
+        $suggestedCreators = User::latest()
+            ->get()
+            ->map(function ($u) use ($followingUserIds) {
+                return [
+                    'user_id' => $u->id,
+                    'handle' => $u->linkup_id ?? $u->name ?? 'User',
+                    'name' => $u->name,
+                    'avatar' => $u->avatar ?: ('https://i.pravatar.cc/150?u=' . $u->id),
+                    'is_following' => in_array($u->id, $followingUserIds),
                 ];
             })
             ->values();
@@ -656,6 +702,7 @@ class DashboardController extends Controller
             'vibes' => $formattedVibes,
             'stories' => $stories,
             'allReels' => $allReels,
+            'suggestedCreators' => $suggestedCreators,
             'vibePublishers' => [
                 'organizations' => $user->organizerProfile()->get(['id', 'organizer_name'])
                     ->map(fn ($organization) => ['id' => $organization->id, 'name' => $organization->organizer_name, 'type' => 'organization']),
@@ -1293,6 +1340,8 @@ class DashboardController extends Controller
             'name' => $gift->name ?? 'Gift coins',
             'coins' => (int) $gift->coins,
             'status' => $gift->status,
+            'vibe_id' => $gift->vibe_id,
+            'source' => $gift->vibe_id ? 'Vibes' : (str_contains(strtolower($gift->name ?? ''), 'u vibe') ? 'U Vibes' : (isset($gift->stream_id) ? 'Live' : 'LinkUp')),
             'sender' => $gift->sender ? [
                 'id' => $gift->sender->id,
                 'name' => $gift->sender->name,

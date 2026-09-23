@@ -536,15 +536,14 @@ const findCurrentReelIndex = () => {
         !props.reel?.id ||
         !props.reels.length
     ) {
-        return 0;
+        return -1;
     }
 
     const index = props.reels.findIndex(
-        (item) =>
-            item.id === props.reel.id
+        (item) => String(item.id) === String(props.reel.id)
     );
 
-    return index >= 0 ? index : 0;
+    return index;
 };
 
 const previousReel = async () => {
@@ -575,6 +574,28 @@ const nextReel = async () => {
     );
 };
 
+const fetchReelDetails = async () => {
+    if (!activeReel.value?.id) return;
+    try {
+        const response = await axios.get(route('new_frontend.reels.show', { reel: activeReel.value.id }));
+        if (response.data) {
+            const data = response.data;
+            activeReel.value.likes_count = data.likes_count;
+            activeReel.value.comments_count = data.comments_count;
+            activeReel.value.shares_count = data.shares_count;
+            activeReel.value.bigups_count = data.bigups_count;
+            activeReel.value.is_liked = data.is_liked;
+            activeReel.value.is_saved = data.is_saved;
+
+            isLiked.value = Boolean(data.is_liked);
+            isSaved.value = Boolean(data.is_saved);
+            bigupsCount.value = data.bigups_count || 0;
+        }
+    } catch (err) {
+        console.error('Failed to fetch reel details', err);
+    }
+};
+
 const switchToReel = async (newReel) => {
     if (!newReel) {
         return;
@@ -603,6 +624,8 @@ const switchToReel = async (newReel) => {
     comments.value = [];
     newComment.value = '';
 
+    fetchReelDetails();
+
     await nextTick();
 
     if (
@@ -629,31 +652,29 @@ const switchToReel = async (newReel) => {
 */
 
 const open = async () => {
-    currentIndex.value =
-        findCurrentReelIndex();
+    currentIndex.value = findCurrentReelIndex();
 
-    activeReel.value =
-        props.reels[
-        currentIndex.value
-        ] ||
-        props.reel ||
-        null;
+    if (currentIndex.value >= 0 && props.reels[currentIndex.value]) {
+        activeReel.value = props.reels[currentIndex.value];
+    } else if (props.reel) {
+        activeReel.value = props.reel;
+    } else {
+        activeReel.value = null;
+    }
 
-    isLiked.value = Boolean(
-        activeReel.value?.is_liked
-    );
-
-    isSaved.value = Boolean(
-        activeReel.value?.is_saved
-    );
-
-    bigupsCount.value = activeReel.value?.bigups_count || activeReel.value?.bigup || 0;
+    if (activeReel.value) {
+        isLiked.value = Boolean(activeReel.value.is_liked);
+        isSaved.value = Boolean(activeReel.value.is_saved);
+        bigupsCount.value = activeReel.value.bigups_count || activeReel.value.bigup || 0;
+    }
 
     progress.value = 0;
     captionExpanded.value = false;
     commentsOpen.value = false;
 
     modalRef.value?.open();
+
+    fetchReelDetails();
 
     await nextTick();
 
@@ -937,6 +958,7 @@ const toggleLike = async () => {
         isLiked.value = Boolean(
             response.data.is_liked
         );
+        activeReel.value.is_liked = response.data.is_liked;
 
         if (
             typeof response.data
@@ -1016,6 +1038,9 @@ const openBigUp = () => {
 
 const onBigUpSent = (newCount) => {
     bigupsCount.value = newCount;
+    if (activeReel.value) {
+        activeReel.value.bigups_count = newCount;
+    }
 };
 
 const openVibeTag = () => {
@@ -1049,7 +1074,10 @@ const saveReel = async () => {
     try {
         const response = await axios.post(route('new_frontend.reels.save', { reel: activeReel.value.id }));
 
-        isSaved.value = response.data.is_saved;
+        isSaved.value = Boolean(response.data.is_saved);
+        if (activeReel.value) {
+            activeReel.value.is_saved = response.data.is_saved;
+        }
 
         if (response.data.is_saved) {
             showToast('🔖 Saved');
@@ -1288,39 +1316,28 @@ watch(
             return;
         }
 
-        const newIndex =
-            props.reels.findIndex(
-                (item) =>
-                    item.id ===
-                    newReel.id
-            );
+        const newIndex = props.reels.findIndex(
+            (item) => String(item.id) === String(newReel.id)
+        );
 
         if (newIndex >= 0) {
-            currentIndex.value =
-                newIndex;
+            currentIndex.value = newIndex;
         }
 
         if (
             !activeReel.value ||
-            activeReel.value.id !==
-            newReel.id
+            String(activeReel.value.id) !== String(newReel.id)
         ) {
-            activeReel.value =
-                newReel;
+            activeReel.value = newIndex >= 0 ? props.reels[newIndex] : newReel;
 
-            isLiked.value =
-                Boolean(
-                    newReel.is_liked
-                );
-
-            isSaved.value =
-                Boolean(
-                    newReel.is_saved
-                );
+            isLiked.value = Boolean(newReel.is_liked);
+            isSaved.value = Boolean(newReel.is_saved);
+            bigupsCount.value = newReel.bigups_count || newReel.bigup || 0;
 
             progress.value = 0;
-            captionExpanded.value =
-                false;
+            captionExpanded.value = false;
+
+            fetchReelDetails();
 
             await nextTick();
 
@@ -2352,6 +2369,12 @@ defineExpose({
     text-align: left;
 
     color: white;
+
+    cursor: pointer;
+}
+
+.creator-button:hover .creator-name {
+    text-decoration: underline;
 }
 
 .creator-avatar {
@@ -2365,6 +2388,8 @@ defineExpose({
     object-fit: cover;
 
     border: 2px solid rgba(255, 255, 255, 0.9);
+
+    cursor: pointer;
 }
 
 .creator-placeholder {

@@ -134,6 +134,12 @@ class ReelController extends Controller
                 ];
             });
 
+        $isFollowing = \App\Models\Frontend\FriendRequest::where(function ($q) use ($currentUser, $user) {
+            $q->where('user_id', $currentUser->id)->where('receiver_id', $user->id);
+        })->orWhere(function ($q) use ($currentUser, $user) {
+            $q->where('user_id', $user->id)->where('receiver_id', $currentUser->id);
+        })->where('status', 1)->exists();
+
         return response()->json([
             'user' => [
                 'id' => $user->id,
@@ -142,6 +148,7 @@ class ReelController extends Controller
                 'linkup_id' => $user->linkup_id,
                 'city' => $user->city,
                 'country' => $user->country,
+                'is_following' => $isFollowing,
             ],
             'reels' => $reels,
         ]);

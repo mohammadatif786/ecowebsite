@@ -25,13 +25,14 @@ Route::prefix('new_frontend')->name('new_frontend.')->group(function () {
     Route::middleware(['auth', 'otp.verified', 'isWizardComplete'])->group(function () {
         Route::post('/vibes', [VibeController::class, 'store'])->middleware('throttle:10,1')->name('vibes.store');
         Route::delete('/vibes/{vibe}', [VibeController::class, 'destroy'])->name('vibes.destroy');
+        Route::post('/creators/{user}/toggle-follow', [VibeController::class, 'toggleFollowCreator'])->name('creators.toggle-follow');
         Route::post('/vibes/{vibe}/like', [VibeInteractionController::class, 'toggleLike'])->name('vibes.like');
         Route::get('/vibes/{vibe}/comments', [VibeInteractionController::class, 'indexComments'])->name('vibes.comments.index');
         Route::get('/vibes/{vibe}/top-comments', [VibeInteractionController::class, 'topComments'])->name('vibes.top-comments');
         Route::post('/vibes/{vibe}/comments', [VibeInteractionController::class, 'storeComment'])->name('vibes.comments.store');
         Route::post('/vibes/{vibe}/share', [VibeInteractionController::class, 'share'])->name('vibes.share');
         Route::post('/vibes/{vibe}/bigup', [VibeInteractionController::class, 'sendBigUp'])->name('vibes.bigup');
-        
+
         // Reels routes
         Route::post('/reels', [ReelController::class, 'store'])->name('reels.store');
         Route::get('/reels/followed', [ReelController::class, 'getFollowedReels'])->name('reels.followed');

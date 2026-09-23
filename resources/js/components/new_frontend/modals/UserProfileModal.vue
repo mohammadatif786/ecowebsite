@@ -19,15 +19,16 @@
         <!-- Profile Image -->
         <div class="absolute -top-16 left-6">
           <img
-            :src="user?.avatar"
-            class="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg"
+            :src="user?.avatar || ('https://i.pravatar.cc/150?u=' + (user?.id || props.userId))"
+            @error="$event.target.src = 'https://i.pravatar.cc/150?u=' + (user?.id || props.userId)"
+            class="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg bg-slate-100"
           />
         </div>
 
         <!-- User Details -->
         <div class="pt-20">
-          <h2 class="text-2xl font-black text-slate-800">{{ user?.name }}</h2>
-          <p class="text-slate-500 font-semibold">@{{ user?.linkup_id }}</p>
+          <h2 class="text-2xl font-black text-slate-800">{{ user?.name || 'User' }}</h2>
+          <p class="text-slate-500 font-semibold">@{{ user?.linkup_id || user?.name || 'user' }}</p>
           <p v-if="user?.city || user?.country" class="text-slate-400 text-sm mt-1">
             📍 {{ [user?.city, user?.country].filter(Boolean).join(', ') }}
           </p>
@@ -37,16 +38,16 @@
         <div class="flex gap-3 mt-4">
           <button
             @click="messageUser"
-            class="flex-1 btn btn-primary py-2.5 font-bold"
+            class="flex-1 btn btn-primary py-2.5 font-bold flex items-center justify-center gap-2"
           >
-            <i data-lucide="message-circle" class="w-4 h-4 mr-2"></i>
+            <i data-lucide="message-square" class="w-4 h-4"></i>
             Message
           </button>
           <button
             @click="toggleFollow"
-            class="flex-1 btn bg-slate-100 hover:bg-slate-200 text-slate-800 py-2.5 font-bold transition"
+            :class="['flex-1 btn py-2.5 font-bold transition flex items-center justify-center gap-2', isFollowing ? 'bg-slate-100 hover:bg-slate-200 text-slate-700' : 'btn-primary']"
           >
-            <i data-lucide="user-plus" class="w-4 h-4 mr-2"></i>
+            <i :data-lucide="isFollowing ? 'user-check' : 'user-plus'" class="w-4 h-4"></i>
             {{ isFollowing ? 'Following' : 'Follow' }}
           </button>
         </div>
@@ -54,7 +55,7 @@
         <!-- Reels Grid -->
         <div class="mt-6">
           <h3 class="font-black text-slate-800 mb-4">Reels</h3>
-          
+
           <div v-if="loading" class="text-center py-8">
             <p class="text-slate-400 font-semibold">Loading reels...</p>
           </div>
@@ -99,11 +100,11 @@
 
 <script setup>
 import axios from 'axios';
-import { ref, watch } from 'vue';
+import { ref, watch, nextTick } from 'vue';
 import Modal from '../ui/Modal.vue';
 
 const props = defineProps({
-  userId: { type: Number, required: true }
+  userId: { type: [Number, String], default: null }
 });
 
 const emit = defineEmits(['reelClicked', 'messageClicked', 'followToggled']);
@@ -112,44 +113,36 @@ const user = ref(null);
 const reels = ref([]);
 const loading = ref(false);
 const isFollowing = ref(false);
+const activeUserId = ref(null);
 
-const open = async () => {
+const open = async (id) => {
+  activeUserId.value = id || props.userId;
   modalRef.value?.open();
-  await loadUserData();
-  await loadUserReels();
-  await checkFollowStatus();
+  await loadUserDataAndReels();
+  nextTick(() => {
+    if (window.lucide) window.lucide.createIcons();
+  });
 };
 
 const close = () => {
   modalRef.value?.close();
 };
 
-const loadUserData = async () => {
-  try {
-    const response = await axios.get(route('new_frontend.reels.user', { user: props.userId }));
-    user.value = response.data.user;
-  } catch (e) {
-    console.error('Failed to load user data', e);
-  }
-};
-
-const loadUserReels = async () => {
+const loadUserDataAndReels = async () => {
+  const targetId = activeUserId.value || props.userId;
+  if (!targetId) return;
   loading.value = true;
   try {
-    const response = await axios.get(route('new_frontend.reels.user', { user: props.userId }));
+    const response = await axios.get(route('new_frontend.reels.user', { user: targetId }));
+    user.value = response.data.user || null;
     reels.value = response.data.reels || [];
+    isFollowing.value = !!response.data.user?.is_following;
   } catch (e) {
-    console.error('Failed to load user reels', e);
+    console.error('Failed to load user profile data:', e);
     reels.value = [];
   } finally {
     loading.value = false;
   }
-};
-
-const checkFollowStatus = async () => {
-  // This would check if the current user follows this user
-  // For now, we'll set it to false
-  isFollowing.value = false;
 };
 
 const viewReel = (reel) => {
@@ -157,27 +150,39 @@ const viewReel = (reel) => {
 };
 
 const messageUser = () => {
+  close();
   emit('messageClicked', {
     userId: props.userId,
-    handle: user.value?.linkup_id
+    user_id: props.userId,
+    handle: user.value?.linkup_id || user.value?.name,
+    avatar: user.value?.avatar,
+    name: user.value?.name
   });
 };
 
 const toggleFollow = async () => {
-  // This would toggle follow status
-  // For now, we'll just emit an event
-  isFollowing.value = !isFollowing.value;
-  emit('followToggled', {
-    userId: props.userId,
-    isFollowing: isFollowing.value
-  });
+  try {
+    const response = await axios.post(route('new_frontend.creators.toggle-follow', { user: props.userId }));
+    isFollowing.value = response.data.is_following;
+    if (user.value) {
+      user.value.is_following = response.data.is_following;
+    }
+    if (window.toast) {
+      window.toast(isFollowing.value ? 'Following @' + (user.value?.linkup_id || user.value?.name) : 'Unfollowed @' + (user.value?.linkup_id || user.value?.name));
+    }
+    emit('followToggled', {
+      userId: props.userId,
+      isFollowing: isFollowing.value,
+      reels: response.data.reels || []
+    });
+  } catch (e) {
+    console.error('Failed to toggle follow status:', e);
+  }
 };
 
 watch(() => props.userId, () => {
   if (modalRef.value?.isOpen) {
-    loadUserData();
-    loadUserReels();
-    checkFollowStatus();
+    loadUserDataAndReels();
   }
 });
 

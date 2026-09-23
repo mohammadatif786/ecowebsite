@@ -6,6 +6,8 @@ interface GiftData {
     id: number;
     sender_id: number;
     recieved_id: number;
+    vibe_id?: number;
+    source?: string;
     name: string;
     coins: number;
     status: string;
@@ -27,6 +29,7 @@ interface ActivityItem {
     qty: number;
     coins: number;
     gross: number;
+    source: string;
     to?: {
         id: string;
         name: string;
@@ -38,7 +41,7 @@ interface ActivityItem {
     context: string;
     date: string;
     status: string;
-    sortDate: Date; // Add this for proper sorting
+    sortDate: Date;
 }
 
 // COIN TO USD RATE
@@ -69,54 +72,58 @@ const activity = computed((): ActivityItem[] => {
     // Add sent gifts
     props.gifts_sent?.forEach((gift: GiftData) => {
         const coinVal = Number(gift.coins) || 0;
+        const giftSource = gift.source || (gift.vibe_id ? 'Vibes' : (gift.name?.toLowerCase().includes('u vibe') ? 'U Vibes' : 'LinkUp'));
         transformed.push({
             id: `G-SENT-${gift.id}`,
             kind: 'GIFT_SENT',
-            gift: gift.name,
+            gift: gift.name || 'Gift coins',
             qty: 1,
             coins: coinVal,
             gross: coinVal * COIN_RATE,
+            source: giftSource,
             to: {
                 id: gift.receiver?.id?.toString() || 'Unknown',
                 name: gift.receiver?.name || 'Unknown User'
             },
-            context: 'Gift sent',
+            context: `Sent via ${giftSource}`,
             date: gift.created_at ? new Date(gift.created_at).toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'short',
                 day: 'numeric'
             }) : 'Unknown',
             status: gift.status || 'sent',
-            sortDate: new Date(gift.created_at || 0) // Add original date for sorting
+            sortDate: new Date(gift.created_at || 0)
         });
     });
 
     // Add received gifts
     props.gifts_received?.forEach((gift: GiftData) => {
         const coinVal = Number(gift.coins) || 0;
+        const giftSource = gift.source || (gift.vibe_id ? 'Vibes' : (gift.name?.toLowerCase().includes('u vibe') ? 'U Vibes' : 'LinkUp'));
         transformed.push({
             id: `G-RECV-${gift.id}`,
             kind: 'GIFT_RECEIVED',
-            gift: gift.name,
+            gift: gift.name || 'Gift coins',
             qty: 1,
             coins: coinVal,
             gross: coinVal * COIN_RATE,
+            source: giftSource,
             from: {
                 id: gift.sender?.id?.toString() || 'Unknown',
                 name: gift.sender?.name || 'Unknown User'
             },
-            context: 'Gift received',
+            context: `Received via ${giftSource}`,
             date: gift.created_at ? new Date(gift.created_at).toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'short',
                 day: 'numeric'
             }) : 'Unknown',
             status: gift.status || 'received',
-            sortDate: new Date(gift.created_at || 0) // Add original date for sorting
+            sortDate: new Date(gift.created_at || 0)
         });
     });
 
-    // Sort by date (newest first) using the original timestamp
+    // Sort by date (newest first)
     return transformed.sort((a, b) => b.sortDate.getTime() - a.sortDate.getTime());
 });
 
@@ -197,20 +204,28 @@ const tabs = [
     { id: 'convert_to_cash', name: 'Convert To Cash', icon: '💸' }
 ];
 
-function giftPill(kind: any) {
-    const map = [
-        { GIFT_PURCHASE: `bg-slate-50 border-slate-200 text-slate-700` },
-        { GIFT_SENT: `bg-rose-50 border-rose-200 text-rose-700` },
-        { GIFT_RECEIVED: `bg-emerald-50 border-emerald-200 text-emerald-700` },
-        { GIFT_COLLECT: `bg-sky-50 border-sky-200 text-sky-700` },
-    ];
-    return `<span class="inline-flex items-center gap-[0.35rem] whitespace-nowrap border rounded-full px-[0.65rem] py-[0.35rem] text-xs font-extrabold ${map[kind] || 'bg-slate-50 border-slate-200 text-slate-700'}">${kind.replace('GIFT_', '').replaceAll('_', ' ')}</span>`;
+function directionPill(kind: string) {
+    if (kind === 'GIFT_SENT') {
+        return `<span class="inline-flex items-center gap-1 border rounded-full px-2.5 py-1 text-xs font-black bg-rose-100 border-rose-200 text-rose-700 shadow-2xs">📤 Sent</span>`;
+    }
+    return `<span class="inline-flex items-center gap-1 border rounded-full px-2.5 py-1 text-xs font-black bg-emerald-100 border-emerald-200 text-emerald-700 shadow-2xs">📥 Received</span>`;
 }
 
-function giftDetails(r: any) {
+function sourceBadge(source: string) {
+    const map: Record<string, { bg: string; icon: string }> = {
+        'Vibes': { bg: 'bg-purple-100 border-purple-200 text-purple-800', icon: '✨' },
+        'U Vibes': { bg: 'bg-indigo-100 border-indigo-200 text-indigo-800', icon: '🎓' },
+        'Live': { bg: 'bg-amber-100 border-amber-200 text-amber-800', icon: '📡' },
+        'LinkUp': { bg: 'bg-sky-100 border-sky-200 text-sky-800', icon: '💬' },
+    };
+    const s = map[source] || map['LinkUp'];
+    return `<span class="inline-flex items-center gap-1 border rounded-full px-2.5 py-1 text-xs font-black ${s.bg}">${s.icon} ${source}</span>`;
+}
+
+function giftDetails(r: ActivityItem) {
     if (r.kind === "GIFT_SENT") return `To <span class="font-black">${r.to?.name || '—'}</span> <span class="text-xs text-slate-500 font-bold">(${r.to?.id || ''})</span><div class="text-xs text-slate-500 font-bold mt-1">${r.context || ''}</div>`;
     if (r.kind === "GIFT_RECEIVED") return `From <span class="font-black">${r.from?.name || '—'}</span> <span class="text-xs text-slate-500 font-bold">(${r.from?.id || ''})</span><div class="text-xs text-slate-500 font-bold mt-1">${r.context || ''}</div>`;
-    return `<span class="text-slate-700 font-bold">${r.details || '—'}</span>`;
+    return `<span class="text-slate-700 font-bold">${r.context || '—'}</span>`;
 }
 
 // Convert to cash functions
@@ -220,11 +235,6 @@ function setMaxCoins() {
 
 function setAllCoins() {
     selectedCoins.value = availableCoins.value;
-}
-
-function updateSelectedCoins(value: number) {
-    const coins = Math.min(Math.max(0, value), availableCoins.value);
-    selectedCoins.value = Math.floor(coins);
 }
 
 function updateConversionMessage() {
@@ -245,15 +255,12 @@ async function convertToCash() {
     conversionMessage.value = '';
 
     try {
-        // Get CSRF token - Laravel standard approach
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
         if (!csrfToken) {
             conversionMessage.value = 'CSRF token not found. Please refresh the page.';
             return;
         }
-
-        console.log('CSRF Token found:', csrfToken.length > 0 ? 'Yes' : 'No');
 
         const response = await fetch('/new_frontend/convert-gifts-to-cash', {
             method: 'POST',
@@ -268,52 +275,23 @@ async function convertToCash() {
             })
         });
 
-        // Check if response is ok
         if (!response.ok) {
-            // Try to get error text
             const errorText = await response.text();
-            console.error('Server response error:', errorText);
-
             if (response.status === 419) {
                 conversionMessage.value = 'CSRF token mismatch. Please refresh the page and try again.';
-            } else if (response.status === 422) {
-                // Validation error
-                try {
-                    const errorData = JSON.parse(errorText);
-                    conversionMessage.value = errorData.message || 'Validation failed. Please check your input.';
-                } catch {
-                    conversionMessage.value = 'Validation failed. Please check your input.';
-                }
             } else {
                 conversionMessage.value = `Server error (${response.status}). Please try again later.`;
             }
             return;
         }
 
-        // Parse JSON response
         const data = await response.json();
 
         if (data.success) {
-            // Reset form
             selectedCoins.value = 0;
             showConversionModal.value = false;
-
-            // Show success message
             conversionMessage.value = data.message;
 
-            // Emit event to refresh parent component data
-            const event = new CustomEvent('gift-converted', {
-                detail: {
-                    coinsConverted: data.data.coins_converted,
-                    newWalletBalance: data.data.new_wallet_balance,
-                    remainingGiftCoins: data.data.remaining_received_coins
-                }
-            });
-            window.dispatchEvent(event);
-
-            console.log('Conversion successful:', data);
-
-            // Reload the page to show updated gift balances and wallet
             setTimeout(() => {
                 window.location.reload();
             }, 1500);
@@ -328,11 +306,9 @@ async function convertToCash() {
     }
 }
 
-// Watch for changes
 watch([selectedCoins, minCashout], updateConversionMessage);
-
-
 </script>
+
 <template>
     <div class="bg-white border border-slate-300/35 rounded-[22px] shadow-[0_12px_26px_rgba(2,6,23,.08)] p-5">
         <!-- Tab Navigation -->
@@ -361,30 +337,41 @@ watch([selectedCoins, minCashout], updateConversionMessage);
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="relative overflow-hidden border border-slate-300/35 rounded-[18px] bg-white p-[14px]">
-                    <div class="text-xs text-slate-500 font-black">Gifts Sent</div>
-                    <div class="mt-1 flex items-baseline gap-2">
-                        <div class="text-3xl font-black">{{ totalSentCoins }}</div>
-                        <div class="text-sm font-bold text-slate-500">Coins</div>
+                <!-- Sent (Rose/Red color coded) -->
+                <div class="relative overflow-hidden border border-rose-200 rounded-[18px] bg-rose-50/30 p-[14px]">
+                    <div class="text-xs text-rose-700 font-black flex items-center gap-1.5">
+                        <span>📤</span> Gifts Sent
                     </div>
-                    <div class="text-xs text-slate-500 font-bold">Value: ${{ totalSent.toFixed(2) }}</div>
+                    <div class="mt-1 flex items-baseline gap-2">
+                        <div class="text-3xl font-black text-rose-700">{{ totalSentCoins }}</div>
+                        <div class="text-sm font-bold text-rose-500">Coins</div>
+                    </div>
+                    <div class="text-xs text-rose-600 font-bold mt-1">Value: ${{ totalSent.toFixed(2) }}</div>
                 </div>
-                <div class="relative overflow-hidden border border-slate-300/35 rounded-[18px] bg-white p-[14px]">
-                    <div class="text-xs text-slate-500 font-black">Gifts Received</div>
-                    <div class="mt-1 flex items-baseline gap-2">
-                        <div class="text-3xl font-black">{{ totalReceivedCoins }}</div>
-                        <div class="text-sm font-bold text-slate-500">Coins</div>
+
+                <!-- Received (Emerald/Green color coded) -->
+                <div class="relative overflow-hidden border border-emerald-200 rounded-[18px] bg-emerald-50/30 p-[14px]">
+                    <div class="text-xs text-emerald-700 font-black flex items-center gap-1.5">
+                        <span>📥</span> Gifts Received
                     </div>
-                    <div class="text-xs text-slate-500 font-bold">Value: ${{ totalReceived.toFixed(2) }}</div>
+                    <div class="mt-1 flex items-baseline gap-2">
+                        <div class="text-3xl font-black text-emerald-700">{{ totalReceivedCoins }}</div>
+                        <div class="text-sm font-bold text-emerald-500">Coins</div>
+                    </div>
+                    <div class="text-xs text-emerald-600 font-bold mt-1">Value: ${{ totalReceived.toFixed(2) }}</div>
                 </div>
             </div>
 
             <div class="relative overflow-hidden border border-slate-300/35 rounded-[18px] bg-white p-[14px]">
                 <div class="text-xs text-slate-500 font-black">Top gift types (received)</div>
                 <div class="mt-2 grid gap-2">
-                    <div class="flex items-center justify-between" v-for="item in top_gift" :key="item.name">
-                        <div class="font-black text-slate-900">{{ item.name }}</div>
-                        <div class="text-xs text-slate-500 font-bold">{{ item.qty }} received</div>
+                    <div class="flex items-center justify-between p-2 rounded-xl bg-slate-50" v-for="item in top_gift" :key="item.name">
+                        <div class="font-black text-slate-900 flex items-center gap-2">
+                            <span class="text-lg">🎁</span> {{ item.name }}
+                        </div>
+                        <div class="text-xs text-emerald-700 font-extrabold bg-emerald-100 px-2.5 py-1 rounded-full border border-emerald-200">
+                            {{ item.qty }} received
+                        </div>
                     </div>
                 </div>
             </div>
@@ -392,41 +379,55 @@ watch([selectedCoins, minCashout], updateConversionMessage);
 
         <!-- Activity Tab -->
         <div v-if="activeTab === 'activity'" class="space-y-4">
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between flex-wrap gap-2">
                 <div>
                     <div class="text-lg font-black tracking-tight">Gift Activity</div>
-                    <div class="text-sm text-slate-500 mt-1">Sent + received + collected</div>
+                    <div class="text-sm text-slate-500 mt-1">Color coded sent (Rose) & received (Green) by origin</div>
                 </div>
-                <span
-                    class="inline-flex items-center gap-[0.35rem] whitespace-nowrap border rounded-full px-[0.65rem] py-[0.35rem] text-xs font-extrabold bg-pink-50 border-pink-200 text-pink-700">
-                    {{ activity.length }}
-                </span>
+                <div class="flex items-center gap-2">
+                    <span class="px-3 py-1 rounded-full text-xs font-black bg-rose-100 text-rose-700 border border-rose-200">
+                        📤 Sent: {{ sentGifts.length }}
+                    </span>
+                    <span class="px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-700 border border-emerald-200">
+                        📥 Received: {{ receivedGifts.length }}
+                    </span>
+                </div>
             </div>
 
-            <div class="overflow-hidden rounded-[18px] border border-slate-300/35 bg-white">
-                <table class="w-full text-[0.9rem]">
-                    <thead class="bg-slate-50 text-slate-600">
+            <div class="overflow-x-auto rounded-[18px] border border-slate-300/35 bg-white hide-scroll">
+                <table class="w-full text-[0.875rem]">
+                    <thead class="bg-slate-50 text-slate-600 border-b border-slate-200">
                         <tr>
                             <th class="text-left px-4 py-3 font-black">ID</th>
-                            <th class="text-left px-4 py-3 font-black">Type</th>
+                            <th class="text-left px-4 py-3 font-black">Direction</th>
+                            <th class="text-left px-4 py-3 font-black">Origin</th>
                             <th class="text-left px-4 py-3 font-black">Gift</th>
-                            <th class="text-left px-4 py-3 font-black">Value</th>
+                            <th class="text-left px-4 py-3 font-black">Coins / Value</th>
                             <th class="text-left px-4 py-3 font-black">Details</th>
                             <th class="text-left px-4 py-3 font-black">Date</th>
                         </tr>
                     </thead>
 
                     <tbody>
-                        <tr v-for="item in activity" :key="item.id">
-                            <td class="px-4 py-3 align-top font-black">{{ item.id }}</td>
-                            <td class="px-4 py-3 align-top" v-html="giftPill(item.kind)"></td>
-                            <td class="px-4 py-3 align-top font-black">{{ item.gift }}</td>
-                            <td class="px-4 py-3 align-top">
-                                <div class="font-black">{{ item.coins }} Coins</div>
-                                <div class="text-xs text-slate-500 font-bold">${{ item.gross.toFixed(2) }}</div>
+                        <tr v-for="item in activity" :key="item.id"
+                            :class="[
+                                'transition border-b border-slate-100 last:border-none',
+                                item.kind === 'GIFT_SENT'
+                                    ? 'bg-rose-50/20 hover:bg-rose-50/60 border-l-4 border-l-rose-500'
+                                    : 'bg-emerald-50/20 hover:bg-emerald-50/60 border-l-4 border-l-emerald-500'
+                            ]">
+                            <td class="px-4 py-3.5 align-middle font-mono font-bold text-xs text-slate-500">{{ item.id }}</td>
+                            <td class="px-4 py-3.5 align-middle" v-html="directionPill(item.kind)"></td>
+                            <td class="px-4 py-3.5 align-middle" v-html="sourceBadge(item.source)"></td>
+                            <td class="px-4 py-3.5 align-middle font-black text-slate-900">{{ item.gift }}</td>
+                            <td class="px-4 py-3.5 align-middle">
+                                <div :class="['font-black text-sm', item.kind === 'GIFT_SENT' ? 'text-rose-600' : 'text-emerald-600']">
+                                    {{ item.kind === 'GIFT_SENT' ? '-' : '+' }}{{ item.coins }} Coins
+                                </div>
+                                <div class="text-[11px] text-slate-400 font-bold">${{ item.gross.toFixed(2) }}</div>
                             </td>
-                            <td class="px-4 py-3 align-top" v-html="giftDetails(item)"></td>
-                            <td class="text-slate-500 font-extrabold px-4 py-3 align-top">{{ item.date }}</td>
+                            <td class="px-4 py-3.5 align-middle" v-html="giftDetails(item)"></td>
+                            <td class="text-slate-500 font-bold text-xs px-4 py-3.5 align-middle whitespace-nowrap">{{ item.date }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -442,35 +443,33 @@ watch([selectedCoins, minCashout], updateConversionMessage);
 
             <!-- Main Statistics -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="relative overflow-hidden border border-slate-300/35 rounded-[18px] bg-white p-[14px]">
+                <div class="relative overflow-hidden border border-rose-200 rounded-[18px] bg-rose-50/30 p-4">
                     <div class="flex items-center justify-between">
                         <div>
-                            <div class="text-xs text-slate-500 font-black">Total spent</div>
+                            <div class="text-xs text-rose-700 font-black">Total Spent</div>
                             <div class="mt-1 flex items-baseline gap-2">
-                                <div class="text-4xl font-black">{{ totalSentCoins }}</div>
-                                <div class="text-sm font-bold text-slate-500">Coins</div>
+                                <div class="text-4xl font-black text-rose-700">{{ totalSentCoins }}</div>
+                                <div class="text-sm font-bold text-rose-500">Coins</div>
                             </div>
-                            <div class="text-xs text-slate-500 font-bold mt-1">Value: ${{ totalSent.toFixed(2) }}</div>
+                            <div class="text-xs text-rose-600 font-bold mt-1">Value: ${{ totalSent.toFixed(2) }}</div>
                         </div>
-                        <div class="w-10 h-10 rounded-2xl bg-rose-50 border border-rose-100 grid place-items-center">
+                        <div class="w-10 h-10 rounded-2xl bg-rose-100 border border-rose-200 grid place-items-center">
                             <Gift class="w-5 h-5 text-rose-700" />
                         </div>
                     </div>
                 </div>
 
-                <div class="relative overflow-hidden border border-slate-300/35 rounded-[18px] bg-white p-[14px]">
+                <div class="relative overflow-hidden border border-emerald-200 rounded-[18px] bg-emerald-50/30 p-4">
                     <div class="flex items-center justify-between">
                         <div>
-                            <div class="text-xs text-slate-500 font-black">Total received</div>
+                            <div class="text-xs text-emerald-700 font-black">Total Received</div>
                             <div class="mt-1 flex items-baseline gap-2">
-                                <div class="text-4xl font-black">{{ totalReceivedCoins }}</div>
-                                <div class="text-sm font-bold text-slate-500">Coins</div>
+                                <div class="text-4xl font-black text-emerald-700">{{ totalReceivedCoins }}</div>
+                                <div class="text-sm font-bold text-emerald-500">Coins</div>
                             </div>
-                            <div class="text-xs text-slate-500 font-bold mt-1">Value: ${{ totalReceived.toFixed(2) }}
-                            </div>
+                            <div class="text-xs text-emerald-600 font-bold mt-1">Value: ${{ totalReceived.toFixed(2) }}</div>
                         </div>
-                        <div
-                            class="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-100 grid place-items-center">
+                        <div class="w-10 h-10 rounded-2xl bg-emerald-100 border border-emerald-200 grid place-items-center">
                             <Gift class="w-5 h-5 text-emerald-700" />
                         </div>
                     </div>
@@ -479,26 +478,26 @@ watch([selectedCoins, minCashout], updateConversionMessage);
 
             <!-- Activity Statistics -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="border border-slate-300/35 rounded-[18px] bg-white p-4">
+                <div class="border border-rose-200 rounded-[18px] bg-rose-50/20 p-4">
                     <div class="flex items-center gap-2 mb-2">
-                        <div class="w-8 h-8 rounded-xl bg-rose-50 border border-rose-100 grid place-items-center">
+                        <div class="w-8 h-8 rounded-xl bg-rose-100 border border-rose-200 grid place-items-center">
                             <Gift class="w-4 h-4 text-rose-700" />
                         </div>
-                        <div class="text-sm font-medium text-slate-600">Sent</div>
+                        <div class="text-sm font-black text-rose-900">Sent Activity</div>
                     </div>
-                    <div class="text-2xl font-bold text-slate-900">{{ sentGifts.length }}</div>
-                    <div class="text-xs text-slate-500 mt-1">Gifts sent</div>
+                    <div class="text-3xl font-black text-rose-700">{{ sentGifts.length }}</div>
+                    <div class="text-xs font-bold text-rose-500 mt-1">Gifts sent to creators & friends</div>
                 </div>
 
-                <div class="border border-slate-300/35 rounded-[18px] bg-white p-4">
+                <div class="border border-emerald-200 rounded-[18px] bg-emerald-50/20 p-4">
                     <div class="flex items-center gap-2 mb-2">
-                        <div class="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-100 grid place-items-center">
+                        <div class="w-8 h-8 rounded-xl bg-emerald-100 border border-emerald-200 grid place-items-center">
                             <Gift class="w-4 h-4 text-emerald-700" />
                         </div>
-                        <div class="text-sm font-medium text-slate-600">Received</div>
+                        <div class="text-sm font-black text-emerald-900">Received Activity</div>
                     </div>
-                    <div class="text-2xl font-bold text-slate-900">{{ receivedGifts.length }}</div>
-                    <div class="text-xs text-slate-500 mt-1">Gifts received</div>
+                    <div class="text-3xl font-black text-emerald-700">{{ receivedGifts.length }}</div>
+                    <div class="text-xs font-bold text-emerald-500 mt-1">Gifts received from supporters</div>
                 </div>
             </div>
         </div>

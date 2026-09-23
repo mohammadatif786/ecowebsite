@@ -111,6 +111,8 @@ const sendBigUp = async (gift) => {
     const routeParam = props.isReel ? { reel: props.p.id } : { vibe: props.p.id };
 
     const response = await axios.post(route(routeName, routeParam), {
+      gift_name: gift.name,
+      emoji: gift.emoji,
       coins: gift.cost
     });
 
