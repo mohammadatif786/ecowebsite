@@ -72,7 +72,7 @@ const activity = computed((): ActivityItem[] => {
     // Add sent gifts
     props.gifts_sent?.forEach((gift: GiftData) => {
         const coinVal = Number(gift.coins) || 0;
-        const giftSource = gift.source || (gift.vibe_id ? 'Vibes' : (gift.name?.toLowerCase().includes('u vibe') ? 'U Vibes' : 'LinkUp'));
+        const giftSource = gift.source || (gift.vibe_id ? 'Vibes' : 'LinkUp');
         transformed.push({
             id: `G-SENT-${gift.id}`,
             kind: 'GIFT_SENT',
@@ -99,7 +99,7 @@ const activity = computed((): ActivityItem[] => {
     // Add received gifts
     props.gifts_received?.forEach((gift: GiftData) => {
         const coinVal = Number(gift.coins) || 0;
-        const giftSource = gift.source || (gift.vibe_id ? 'Vibes' : (gift.name?.toLowerCase().includes('u vibe') ? 'U Vibes' : 'LinkUp'));
+        const giftSource = gift.source || (gift.vibe_id ? 'Vibes' : 'LinkUp');
         transformed.push({
             id: `G-RECV-${gift.id}`,
             kind: 'GIFT_RECEIVED',

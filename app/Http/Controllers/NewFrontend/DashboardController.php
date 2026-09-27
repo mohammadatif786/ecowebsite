@@ -698,6 +698,21 @@ class DashboardController extends Controller
             })
             ->values();
 
+        $giftsReceived = GiftCoins::with(['sender', 'receiver'])
+            ->where('recieved_id', $user->id)
+            ->latest()
+            ->get()
+            ->map(fn($g) => [
+                'id' => $g->id,
+                'name' => $g->name ?? 'Gift',
+                'coins' => (int) $g->coins,
+                'sender' => $g->sender ? [
+                    'id' => $g->sender->id,
+                    'name' => $g->sender->name,
+                    'avatar' => $g->sender->avatar,
+                ] : null,
+            ]);
+
         return Inertia::render('new_front/vibes/Index', [
             'vibes' => $formattedVibes,
             'stories' => $stories,
@@ -716,6 +731,7 @@ class DashboardController extends Controller
             'affiliateItems' => $affiliateProducts->concat($affiliateEvents),
             'earningsStats' => $earningsStats,
             'trendingTags' => $trendingTags,
+            'gifts_received' => $giftsReceived,
         ]);
     }
 
@@ -1341,7 +1357,7 @@ class DashboardController extends Controller
             'coins' => (int) $gift->coins,
             'status' => $gift->status,
             'vibe_id' => $gift->vibe_id,
-            'source' => $gift->vibe_id ? 'Vibes' : (str_contains(strtolower($gift->name ?? ''), 'u vibe') ? 'U Vibes' : (isset($gift->stream_id) ? 'Live' : 'LinkUp')),
+            'source' => ($gift->vibe_id || str_contains(strtolower($gift->name ?? ''), 'vibe') || str_contains(strtolower($gift->name ?? ''), 'big up') || in_array($gift->name, ['Wha Gwaan', 'Likkle Smile', 'Soca Vibe', 'Wine & Dance', 'Sunset Lime', 'Coconut Cheers', 'Island Rose', 'Sweet Kiss', 'Candlelit Date', 'Beach Linkup', 'Sweetheart', 'Island Royalty'])) ? 'Vibes' : (str_contains(strtolower($gift->name ?? ''), 'u vibe') ? 'U Vibes' : (isset($gift->stream_id) ? 'Live' : 'LinkUp')),
             'sender' => $gift->sender ? [
                 'id' => $gift->sender->id,
                 'name' => $gift->sender->name,
@@ -1540,5 +1556,186 @@ class DashboardController extends Controller
         } catch (\Throwable $e) {
             return (string) $value;
         }
+    }
+
+    public function vibeUserProfile(User $user)
+    {
+        $currentUser = Auth::user();
+
+        $isFollowing = \App\Models\Frontend\FriendRequest::where(function ($q) use ($currentUser, $user) {
+            $q->where('user_id', $currentUser->id)->where('receiver_id', $user->id);
+        })->orWhere(function ($q) use ($currentUser, $user) {
+            $q->where('user_id', $user->id)->where('receiver_id', $currentUser->id);
+        })->where('status', 1)->exists();
+
+        $reels = UserReel::active()
+            ->where('user_id', $user->id)
+            ->with('user:id,name,avatar,linkup_id,city,country')
+            ->latest()
+            ->get()
+            ->map(function ($reel) use ($currentUser) {
+                return [
+                    'id' => $reel->id,
+                    'uid' => $reel->uid,
+                    'user_id' => $reel->user_id,
+                    'handle' => $reel->user?->linkup_id ?? $reel->user?->name ?? 'User',
+                    'avatar' => $reel->user?->avatar,
+                    'name' => $reel->user?->name,
+                    'type' => $reel->type,
+                    'file_path' => $reel->file_path,
+                    'thumbnail_path' => $reel->thumbnail_path,
+                    'caption' => $reel->caption,
+                    'location' => $reel->location,
+                    'likes_count' => $reel->likes_count,
+                    'comments_count' => $reel->comments_count,
+                    'shares_count' => $reel->shares_count,
+                    'is_liked' => $reel->likes()->where('user_id', $currentUser->id)->exists(),
+                    'is_saved' => $reel->saves()->where('user_id', $currentUser->id)->exists(),
+                    'created_at' => $reel->created_at?->toISOString(),
+                ];
+            });
+
+        $vibes = Vibe::where('created_by', $user->id)
+            ->with(['creator', 'media', 'products', 'events'])
+            ->latest()
+            ->get();
+
+        $shopItems = collect();
+        foreach ($vibes as $vibe) {
+            foreach ($vibe->products as $p) {
+                $shopItems->push([
+                    'id' => $p->id,
+                    'kind' => 'product',
+                    'name' => $p->name,
+                    'price' => (float) $p->price,
+                    'image' => $this->resolveStorageImage($p->cover_image) ?? $p->image_url,
+                ]);
+            }
+            foreach ($vibe->events as $e) {
+                $shopItems->push([
+                    'id' => $e->id,
+                    'kind' => 'event',
+                    'name' => $e->title,
+                    'price' => (float) ($e->tickets?->min('price') ?? 0),
+                    'image' => $this->resolveStorageImage($e->featured_image) ?? $e->image_url,
+                ]);
+            }
+        }
+        $shopItems = $shopItems->unique('id')->values();
+
+        $topSenders = \App\Models\GiftCoins::where('recieved_id', $user->id)
+            ->with('sender:id,name,avatar,linkup_id')
+            ->select('sender_id', DB::raw('sum(coins) as total_coins'))
+            ->groupBy('sender_id')
+            ->orderByDesc('total_coins')
+            ->limit(3)
+            ->get()
+            ->map(fn($g, $index) => [
+                'rank' => $index + 1,
+                'name' => $g->sender?->name ?? 'Supporter',
+                'handle' => '@' . ($g->sender?->linkup_id ?? 'supporter'),
+                'avatar' => $g->sender?->avatar,
+                'coins' => (int) $g->total_coins,
+            ]);
+
+        $followersCount = \App\Models\Frontend\FriendRequest::where('receiver_id', $user->id)
+            ->where('status', 1)
+            ->count();
+
+        $followingCount = \App\Models\Frontend\FriendRequest::where('user_id', $user->id)
+            ->where('status', 1)
+            ->count();
+
+        $followers = \App\Models\Frontend\FriendRequest::where('receiver_id', $user->id)
+            ->where('status', 1)
+            ->with('user:id,name,linkup_id,avatar')
+            ->latest()
+            ->limit(10)
+            ->get()
+            ->map(fn($r) => [
+                'id' => $r->user?->id,
+                'name' => $r->user?->name,
+                'handle' => '@' . ($r->user?->linkup_id ?? $r->user?->name ?? 'user'),
+                'avatar' => $r->user?->avatar,
+            ])
+            ->filter(fn($f) => $f['id'] !== null)
+            ->values();
+
+        // Fetch Real Affiliate Earnings
+        $affEarnings = \App\Models\MarketplaceAffiliateEarning::where('affiliate_user_id', $user->id)
+            ->latest()
+            ->get();
+
+        $pendingAff = (float) $affEarnings->where('status', 'pending')->sum('commission_amount');
+        $availableAff = (float) $affEarnings->where('status', 'released')->sum('commission_amount');
+        $paidAff = (float) $affEarnings->where('status', 'paid')->sum('commission_amount');
+
+        $earningsStats = [
+            'sales_driven' => $affEarnings->count(),
+            'total_commission' => (float) $affEarnings->sum('commission_amount'),
+            'pending' => $pendingAff,
+            'available' => $availableAff,
+            'paid' => $paidAff,
+            'recent' => $affEarnings->take(20)->map(fn($e) => [
+                'title' => $e->product_id ? (\App\Models\MarketplaceProduct::find($e->product_id)?->name ?? 'Affiliate Sale') : 'Affiliate Sale',
+                'amount' => (float) $e->commission_amount,
+                'commission' => (float) $e->commission_amount,
+                'rate' => 0,
+                'status' => $e->status,
+                'source' => $e->order_id ? 'marketplace' : 'vibe'
+            ])
+        ];
+
+        return Inertia::render('new_front/vibes/UserProfile', [
+            'profileUser' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'handle' => '@' . ($user->linkup_id ?? $user->name),
+                'linkup_id' => $user->linkup_id,
+                'avatar' => $user->avatar,
+                'city' => $user->city,
+                'country' => $user->country,
+                'is_following' => $isFollowing,
+                'posts_count' => $reels->count() + $vibes->count(),
+                'followers_count' => $followersCount,
+                'following_count' => $followingCount,
+            ],
+            'reels' => $reels,
+            'vibes' => $vibes,
+            'shopItems' => $shopItems,
+            'topSenders' => $topSenders,
+            'followers' => $followers,
+            'earningsStats' => $earningsStats,
+        ]);
+    }
+
+    public function thankSender(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'message' => 'required|string',
+        ]);
+
+        $sender = Auth::user();
+        $recipient = User::findOrFail($request->input('user_id'));
+
+        \App\Models\Notification::create([
+            'title'    => 'Thank you for your support!',
+            'message'  => $request->input('message'),
+            'send_by'  => $sender->id,
+            'user_id'  => $recipient->id,
+            'type'     => 'gift',
+            'context'  => 'say_thank_you',
+            'unread'   => true,
+            'avatar'   => $sender->avatar ?? null,
+            'metadata' => json_encode([
+                'sender_name' => $sender->name,
+            ]),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Thank you message sent successfully!'
+        ]);
     }
 }

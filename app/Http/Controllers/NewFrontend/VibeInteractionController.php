@@ -90,10 +90,16 @@ class VibeInteractionController extends Controller
         ]);
     }
 
-    public function sendBigUp(Request $request, Vibe $vibe): JsonResponse
+    public function sendBigUp(Request $request, ?Vibe $vibe = null): JsonResponse
     {
         $sender = auth()->user();
-        $receiver = $vibe->creator;
+        $recipientId = $request->input('recipient_id') ?? $vibe?->created_by;
+
+        if (!$recipientId) {
+            return response()->json(['message' => 'Recipient not found'], 404);
+        }
+
+        $receiver = \App\Models\User::find($recipientId);
 
         if (!$receiver) {
             return response()->json(['message' => 'Creator not found'], 404);
@@ -119,17 +125,19 @@ class VibeInteractionController extends Controller
             \App\Models\GiftCoins::create([
                 'sender_id' => $sender->id,
                 'recieved_id' => $receiver->id,
-                'vibe_id' => $vibe->id,
+                'vibe_id' => $vibe?->id,
                 'name' => $giftName,
                 'emoji' => $emoji,
                 'coins' => $request->coins,
             ]);
 
-            $vibe->increment('bigups_count');
+            if ($vibe) {
+                $vibe->increment('bigups_count');
+            }
 
             \App\Models\Notification::create([
-                'title'    => 'Big Up received!',
-                'message'  => "{$sender->name} sent you a '{$request->emoji} {$request->gift_name}' on your vibe!",
+                'title'    => 'Gift received!',
+                'message'  => "{$sender->name} sent you a '{$emoji} {$giftName}'!",
                 'send_by'  => $sender->id,
                 'user_id'  => $receiver->id,
                 'type'     => 'gift',
@@ -137,17 +145,17 @@ class VibeInteractionController extends Controller
                 'unread'   => true,
                 'avatar'   => $sender->avatar ?? null,
                 'metadata' => json_encode([
-                    'vibe_id'    => $vibe->id,
+                    'vibe_id'    => $vibe?->id,
                     'amount'     => $request->coins,
-                    'gift_name'  => $request->gift_name,
-                    'emoji'      => $request->emoji,
+                    'gift_name'  => $giftName,
+                    'emoji'      => $emoji,
                     'sender_name' => $sender->name,
                 ]),
             ]);
         });
 
         return response()->json([
-            'bigups_count' => $vibe->bigups_count,
+            'bigups_count' => $vibe?->bigups_count ?? 0,
             'user_coins' => $sender->fresh()->coins,
         ]);
     }

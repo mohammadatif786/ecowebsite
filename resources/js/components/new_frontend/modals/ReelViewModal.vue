@@ -341,9 +341,11 @@
                                 <div v-for="comment in comments" :key="comment.id" class="comment-item">
                                     <img v-if="comment.user?.avatar" :src="comment.user.avatar" :alt="comment.user?.name ||
                                         'User'
-                                        " class="comment-avatar" />
+                                        " class="comment-avatar cursor-pointer hover:opacity-80 transition"
+                                        @click.stop="openCommentUserProfile(comment.user)" />
 
-                                    <div v-else class="comment-avatar comment-avatar-placeholder">
+                                    <div v-else class="comment-avatar comment-avatar-placeholder cursor-pointer"
+                                        @click.stop="openCommentUserProfile(comment.user)">
                                         {{
                                             getInitials(
                                                 comment.user?.name
@@ -353,7 +355,8 @@
 
                                     <div class="comment-content">
                                         <div class="comment-user-row">
-                                            <span class="comment-user">
+                                            <span class="comment-user cursor-pointer hover:underline"
+                                                @click.stop="openCommentUserProfile(comment.user)">
                                                 {{
                                                     comment.user?.name ||
                                                     comment.user?.linkup_id ||
@@ -448,7 +451,7 @@ import {
     watch,
 } from 'vue';
 
-import { usePage } from '@inertiajs/vue3';
+import { usePage, router } from '@inertiajs/vue3';
 import Modal from '../ui/Modal.vue';
 import VibeTagModal from '../modals/VibeTagModal.vue';
 import VibeBigUpModal from '../modals/VibeBigUpModal.vue';
@@ -1132,21 +1135,21 @@ const shareReel = async () => {
 */
 
 const openUserProfile = () => {
-    if (!activeReel.value) {
+    if (!activeReel.value?.user_id) {
         return;
     }
 
-    emit(
-        'userProfileClicked',
-        {
-            userId:
-                activeReel.value
-                    .user_id,
-            handle:
-                activeReel.value
-                    .handle,
-        }
-    );
+    close();
+    router.visit(route('new_frontend.vibes.user-profile', { user: activeReel.value.user_id }));
+};
+
+const openCommentUserProfile = (commentUser) => {
+    if (!commentUser?.id) {
+        return;
+    }
+
+    close();
+    router.visit(route('new_frontend.vibes.user-profile', { user: commentUser.id }));
 };
 
 /*

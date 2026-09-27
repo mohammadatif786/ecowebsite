@@ -32,6 +32,8 @@ Route::prefix('new_frontend')->name('new_frontend.')->group(function () {
         Route::post('/vibes/{vibe}/comments', [VibeInteractionController::class, 'storeComment'])->name('vibes.comments.store');
         Route::post('/vibes/{vibe}/share', [VibeInteractionController::class, 'share'])->name('vibes.share');
         Route::post('/vibes/{vibe}/bigup', [VibeInteractionController::class, 'sendBigUp'])->name('vibes.bigup');
+        Route::post('/vibes/bigup', [VibeInteractionController::class, 'sendBigUp'])->name('vibes.send-vibe');
+        Route::post('/vibes/thank-sender', [DashboardController::class, 'thankSender'])->name('vibes.thank-sender');
 
         // Reels routes
         Route::post('/reels', [ReelController::class, 'store'])->name('reels.store');
@@ -54,6 +56,7 @@ Route::prefix('new_frontend')->name('new_frontend.')->group(function () {
         Route::post('/vibes/custom-publishers', [DashboardController::class, 'storeCustomPublisher'])->name('vibes.custom-publishers.store');
         Route::get('/home', [DashboardController::class, 'home'])->name('home');
         Route::get('/vibes', [DashboardController::class, 'vibes'])->name('vibes');
+        Route::get('/vibes/profile/{user}', [DashboardController::class, 'vibeUserProfile'])->name('vibes.user-profile');
         Route::get('/uvibe', [DashboardController::class, 'uvibe'])->name('uvibe');
         Route::get('/eats', [DashboardController::class, 'eats'])->name('eats');
         Route::get('/live', [LiveStreamController::class, 'index'])->name('live');

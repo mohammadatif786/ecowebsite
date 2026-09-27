@@ -7,9 +7,14 @@
                 <p class="text-slate-500 font-semibold mt-1">Photos, reels & shoppable moments</p>
             </div>
             <div class="flex items-center gap-2">
-                <button @click="openVibesMessagesModal" class="h-10 px-3 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 flex items-center gap-2 text-slate-700 hover:text-lkblue transition shadow-sm active:scale-95 text-xs font-bold" title="Vibes Messages">
+                <button @click="openVibesMessagesModal" class="h-10 w-10 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 grid place-items-center text-slate-700 hover:text-lkblue transition shadow-sm active:scale-95" title="Vibes Messages">
                     <i data-lucide="message-square" class="w-4 h-4 text-lkblue"></i>
-                    <span class="hidden sm:inline">Messages</span>
+                </button>
+                <button @click="openReelView()" class="h-10 w-10 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 grid place-items-center text-slate-700 hover:text-lkblue transition shadow-sm active:scale-95" title="Reels">
+                    <i data-lucide="clapperboard" class="w-4 h-4 text-lkblue"></i>
+                </button>
+                <button @click="openSayThankYouModal" class="h-10 w-10 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 grid place-items-center text-slate-700 hover:text-lkblue transition shadow-sm active:scale-95" title="Say Thank You">
+                    <span class="text-base">🙏</span>
                 </button>
                 <button @click="openNewReelModal" class="btn btn-primary px-4 py-2.5 flex items-center gap-2">
                     <i data-lucide="plus" class="w-4 h-4"></i>Post
@@ -161,6 +166,9 @@
 
         <!-- Vibes Chat Modal -->
         <VibesChatModal ref="vibesChatModalRef" @back="openVibesMessagesModal" />
+
+        <!-- Say Thank You Modal -->
+        <SayThankYouModal ref="sayThankYouModalRef" :giftsReceived="props.gifts_received" />
     </div>
 </template>
 
@@ -178,6 +186,7 @@ import ReelViewModal from '../../../components/new_frontend/modals/ReelViewModal
 import UserProfileModal from '../../../components/new_frontend/modals/UserProfileModal.vue';
 import VibesMessagesModal from '../../../components/new_frontend/modals/VibesMessagesModal.vue';
 import VibesChatModal from '../../../components/new_frontend/modals/VibesChatModal.vue';
+import SayThankYouModal from '../../../components/new_frontend/modals/SayThankYouModal.vue';
 
 defineOptions({ layout: MainLayout });
 
@@ -193,6 +202,7 @@ const props = defineProps({
         default: () => [],
     },
     suggestedCreators: { type: Array, default: () => [] },
+    gifts_received: { type: Array, default: () => [] },
 });
 
 const page = usePage();
@@ -274,6 +284,13 @@ const reelViewModalRef = ref(null);
 const userProfileModalRef = ref(null);
 const vibesMessagesModalRef = ref(null);
 const vibesChatModalRef = ref(null);
+const sayThankYouModalRef = ref(null);
+
+const openSayThankYouModal = () => {
+    if (sayThankYouModalRef.value) {
+        sayThankYouModalRef.value.open(props.gifts_received);
+    }
+};
 
 const openVibesMessagesModal = () => {
     const followedList = (suggestedCreators.value || []).filter(c => c.is_following);
@@ -310,7 +327,15 @@ const currentReel = ref(null);
 const currentUserId = ref(null);
 
 const openReelView = (story) => {
-    currentReel.value = story;
+    if (story) {
+        currentReel.value = story;
+    } else if (props.allReels && props.allReels.length > 0) {
+        const randomIndex = Math.floor(Math.random() * props.allReels.length);
+        currentReel.value = props.allReels[randomIndex];
+    } else {
+        currentReel.value = null;
+    }
+
     if (reelViewModalRef.value) {
         reelViewModalRef.value.open();
     }
