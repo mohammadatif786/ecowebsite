@@ -31,7 +31,7 @@ return [
         'balance' => \O21\LaravelWallet\Models\Balance::class,
         'balance_state' => \O21\LaravelWallet\Models\BalanceState::class,
         'custodian' => \O21\LaravelWallet\Models\Custodian::class,
-        'transaction' => \O21\LaravelWallet\Models\Transaction::class,
+        'transaction' => \App\Models\Transaction::class,
     ],
 
     'table_names' => [

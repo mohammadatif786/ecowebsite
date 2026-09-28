@@ -63,12 +63,13 @@ class AppWalletController extends Controller
         $runningBalance = $balance;
 
         $activities = $user->transactions()
+            ->with(['to', 'from'])
             ->latest()
             ->take(50)
             ->get()
             ->map(function ($transaction) use (&$runningBalance, $user) {
                 $isPositive = (int) $transaction->to_id === (int) $user->id
-                    && $transaction->to_type === User::class;
+                    && in_array($transaction->to_type, [$user->getMorphClass(), User::class], true);
 
                 $amount = (float) $transaction->amount;
                 $currentRunningBalance = $runningBalance;

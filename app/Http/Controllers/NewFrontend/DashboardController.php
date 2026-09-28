@@ -1044,12 +1044,13 @@ class DashboardController extends Controller
         $runningBalance = $balance;
 
         return $user->transactions()
+            ->with(['to', 'from'])
             ->latest()
             ->take(50)
             ->get()
             ->map(function ($transaction) use (&$runningBalance, $user) {
                 $isPositive = (int) $transaction->to_id === (int) $user->id
-                    && $transaction->to_type === User::class;
+                    && in_array($transaction->to_type, [$user->getMorphClass(), User::class], true);
 
                 $amount = (float) $transaction->amount;
                 $currentRunningBalance = $runningBalance;
@@ -1063,15 +1064,15 @@ class DashboardController extends Controller
                 $meta = is_array($transaction->meta) ? $transaction->meta : [];
                 $type = $meta['type'] ?? ($transaction->processor_id === 'live deposit'
                     ? 'live_earnings_transfer'
-                    : ($transaction->type ?? 'wallet'));
+                    : ($transaction->type ?? $transaction->processor_id ?? 'wallet'));
 
                 $counterpartyName = $isPositive
                     ? ($meta['sender_name'] ?? $transaction->from?->name ?? 'System')
-                    : ($meta['recipient_name'] ?? $transaction->to?->name ?? 'System');
+                    : ($meta['recipient_name'] ?? $meta['receiver_name'] ?? $transaction->to?->name ?? 'System');
 
                 $counterpartyTag = $isPositive
                     ? ($meta['sender_linkup_id'] ?? $transaction->from?->linkup_id ?? '')
-                    : ($meta['recipient_linkup_id'] ?? $transaction->to?->linkup_id ?? '');
+                    : ($meta['recipient_linkup_id'] ?? $meta['receiver_linkup_id'] ?? $transaction->to?->linkup_id ?? '');
 
                 if ($type === 'live_earnings_transfer') {
                     $counterpartyName = 'Live Dashboard';
@@ -1097,12 +1098,13 @@ class DashboardController extends Controller
 
     protected function walletActivityTitle(string $type, bool $isPositive, string $counterpartyName): string
     {
+        $type = strtolower(trim($type));
         return match ($type) {
             'live_earnings_transfer' => 'Transferred from Live Dashboard',
-            'recharge' => 'Top Up - Card',
-            'p2p_transfer' => $isPositive ? 'Received from ' . $counterpartyName : 'Sent to ' . $counterpartyName,
-            'money_request_payment' => $isPositive ? 'Request paid by ' . $counterpartyName : 'Paid request to ' . $counterpartyName,
-            default => $isPositive ? 'Received wallet funds' : 'Wallet payment',
+            'recharge', 'deposit' => 'Top Up - Card',
+            'p2p_transfer', 'transfer', 'send', 'p2p' => $isPositive ? 'Received from ' . $counterpartyName : 'Sent to ' . $counterpartyName,
+            'money_request_payment', 'request' => $isPositive ? 'Request paid by ' . $counterpartyName : 'Paid request to ' . $counterpartyName,
+            default => $isPositive ? 'Received wallet funds' : ($counterpartyName && $counterpartyName !== 'System' ? 'Sent to ' . $counterpartyName : 'Wallet payment'),
         };
     }
 

@@ -151,9 +151,9 @@
     <div v-if="showMyQR" class="fixed inset-0 z-[120] bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center" @click.self="showMyQR = false">
       <div class="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-sm p-5 text-center shadow-2xl">
         <div class="flex items-center justify-between mb-2"><h3 class="text-xl font-black">My QR</h3><button @click="showMyQR = false" class="hover:bg-slate-100 p-1 rounded"><i data-lucide="x" class="w-5 h-5"></i></button></div>
-        <img :src="'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=LinkUp-' + USER.handle" class="mx-auto rounded-2xl border border-slate-100 shadow-sm mb-3 w-56 h-56"/>
-        <p class="font-black text-lg">{{ USER.name }}</p>
-        <p class="text-sm text-slate-500 font-bold">{{ USER.handle }}</p>
+        <img :src="'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=LinkUp-' + (user.linkup_id || user.name)" class="mx-auto rounded-2xl border border-slate-100 shadow-sm mb-3 w-56 h-56"/>
+        <p class="font-black text-lg">{{ user.name }}</p>
+        <p class="text-sm text-slate-500 font-bold">@{{ user.linkup_id || user.name }}</p>
         <p class="text-[12px] text-slate-400 mt-2">Show this to get paid instantly.</p>
       </div>
     </div>
@@ -287,7 +287,7 @@
           </div>
           <p class="tracking-[0.2em] text-xl mt-8 font-mono relative z-10">•••• •••• •••• {{ cardInfo.last4 || '4471' }}</p>
           <div class="flex justify-between mt-4 text-sm font-bold relative z-10">
-            <span class="uppercase tracking-wide">{{ USER.name }}</span>
+            <span class="uppercase tracking-wide">{{ user.name }}</span>
             <span>{{ cardInfo.exp || '08/28' }}</span>
           </div>
         </div>
@@ -298,7 +298,7 @@
 
     <WalletActivityModal
       ref="activityModalRef"
-      :activities="txns"
+      :activities="props.activity"
       :money-requests="props.moneyRequests"
       :subscriptions="props.subscriptions"
       :bank-withdrawals="props.bankWithdrawals"
@@ -418,7 +418,6 @@ import { ref, computed, reactive, nextTick, onMounted, watch, onUpdated } from '
 import axios from 'axios';
 import { router, usePage } from '@inertiajs/vue3';
 import MainLayout from '../../../layouts/new_front_layout/MainLayout.vue';
-import { DB, AV, getUser } from '../../../components/new_frontend/MockDataStore';
 import WalletTopUpModal from './TopUpModal.vue';
 import QuickPayContactModal from './QuickPayContactModal.vue';
 import SendMoneyModal from './SendMoneyModal.vue';
@@ -444,8 +443,8 @@ const props = defineProps({
 
 // --- UTILS ---
 const money = n => '$' + Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const USER = getUser();
 const page = usePage();
+const user = computed(() => page.props.auth?.user || {});
 const currentUserForAsue = computed(() => {
   const user = page.props.auth?.user || {};
 
@@ -481,28 +480,41 @@ const WALLET = reactive({
   balance: Number(props.wallet?.balance ?? 0),
   coins: Number(props.wallet?.coins ?? 0),
 });
-const normalizeActivity = (item, index = 0) => ({
+const normalizeActivity = (item, index = 0, overrides = {}) => ({
   id: item.id || 'activity-' + index,
-  title: item.title || 'Wallet activity',
+  title: overrides.title || item.title || 'Wallet activity',
   amount: Math.abs(Number(item.amount || 0)),
-  isPositive: Boolean(item.isPositive),
-  status: item.status || 'success',
-  type: item.type || 'wallet',
-  counterparty: item.counterparty || '',
-  note: item.note || '',
+  isPositive: overrides.isPositive ?? Boolean(item.isPositive),
+  status: String(item.status || 'success').toLowerCase(),
+  type: overrides.type || item.type || 'wallet',
+  counterparty: overrides.counterparty ?? item.counterparty ?? '',
+  note: overrides.note ?? item.note ?? '',
   runningBalance: item.runningBalance ?? null,
-  date: item.date || null,
-  dateLabel: item.dateLabel || 'Today',
+  date: item.date || item.created_at || null,
+  dateLabel: item.dateLabel || (item.date || item.created_at ? new Date(item.date || item.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Today'),
 });
 
-const txns = ref([]);
-const hydrateActivity = () => {
-  txns.value = props.activity.map(normalizeActivity);
-};
+const localTxns = ref([]);
 
-hydrateActivity();
+const allActivities = computed(() => {
+  const wallet = (props.activity || []).map((item, index) => normalizeActivity(item, index, { isPositive: item.isPositive }));
+  const requests = (props.moneyRequests || []).map((request, index) => normalizeActivity(request, index, {
+    title: request.direction === 'incoming' ? `Request from ${request.person?.name || 'LinkUp User'}` : `Request to ${request.person?.name || 'LinkUp User'}`,
+    isPositive: request.direction === 'incoming', counterparty: request.person?.tag || request.person?.name || '', type: 'money_request'
+  }));
+  const ledger = (props.subscriptions || []).map((subscription, index) => normalizeActivity(subscription, index, {
+    title: subscription.type === 'coin' ? 'Coin Pack Purchase' : (subscription.type === 'wallet' ? 'Wallet Top Up' : String(subscription.type || 'Wallet').replace(/_/g, ' ')),
+    isPositive: true,
+    counterparty: 'Stripe Payment',
+    type: 'ledger'
+  }));
+  const withdrawals = (props.bankWithdrawals || []).map((withdrawal, index) => normalizeActivity(withdrawal, index, {
+    title: 'Bank withdrawal', isPositive: false, counterparty: withdrawal.bank_name || 'Bank', note: withdrawal.failure_reason || '', type: 'withdrawal'
+  }));
+  return [...localTxns.value, ...wallet, ...requests, ...ledger, ...withdrawals].sort((first, second) => new Date(second.date || 0) - new Date(first.date || 0));
+});
 
-watch(() => props.activity, hydrateActivity, { deep: true });
+const txns = computed(() => allActivities.value);
 const countryCurrency = (country) => {
   const key = String(country || '').trim().toLowerCase();
 
@@ -536,7 +548,7 @@ const normalizeQuickPayUser = (user, index = 0) => {
     id: user.id,
     name: user.name || user.email || 'LinkUp User',
     tag,
-    img: user.img || user.avatar || AV((index % 54) + 1),
+    img: user.img || user.avatar || ('https://i.pravatar.cc/150?u=' + (user.id || (index + 1))),
     ccy: user.ccy || countryCurrency(user.country_code || country),
     country,
     email: user.email || '',
@@ -597,16 +609,16 @@ const coinPacks = [[100,1],[550,5],[1200,10],[3000,25]].map(p => ({luc: p[0], us
 const tbAmt = ref('');
 const merchName = ref('The Stop & Shop');
 const merchAmt = ref('');
-const cardInfo = DB.get('lk_my_card', {last4:'4471', exp:'08/28'});
+const cardInfo = { last4: '4471', exp: '08/28' };
 
 // Pay Bills
-const billPaid = ref(DB.get('lk_bill_paid', {}));
+const billPaid = ref({});
 const billToPay = ref(null);
 const billAmt = ref('');
 
 // LinkUp Save
-const saveData = reactive(DB.get('lk_save', { balance: 2450, earnedMonth: 8.17, autoSavePct: 10 }));
-const saveHistory = [['Interest posted',8.17,'Apr 30'],['Auto-Save sweep (10%)',120,'Apr 28'],['Deposit from Wallet',500,'Apr 15'],['Interest posted',7.40,'Mar 31'],['Withdrawal to Wallet',-200,'Mar 12']];
+const saveData = reactive({ balance: 0, earnedMonth: 0, autoSavePct: 0 });
+const saveHistory = [];
 const depAmt = ref('');
 const wdAmt = ref('');
 const asPct = ref(saveData.autoSavePct);
@@ -628,7 +640,7 @@ const normalizeMoneyRequest = (request, index = 0) => ({
   amount: Number(request.amount || 0),
   person: {
     ...(request.person || {}),
-    img: request.person?.img || AV(((index + 20) % 54) + 1),
+    img: request.person?.img || ('https://i.pravatar.cc/150?u=' + (request.person?.id || (index + 20))),
   },
 });
 
@@ -655,9 +667,8 @@ const actions = [
 ];
 
 // --- LOGIC ---
-const syncDB = () => { DB.set('lk_wallet', WALLET); DB.set('lk_save', saveData); };
 const pushTx = (title, amount) => {
-  txns.value.unshift({
+  localTxns.value.unshift({
     id: 'local-' + Date.now(),
     title,
     amount: Math.abs(Number(amount || 0)),
@@ -757,7 +768,10 @@ const handleRequestedMoneyUpdated = ({ id, status }) => {
   ));
 };
 
-const openActivity = () => { activityModalRef.value?.open(); };
+const openActivity = () => {
+  activityModalRef.value?.open();
+  router.reload({ only: ['activity', 'moneyRequests', 'subscriptions', 'bankWithdrawals'] });
+};
 
 const payBill = () => {
   const v = parseFloat(billAmt.value);

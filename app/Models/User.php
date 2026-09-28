@@ -577,12 +577,16 @@ class User extends Authenticatable implements Payable
      */
     public function transactions()
     {
-        return Transaction::where(function ($query) {
+        // Transactions use Laravel's morph alias ("user") when a morph map is
+        // configured. Keep the class name too so historical rows still load.
+        $userMorphTypes = [$this->getMorphClass(), self::class];
+
+        return Transaction::where(function ($query) use ($userMorphTypes) {
             $query->where('from_id', $this->id)
-                ->where('from_type', self::class);
-        })->orWhere(function ($query) {
+                ->whereIn('from_type', $userMorphTypes);
+        })->orWhere(function ($query) use ($userMorphTypes) {
             $query->where('to_id', $this->id)
-                ->where('to_type', self::class);
+                ->whereIn('to_type', $userMorphTypes);
         });
     }
 

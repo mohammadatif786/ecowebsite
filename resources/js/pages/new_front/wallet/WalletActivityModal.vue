@@ -75,7 +75,10 @@ const allActivities = computed(() => {
     isPositive: request.direction === 'incoming', counterparty: request.person?.tag || request.person?.name || '',
   }));
   const ledger = props.subscriptions.map((subscription, index) => normalize(subscription, index, {
-    kind: 'wallet-coins', title: String(subscription.type || 'Wallet').replace(/_/g, ' '), isPositive: false, counterparty: 'Wallet & Coin ledger',
+    kind: 'wallet-coins',
+    title: subscription.type === 'coin' ? 'Coin Pack Purchase' : (subscription.type === 'wallet' ? 'Wallet Top Up' : String(subscription.type || 'Wallet').replace(/_/g, ' ')),
+    isPositive: true,
+    counterparty: 'Stripe Payment',
   }));
   const withdrawals = props.bankWithdrawals.map((withdrawal, index) => normalize(withdrawal, index, {
     kind: 'withdrawals', title: 'Bank withdrawal', isPositive: false, counterparty: withdrawal.bank_name || 'Bank', note: withdrawal.failure_reason || '',
