@@ -107,16 +107,17 @@
 
                     <div v-if="filteredCreators.length" ref="creatorsContainerRef" class="space-y-2 max-h-[520px] overflow-y-auto hide-scroll">
                         <div v-for="creator in visibleSuggestedCreators" :key="creator.user_id"
-                            class="flex items-center gap-3 py-2 border-b border-slate-50 last:border-none">
+                            @click="onUserProfileClicked(creator.user_id)"
+                            class="flex items-center gap-3 py-2 border-b border-slate-50 last:border-none cursor-pointer hover:bg-slate-50/80 rounded-xl px-2 transition">
                             <img :src="creator.avatar || ('https://i.pravatar.cc/150?u=' + creator.user_id)"
                                 @error="$event.target.src = 'https://i.pravatar.cc/150?u=' + (creator.user_id || 1)"
                                 class="w-10 h-10 rounded-full object-cover shrink-0" />
                             <div class="flex-1 min-w-0">
-                                <span class="font-bold text-sm block truncate">{{ creator.handle }}</span>
+                                <span class="font-bold text-sm block truncate hover:underline">{{ creator.handle }}</span>
                                 <span v-if="creator.name && creator.name !== creator.handle" class="text-xs text-slate-400 block truncate">{{ creator.name }}</span>
                             </div>
                             <button :class="['btn text-xs px-3 py-1.5 shrink-0 transition', creator.is_following ? 'btn-ghost opacity-70' : 'btn-primary']"
-                                @click="followCreator(creator)">
+                                @click.stop="followCreator(creator)">
                                 {{ creator.is_following ? 'Following' : 'Follow' }}
                             </button>
                         </div>
@@ -411,10 +412,8 @@ const onReelShareClicked = (data) => {
 
 const onUserProfileClicked = (data) => {
     const id = data?.userId || data?.id || data;
-    currentUserId.value = id;
-    if (userProfileModalRef.value) {
-        userProfileModalRef.value.open(id);
-    }
+    if (!id) return;
+    router.visit(route('new_frontend.vibes.user-profile', { user: id }));
 };
 
 const onProfileReelClicked = (reel) => {

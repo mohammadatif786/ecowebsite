@@ -272,7 +272,7 @@ class DashboardController extends Controller
                     'id' => $n->id,
                     'title' => $n->title,
                     'message' => $n->message,
-                    'category' => $this->notificationCategory($n->type),
+                    'category' => $this->notificationCategory($n->type, $n->context),
                     'unread' => (bool) $n->unread,
                     'priority' => (bool) $n->priority,
                     'avatar' => $sender?->avatar ?? $n->avatar,
@@ -380,8 +380,12 @@ class DashboardController extends Controller
         return $muted;
     }
 
-    protected function notificationCategory(?string $type): string
+    protected function notificationCategory(?string $type, ?string $context = null): string
     {
+        if (in_array($context, ['vibe_bigup', 'reel_bigup', 'say_thank_you', 'vibe_comment', 'vibe_like'], true) || str_starts_with((string) $context, 'vibe_')) {
+            return 'Vibes';
+        }
+
         return match (strtolower((string) $type)) {
             'message', 'quick_reply' => 'Messages',
             'match', 'like' => 'Matches',
@@ -1688,6 +1692,8 @@ class DashboardController extends Controller
             ])
         ];
 
+        $postsCount = UserReel::where('user_id', $user->id)->count() + Vibe::where('created_by', $user->id)->count();
+
         return Inertia::render('new_front/vibes/UserProfile', [
             'profileUser' => [
                 'id' => $user->id,
@@ -1698,7 +1704,7 @@ class DashboardController extends Controller
                 'city' => $user->city,
                 'country' => $user->country,
                 'is_following' => $isFollowing,
-                'posts_count' => $reels->count() + $vibes->count(),
+                'posts_count' => $postsCount,
                 'followers_count' => $followersCount,
                 'following_count' => $followingCount,
             ],

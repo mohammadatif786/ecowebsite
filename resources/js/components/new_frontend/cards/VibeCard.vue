@@ -1,10 +1,10 @@
 <template>
     <article class="card overflow-hidden max-w-[720px] mx-auto w-full border border-slate-200 shadow-sm">
         <div class="flex items-center gap-3 p-4">
-            <img :src="p.avatar" class="w-11 h-11 rounded-full object-cover shadow-sm" />
+            <img :src="p.avatar" class="w-11 h-11 rounded-full object-cover shadow-sm cursor-pointer hover:opacity-90 transition" @click="openUserProfile" />
             <div class="flex-1 min-w-0">
                 <div class="flex items-center flex-wrap gap-1.5">
-                    <p class="font-black text-sm flex items-center gap-1.5">
+                    <p class="font-black text-sm flex items-center gap-1.5 cursor-pointer hover:underline" @click="openUserProfile">
                         <template v-if="p.publisher_type === 'organization'">
                             <span>🏢</span> {{ p.handle }}
                             <span class="text-[9px] font-black text-white px-2 py-0.5 rounded-full uppercase bg-lkblue">
@@ -106,7 +106,7 @@
                 <button @click="showToast('🔖 Saved')" class="text-slate-500"
                     :class="{ 'ml-auto': !p.allow_coin_gifts }"><i data-lucide="bookmark" class="w-5 h-5"></i></button>
             </div>
-            <p class="text-sm"><span class="font-black">{{ p.handle }}</span> {{ p.caption }}</p>
+            <p class="text-sm"><span class="font-black cursor-pointer hover:underline" @click="openUserProfile">{{ p.handle }}</span> {{ p.caption }}</p>
             <p v-if="p.sound" class="text-xs text-slate-500 mt-1 flex items-center gap-1">
                 <i data-lucide="music" class="w-3 h-3"></i>{{ p.sound }}
             </p>
@@ -183,7 +183,7 @@
 
 <script setup>
 import { ref, computed, nextTick, onMounted } from 'vue';
-import { usePage } from '@inertiajs/vue3';
+import { usePage, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { formatMoney, formatNumber } from '../../../lib/utils';
 import VibeTagModal from '../modals/VibeTagModal.vue';
@@ -204,6 +204,12 @@ const isOwner = computed(() => {
     if (!props.p.created_by || !user.value.id) return false;
     return String(props.p.created_by) === String(user.value.id);
 });
+
+const openUserProfile = () => {
+    const userId = props.p.created_by || props.p.user_id;
+    if (!userId) return;
+    router.visit(route('new_frontend.vibes.user-profile', { user: userId }));
+};
 
 const vibeTagModalRef = ref(null);
 const vibeCommentsModalRef = ref(null);

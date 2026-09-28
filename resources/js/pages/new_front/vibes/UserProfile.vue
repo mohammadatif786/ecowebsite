@@ -146,7 +146,7 @@ const money = (n) => '$' + Number(n || 0).toLocaleString(undefined, { minimumFra
           <p class="text-slate-700 font-semibold mt-0.5">{{ user.name }}</p>
 
           <div class="flex items-center justify-center sm:justify-start gap-6 mt-4 flex-wrap text-sm font-semibold text-slate-700">
-            <p><b class="text-base text-slate-900">{{ props.reels.length + props.vibes.length }}</b> posts</p>
+            <p><b class="text-base text-slate-900">{{ num(user.posts_count || (props.reels.length + props.vibes.length)) }}</b> posts</p>
             <p><b class="text-base text-slate-900">{{ num(user.followers_count || 581) }}</b> followers</p>
             <p><b class="text-base text-slate-900">{{ num(user.following_count || 825) }}</b> following</p>
           </div>

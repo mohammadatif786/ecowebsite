@@ -162,7 +162,7 @@ const saveSettings = () => {
   });
 };
 
-const tabs = ['All', 'Unread', 'Messages', 'Matches', 'Payments', 'Marketplace Orders', 'Eats', 'Events', 'Gifts', 'Requests', 'System', 'Priority'];
+const tabs = ['All', 'Unread', 'Vibes', 'Messages', 'Matches', 'Payments', 'Marketplace Orders', 'Eats', 'Events', 'Gifts', 'Requests', 'System', 'Priority'];
 const activeTab = ref('All');
 
 const unreadCount = computed(() => props.notifications.filter(n => n.unread).length);
@@ -174,6 +174,7 @@ const filteredNotifications = computed(() => {
 });
 
 const CATEGORY_COLORS = {
+  Vibes: '#ec4899',
   Messages: '#2f9bef',
   Matches: '#e11d48',
   Payments: '#2563eb',
@@ -185,6 +186,7 @@ const CATEGORY_COLORS = {
 };
 
 const CATEGORY_ICONS = {
+  Vibes: 'sparkles',
   Messages: 'message-circle',
   Matches: 'heart',
   Payments: 'dollar-sign',
