@@ -347,11 +347,13 @@ class helpers
     public static function pin_check($user_id, $pin)
     {
         $user = User::find($user_id);
-        if (Hash::check($pin, $user->password)) {
-            return true;
-        }else{
+        if (!$user) {
             return false;
         }
+        if (!empty($user->transaction_pin)) {
+            return Hash::check($pin, $user->transaction_pin);
+        }
+        return Hash::check($pin, $user->password);
     }
 
     public static function get_qrcode($data)

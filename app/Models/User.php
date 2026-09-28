@@ -118,6 +118,7 @@ class User extends Authenticatable implements Payable
         'mute_payment_notification',
         'mute_gift_notification',
         'mute_system_notification',
+        'transaction_pin',
     ];
 
     /**
@@ -127,6 +128,7 @@ class User extends Authenticatable implements Payable
      */
     protected $hidden = [
         'password',
+        'transaction_pin',
         'remember_token',
     ];
 
@@ -141,6 +143,7 @@ class User extends Authenticatable implements Payable
             'email_verified_at' => 'datetime',
             'is_wizard_completed' => 'boolean',
             'password' => 'hashed',
+            'transaction_pin' => 'hashed',
             'age_filter' => 'array',
             'distance_filter' => 'array',
             'interests' => 'array',
@@ -175,7 +178,13 @@ class User extends Authenticatable implements Payable
         'back_side_url',
         'address_proof_url',
         'popularity_level',
+        'has_transaction_pin',
     ];
+
+    public function getHasTransactionPinAttribute(): bool
+    {
+        return ! empty($this->attributes['transaction_pin']);
+    }
 
     public function messages()
     {

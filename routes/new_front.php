@@ -91,6 +91,7 @@ Route::prefix('new_frontend')->name('new_frontend.')->group(function () {
         Route::put('/profile', [DashboardController::class, 'updateProfile'])->name('profile.update');
         Route::post('/convert-gifts-to-cash', [DashboardController::class, 'convertToCash'])->name('profile.gifts.convert');
         Route::put('/profile/password', [ProfileSecurityController::class, 'updatePassword'])->name('profile.password.update');
+        Route::put('/profile/transaction-pin', [ProfileSecurityController::class, 'updateTransactionPin'])->name('profile.transaction_pin.update');
 
         Route::post('/linkup/swipe', [LinkupController::class, 'swipe'])->middleware('throttle:linkup-swipe')->name('linkup.swipe');
         Route::post('/linkup/request', [LinkupController::class, 'handleRequest'])->middleware('throttle:linkup-request')->name('linkup.request');

@@ -131,7 +131,7 @@
                             @update:model-value="saveToDB('lk_settings_security', sec)"
                         />
                         <SettingRow label="Change password" @click="openModal('password')" />
-                        <SettingRow label="Transaction PIN" value="Not set" @click="openModal('transaction-pin')" />
+                        <SettingRow label="Transaction PIN" :value="user.has_transaction_pin ? 'Set' : 'Not set'" @click="openModal('transaction-pin')" />
                         <SettingRow label="Active sessions" :value="sessions.length + ' devices'" @click="openModal('sessions')" />
                     </div>
                 </div>
@@ -224,7 +224,11 @@
         <TransactionPinModal
             ref="transactionPinModal"
             :model-value="activeModal === 'transaction-pin'"
+            :has-pin="Boolean(user.has_transaction_pin)"
             @update:model-value="closeSub"
+            @updated="updateTransactionPinState"
+            @toast="toastForward"
+            @close-all="closeAll"
         />
         <SessionsModal
             :model-value="activeModal === 'sessions'"
@@ -407,6 +411,11 @@ const updateMethods = (updated) => {
 
 const updateSessions = (updated) => {
     sessions.value = updated;
+};
+
+const updateTransactionPinState = (hasPin) => {
+    user.has_transaction_pin = hasPin;
+    emit('profile-updated', { ...user, has_transaction_pin: hasPin });
 };
 
 const onProfileUpdated = (updatedData) => {

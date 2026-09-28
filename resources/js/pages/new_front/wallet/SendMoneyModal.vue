@@ -24,18 +24,23 @@
           <div class="h-24 w-24 rounded-3xl bg-sky-500 text-white grid place-items-center mx-auto shadow-lg shadow-sky-200">
             <i data-lucide="shield-check" class="w-12 h-12"></i>
           </div>
-          <h4 class="text-3xl font-black text-slate-900 mt-8">Create a 4-digit PIN</h4>
+          <h4 class="text-3xl font-black text-slate-900 mt-8">Enter Transaction PIN</h4>
           <p class="text-slate-500 text-lg font-bold mt-3">Used every time you send money</p>
-          <div class="flex justify-center gap-3 mt-10" aria-label="Transaction PIN">
+
+          <p v-if="form.errors.pin || pinError" class="text-xs font-extrabold text-rose-600 mt-4 bg-rose-50 p-3 rounded-xl mx-auto max-w-xs">
+            {{ form.errors.pin || pinError }}
+          </p>
+
+          <div class="flex justify-center gap-3 mt-8" aria-label="Transaction PIN">
             <input v-for="(_, index) in pinDigits" :key="index" :ref="(element) => pinInputs[index] = element"
-              v-model="pinDigits[index]" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1"
+              v-model="pinDigits[index]" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1"
               class="pin-box" :aria-label="`PIN digit ${index + 1}`" @input="handlePinInput(index, $event)"
-              @keydown.backspace="handlePinBackspace(index, $event)" />
+              @keydown.backspace="handlePinBackspace(index, $event)"
+              @keydown.enter="submitSend" />
           </div>
           <button @click="submitSend" :disabled="form.processing" class="w-full mt-10 py-4 rounded-2xl text-white text-xl font-black shadow-lg disabled:opacity-60 bg-gradient-to-r from-sky-400 to-blue-600">
-            {{ form.processing ? 'Sending…' : 'Confirm' }}
+            {{ form.processing ? 'Sending…' : 'Confirm & Send' }}
           </button>
-          <p class="text-xs text-slate-400 font-bold mt-3">Transaction PIN setup is a static preview for now.</p>
         </div>
 
         <div v-else-if="!reviewRecipient">
@@ -90,7 +95,6 @@
           <button @click="reviewSend" :disabled="form.processing" class="btn btn-primary w-full py-3.5 mt-4 shadow hover:shadow-md transition disabled:opacity-60">
             Review &amp; Send
           </button>
-          <p class="text-center text-xs text-slate-400 font-bold mt-2">Set a transaction PIN</p>
         </div>
 
         <div v-else class="text-center fade">
@@ -131,6 +135,7 @@ const isOpen = ref(false);
 const recipientQuery = ref('');
 const reviewRecipient = ref(null);
 const lookupError = ref('');
+const pinError = ref('');
 const showPinModal = ref(false);
 const pinDigits = ref(['', '', '', '']);
 const pinInputs = ref([]);
@@ -139,6 +144,7 @@ const form = useForm({
   recipientId: '',
   amount: '',
   note: '',
+  pin: '',
 });
 
 const MY_CCY = 'USD';
@@ -231,6 +237,7 @@ const open = (tag = '') => {
   showPinModal.value = false;
   pinDigits.value = ['', '', '', ''];
   lookupError.value = '';
+  pinError.value = '';
   form.reset();
   form.clearErrors();
   isOpen.value = true;
@@ -244,6 +251,7 @@ const close = () => {
   showPinModal.value = false;
   pinDigits.value = ['', '', '', ''];
   lookupError.value = '';
+  pinError.value = '';
   form.reset();
 };
 
@@ -277,6 +285,8 @@ const reviewSend = () => {
 const openTransactionPin = () => {
   if (!reviewRecipient.value || form.processing) return;
   pinDigits.value = ['', '', '', ''];
+  pinError.value = '';
+  form.clearErrors('pin');
   showPinModal.value = true;
   nextTick(() => {
     if (window.lucide) window.lucide.createIcons();
@@ -301,6 +311,17 @@ const submitSend = () => {
     return;
   }
 
+  pinError.value = '';
+  form.clearErrors('pin');
+
+  const pin = pinDigits.value.join('');
+  if (pin.length < 4) {
+    pinError.value = 'Please enter your 4-digit transaction PIN.';
+    return;
+  }
+
+  form.pin = pin;
+
   form.post(route('new_frontend.wallet.send_money'), {
     preserveScroll: true,
     onSuccess: () => {
@@ -309,6 +330,12 @@ const submitSend = () => {
         amount: Number(form.amount || 0),
       });
       close();
+    },
+    onError: () => {
+      pinDigits.value = ['', '', '', ''];
+      nextTick(() => {
+        pinInputs.value[0]?.focus();
+      });
     },
   });
 };

@@ -1217,6 +1217,7 @@ class DashboardController extends Controller
                 'website' => '',
                 'verified' => false,
                 'interests' => [],
+                'has_transaction_pin' => false,
             ];
         }
 
@@ -1240,6 +1241,7 @@ class DashboardController extends Controller
             'website' => $user->linkup_id ? 'linkup.app/' . ltrim($user->linkup_id, '@') : '',
             'verified' => (bool) ($user->email_verified_at || $user->is_verified ?? false),
             'interests' => $this->profileInterests($user),
+            'has_transaction_pin' => (bool) $user->has_transaction_pin,
         ];
     }
 

@@ -71,6 +71,10 @@ class WalletController extends Controller
             'recipientId' => 'required|exists:users,id',
             'amount' => 'required|integer|min:1|max:1000',
             'note' => 'nullable|string|max:255',
+            'pin' => 'required|string|digits:4',
+        ], [
+            'pin.required' => 'Transaction PIN is required.',
+            'pin.digits' => 'Transaction PIN must be 4 digits.',
         ]);
 
         $senderId = (int) Auth::id();
@@ -78,11 +82,19 @@ class WalletController extends Controller
             return redirect()->route('login');
         }
 
+        $sender = User::find($senderId);
+
+        if (empty($sender->transaction_pin)) {
+            return back()->withErrors(['pin' => 'Transaction PIN is not set. Please set your PIN in Settings first.']);
+        }
+
+        if (! \Illuminate\Support\Facades\Hash::check($validated['pin'], $sender->transaction_pin)) {
+            return back()->withErrors(['pin' => 'Incorrect transaction PIN. Please try again.']);
+        }
+
         $recipientId = (int) $validated['recipientId'];
         $amount = (int) $validated['amount'];
         $note = $validated['note'] ?? null;
-
-        $sender = User::find($senderId);
         $recipient = User::find($recipientId);
         $dto = new WalletRechargeDTO($senderId, $amount, null, $recipientId, $note);
 
