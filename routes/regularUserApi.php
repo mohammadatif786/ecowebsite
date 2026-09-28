@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\UserWizardController;
 use App\Http\Controllers\Frontend\LiveStreamGumletController;
 use App\Http\Controllers\NewFrontend\NightLifeController;
+use App\Http\Controllers\NewFrontend\VibeController;
 use App\Http\Controllers\V1\AppWalletController;
 use App\Http\Controllers\V1\ChatController;
 use App\Http\Controllers\V1\EventController;
@@ -28,6 +29,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('regular-user')
         ->name('regularUserAPI.')
         ->group(function () {
+
+            Route::get('vibes/posts', [VibeController::class, 'index'])->name('vibes.posts');
+            Route::post('vibes/store', [VibeController::class, 'store'])->name('vibes.store');
 
             Route::post('send-otp', [UserWizardController::class, 'sendOtp']);
 

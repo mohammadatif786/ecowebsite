@@ -12,6 +12,103 @@ use Illuminate\Http\JsonResponse;
 
 class VibeController extends Controller
 {
+    public function index(\Illuminate\Http\Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $vibes = Vibe::with(['creator', 'publisher', 'media', 'products.user', 'events.user', 'events.tickets'])
+            ->where('status', \App\Domain\Vibes\Enums\VibeStatus::Published)
+            ->latest()
+            ->take(20)
+            ->get();
+
+        $formattedVibes = $vibes->map(function ($vibe) use ($user) {
+            $tag = null;
+
+            if ($vibe->products->isNotEmpty()) {
+                $p = $vibe->products->first();
+                $tag = [
+                    'kind' => 'product',
+                    'vibe_id' => $vibe->id,
+                    'id' => $p->id,
+                    'title' => $p->name,
+                    'price' => $p->price,
+                    'seller' => $p->user?->name ?? $p->seller?->name,
+                    'image' => $p->image_url,
+                ];
+            } elseif ($vibe->events->isNotEmpty()) {
+                $e = $vibe->events->first();
+                $tag = [
+                    'kind' => 'event',
+                    'vibe_id' => $vibe->id,
+                    'id' => $e->id,
+                    'title' => $e->title,
+                    'price' => $e->tickets->min('price') ?? 0,
+                    'date' => $e->start_date?->format('Y-m-d'),
+                    'location' => $e->venue,
+                    'seller' => $e->user?->name,
+                    'image' => $e->image_url,
+                ];
+            }
+
+            $mediaItems = $vibe->media->map(function ($m) {
+                return [
+                    'id' => $m->id,
+                    'type' => $m->media_type->value,
+                    'url' => $m->disk === 'public' ? asset('storage/' . $m->path) : \Illuminate\Support\Facades\Storage::disk($m->disk)->url($m->path),
+                    'thumbnail' => $m->thumbnail_path ? ($m->disk === 'public' ? asset('storage/' . $m->thumbnail_path) : \Illuminate\Support\Facades\Storage::disk($m->disk)->url($m->thumbnail_path)) : null,
+                ];
+            });
+
+            $isReel = $vibe->media->contains(fn ($m) => $m->media_type->value === 'video');
+
+            $publisher = $vibe->publisher;
+            $publisherName = 'User';
+            $publisherType = 'user';
+            $publisherAvatar = $vibe->creator?->avatar ?? 'https://i.pravatar.cc/120?img=1';
+
+            if ($publisher instanceof \App\Models\User) {
+                $publisherName = $publisher->name;
+                $publisherType = 'user';
+                $publisherAvatar = $publisher->avatar;
+            } elseif ($publisher instanceof \App\Models\OrganizerProfile) {
+                $publisherName = $publisher->organizer_name;
+                $publisherType = 'organization';
+            } elseif ($publisher instanceof \App\Models\ClubFete) {
+                $publisherName = $publisher->name;
+                $publisherType = 'group';
+            } elseif ($publisher instanceof \App\Models\UserCustomPublisher) {
+                $publisherName = $publisher->name;
+                $publisherType = $publisher->type;
+            }
+
+            return [
+                'id' => $vibe->id,
+                'created_by' => $vibe->created_by,
+                'handle' => $publisherName,
+                'publisher_type' => $publisherType,
+                'avatar' => $publisherAvatar,
+                'location' => $vibe->location_name,
+                'media' => $mediaItems,
+                'kind' => $isReel ? 'reel' : 'photo',
+                'caption' => $vibe->caption,
+                'likes_count' => $vibe->likes_count,
+                'comments_count' => $vibe->comments_count,
+                'shares_count' => $vibe->shares_count,
+                'bigups_count' => $vibe->bigups_count,
+                'is_liked' => $user ? $vibe->likes()->where('user_id', $user->id)->exists() : false,
+                'allow_coin_gifts' => (bool) $vibe->allow_coin_gifts,
+                'bigup' => $vibe->bigups_count,
+                'shoppable' => $tag !== null,
+                'tag' => $tag,
+            ];
+        });
+
+        return response()->json([
+            'posts' => $formattedVibes,
+        ]);
+    }
+
     public function store(StoreVibeRequest $request, CreateVibeAction $action): JsonResponse
     {
         $vibe = $action->execute($request->user(), CreateVibeData::fromRequest($request));
