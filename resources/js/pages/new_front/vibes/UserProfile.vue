@@ -8,6 +8,7 @@ import VibesChatModal from '@/components/new_frontend/modals/VibesChatModal.vue'
 import SendVibeModal from '@/components/new_frontend/modals/SendVibeModal.vue';
 import AffiliateHubModal from '@/components/new_frontend/modals/AffiliateHubModal.vue';
 import VibeTagModal from '@/components/new_frontend/modals/VibeTagModal.vue';
+import SayThankYouModal from '@/components/new_frontend/modals/SayThankYouModal.vue';
 import { ArrowLeft, MapPin, MessageCircle, UserPlus, UserCheck, Check, Heart, TrendingUp, Gift } from 'lucide-vue-next';
 
 defineOptions({ layout: MainLayout });
@@ -33,19 +34,34 @@ const vibesChatModalRef = ref(null);
 const sendVibeModalRef = ref(null);
 const affiliateHubModalRef = ref(null);
 const vibeTagModalRef = ref(null);
+const sayThankYouModalRef = ref(null);
 const currentReel = ref(null);
 
 const openEarnings = () => {
   if (affiliateHubModalRef.value) {
-    affiliateHubModalRef.value.open();
+    affiliateHubModalRef.value.open('earnings');
   }
 };
 
-const defaultTopSenders = [
-  { name: 'Nadia', handle: '@nadia', coins: 1634, avatar: 'https://i.pravatar.cc/150?img=25' },
-  { name: 'Aaliyah', handle: '@aaliyah', coins: 1451, avatar: 'https://i.pravatar.cc/150?img=35' },
-  { name: 'Renee', handle: '@renee', coins: 1268, avatar: 'https://i.pravatar.cc/150?img=45' },
-];
+const computedTopSenders = computed(() => {
+  if (props.topSenders && props.topSenders.length > 0) {
+    return props.topSenders;
+  }
+  if (props.followers && props.followers.length > 0) {
+    return props.followers.slice(0, 3).map((f, index) => ({
+      id: f.id,
+      name: f.name,
+      handle: f.handle,
+      coins: [1634, 1451, 1268][index] || 1000,
+      avatar: f.avatar
+    }));
+  }
+  return [
+    { id: 1, name: 'Nadia', handle: '@nadia', coins: 1634, avatar: 'https://i.pravatar.cc/150?img=25' },
+    { id: 2, name: 'Aaliyah', handle: '@aaliyah', coins: 1451, avatar: 'https://i.pravatar.cc/150?img=35' },
+    { id: 3, name: 'Renee', handle: '@renee', coins: 1268, avatar: 'https://i.pravatar.cc/150?img=45' },
+  ];
+});
 
 const goBack = () => {
   router.visit(route('new_frontend.vibes'));
@@ -81,8 +97,10 @@ const sendVibeModal = () => {
   }
 };
 
-const thankSender = (senderName) => {
-  if (window.toast) window.toast(`🙏 Thanked ${senderName} for the gift!`);
+const thankSender = (sender) => {
+  if (sayThankYouModalRef.value) {
+    sayThankYouModalRef.value.open(computedTopSenders.value, sender);
+  }
 };
 
 const shopProduct = (product) => {
@@ -98,6 +116,40 @@ const shopProduct = (product) => {
     });
   }
 };
+
+const activeTab = ref('all');
+
+const combinedItems = computed(() => {
+  const reelsList = (props.reels || []).map(r => ({
+    ...r,
+    item_type: 'reel',
+    is_reel: true,
+    display_image: r.thumbnail_path || r.file_path,
+    likes: r.likes_count || 0
+  }));
+
+  const vibesList = (props.vibes || []).map(v => ({
+    ...v,
+    item_type: 'vibe',
+    is_vibe: true,
+    file_path: v.file_path || (v.media && v.media[0] ? v.media[0].file_path || v.media[0].url : null),
+    display_image: v.file_path || (v.media && v.media[0] ? v.media[0].file_path || v.media[0].url : null),
+    type: v.type || (v.media && v.media[0] ? v.media[0].type : 'image'),
+    likes: v.likes_count || 0
+  }));
+
+  return [...reelsList, ...vibesList];
+});
+
+const filteredItems = computed(() => {
+  if (activeTab.value === 'reels') {
+    return combinedItems.value.filter(i => i.is_reel);
+  }
+  if (activeTab.value === 'posts') {
+    return combinedItems.value.filter(i => i.is_vibe);
+  }
+  return combinedItems.value;
+});
 
 const openReel = (reel) => {
   currentReel.value = reel;
@@ -215,12 +267,12 @@ const money = (n) => '$' + Number(n || 0).toLocaleString(undefined, { minimumFra
     </div>
 
     <!-- Top Vibes Senders -->
-    <div class="card p-5 bg-white border border-slate-200 shadow-sm rounded-3xl space-y-3">
+    <div v-if="isOwner" class="card p-5 bg-white border border-slate-200 shadow-sm rounded-3xl space-y-3">
       <div class="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-wider">
         👑 TOP VIBES SENDERS
       </div>
       <div class="space-y-2">
-        <div v-for="(sender, index) in (props.topSenders.length ? props.topSenders : defaultTopSenders)" :key="index"
+        <div v-for="(sender, index) in computedTopSenders" :key="index"
             class="flex items-center justify-between p-3 rounded-2xl border border-slate-100 bg-slate-50/50">
           <div class="flex items-center gap-3">
             <span class="text-lg font-black w-6 text-center">
@@ -236,7 +288,7 @@ const money = (n) => '$' + Number(n || 0).toLocaleString(undefined, { minimumFra
             <span class="text-xs font-extrabold text-amber-600 bg-amber-50 px-3 py-1.5 rounded-full border border-amber-200 flex items-center gap-1">
               🪙 {{ num(sender.coins) }}
             </span>
-            <button @click="thankSender(sender.name)" class="btn btn-ghost text-xs px-3 py-1.5 flex items-center gap-1 font-black">
+            <button @click="thankSender(sender)" class="btn btn-ghost text-xs px-3 py-1.5 flex items-center gap-1 font-black">
               🙏 Thank
             </button>
           </div>
@@ -246,21 +298,44 @@ const money = (n) => '$' + Number(n || 0).toLocaleString(undefined, { minimumFra
 
     <!-- User's Reels & Posts Grid -->
     <div class="space-y-4">
-      <h3 class="text-lg font-black text-slate-900">Reels & Posts</h3>
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <h3 class="text-lg font-black text-slate-900">Reels & Posts</h3>
+        <div class="flex bg-slate-100 p-1 rounded-xl text-xs font-bold gap-1">
+          <button @click="activeTab = 'all'" :class="['px-3 py-1.5 rounded-lg transition', activeTab === 'all' ? 'bg-white shadow-xs text-slate-900 font-extrabold' : 'text-slate-500 hover:text-slate-700']">
+            All ({{ combinedItems.length }})
+          </button>
+          <button @click="activeTab = 'reels'" :class="['px-3 py-1.5 rounded-lg transition', activeTab === 'reels' ? 'bg-white shadow-xs text-slate-900 font-extrabold' : 'text-slate-500 hover:text-slate-700']">
+            Reels ({{ props.reels.length }})
+          </button>
+          <button @click="activeTab = 'posts'" :class="['px-3 py-1.5 rounded-lg transition', activeTab === 'posts' ? 'bg-white shadow-xs text-slate-900 font-extrabold' : 'text-slate-500 hover:text-slate-700']">
+            Posts ({{ props.vibes.length }})
+          </button>
+        </div>
+      </div>
 
-      <div v-if="props.reels.length === 0 && props.vibes.length === 0" class="card py-16 text-center text-slate-400 font-bold text-sm">
-        No posts or reels published yet
+      <div v-if="filteredItems.length === 0" class="card py-16 text-center text-slate-400 font-bold text-sm">
+        No {{ activeTab === 'all' ? 'posts or reels' : activeTab }} published yet
       </div>
 
       <div v-else class="grid grid-cols-3 gap-3">
-        <div v-for="reel in props.reels" :key="reel.id"
-            @click="openReel(reel)"
-            class="relative aspect-[9/16] rounded-2xl overflow-hidden cursor-pointer group bg-black border border-slate-200 shadow-sm">
-          <video v-if="reel.type === 'video'" :src="reel.file_path" class="w-full h-full object-cover" muted />
-          <img v-else :src="reel.file_path" class="w-full h-full object-cover" />
+        <div v-for="(item, idx) in filteredItems" :key="item.id + '-' + (item.item_type || idx)"
+            @click="openReel(item)"
+            class="relative aspect-[9/16] rounded-2xl overflow-hidden cursor-pointer group bg-slate-900 border border-slate-200 shadow-sm">
+          <video v-if="item.type === 'video'" :src="item.file_path" class="w-full h-full object-cover" muted />
+          <img v-else-if="item.display_image || item.file_path" :src="item.display_image || item.file_path" class="w-full h-full object-cover" />
+          <div v-else class="w-full h-full bg-gradient-to-tr from-slate-800 to-indigo-950 p-3.5 flex items-center justify-center text-center text-white text-xs font-bold leading-relaxed">
+            <span class="line-clamp-6">{{ item.caption || item.content || 'Post' }}</span>
+          </div>
+
+          <!-- Type indicator badge -->
+          <div class="absolute top-2.5 right-2.5 bg-black/50 backdrop-blur-xs text-white text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1">
+            <span v-if="item.is_reel">🎬 Reel</span>
+            <span v-else>📸 Post</span>
+          </div>
+
           <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-end p-3">
             <div class="flex items-center gap-2 text-white text-xs font-bold">
-              <Heart class="w-3.5 h-3.5 fill-rose-500 text-rose-500" /> {{ reel.likes_count || 0 }}
+              <Heart class="w-3.5 h-3.5 fill-rose-500 text-rose-500" /> {{ item.likes_count || item.likes || 0 }}
             </div>
           </div>
         </div>
@@ -268,10 +343,11 @@ const money = (n) => '$' + Number(n || 0).toLocaleString(undefined, { minimumFra
     </div>
 
     <!-- Modals -->
-    <ReelViewModal ref="reelViewModalRef" :reel="currentReel" :reels="props.reels" />
+    <ReelViewModal ref="reelViewModalRef" :reel="currentReel" :reels="filteredItems" />
     <VibesChatModal ref="vibesChatModalRef" />
     <SendVibeModal ref="sendVibeModalRef" :recipientUserId="user.id" :recipientHandle="user.handle || user.name" />
     <AffiliateHubModal ref="affiliateHubModalRef" :items="props.shopItems" :stats="props.earningsStats" />
     <VibeTagModal ref="vibeTagModalRef" />
+    <SayThankYouModal ref="sayThankYouModalRef" />
   </div>
 </template>

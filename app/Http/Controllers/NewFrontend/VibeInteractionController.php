@@ -222,10 +222,6 @@ class VibeInteractionController extends Controller
 
         $commission = $price * $commissionRate;
 
-        // LinkUp Platform Fee: Remove 5% from the commission
-        $linkupFee = $commission * 0.05;
-        $finalCommission = $commission - $linkupFee;
-
         // Ensure a promotion record exists for this creator/product link
         $promotion = \App\Models\MarketplaceAffiliatePromotion::firstOrCreate([
             'user_id' => $vibe->created_by,
@@ -236,7 +232,7 @@ class VibeInteractionController extends Controller
             'promotion_id' => $promotion->id,
             'affiliate_user_id' => $vibe->created_by,
             'product_id' => $request->kind === 'product' ? $request->id : null,
-            'commission_amount' => $finalCommission,
+            'commission_amount' => round($commission, 2),
             'status' => 'pending', // New earnings start as pending
         ]);
 
@@ -278,12 +274,12 @@ class VibeInteractionController extends Controller
             return response()->json(['message' => 'Nothing available to transfer'], 422);
         }
 
-        // LinkUp Platform Fee: Take 5% during transfer to be absolutely sure
-        $linkupFee = $totalAmount * 0.05;
-        $userPayout = $totalAmount - $linkupFee;
+        // LinkUp Platform Fee: Take 20% during transfer before sending to wallet
+        $linkupFee = round($totalAmount * 0.20, 2);
+        $userPayout = round($totalAmount - $linkupFee, 2);
 
         try {
-            DB::transaction(function () use ($user, $earnings, $userPayout) {
+            DB::transaction(function () use ($user, $earnings, $userPayout, $linkupFee, $totalAmount) {
                 // 1. Mark as paid
                 \App\Models\MarketplaceAffiliateEarning::whereIn('id', $earnings->pluck('id'))
                     ->update([
@@ -291,19 +287,25 @@ class VibeInteractionController extends Controller
                         'paid_at' => now()
                     ]);
 
-                // 2. Deposit the NET amount to user wallet
+                // 2. Deposit the NET amount (80%) to user wallet
                 deposit($userPayout, 'USD')
                     ->from(Custodian::of('e_money'))
                     ->to($user)
                     ->overcharge()
-                    ->meta(['note' => 'Affiliate commission payout (after 5% platform fee)'])
+                    ->meta([
+                        'note' => 'Affiliate commission payout (after 20% LinkUp fee)',
+                        'gross_amount' => $totalAmount,
+                        'platform_fee' => $linkupFee,
+                        'net_payout' => $userPayout,
+                    ])
                     ->commit();
             });
 
             return response()->json([
                 'success' => true,
                 'amount' => $userPayout,
-                'message' => '$' . number_format($userPayout, 2) . ' transferred to your wallet! (5% LinkUp fee applied)'
+                'linkup_fee' => $linkupFee,
+                'message' => '$' . number_format($userPayout, 2) . ' transferred to your wallet! (20% LinkUp fee applied: $' . number_format($linkupFee, 2) . ')'
             ]);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Transfer failed: ' . $e->getMessage()], 500);

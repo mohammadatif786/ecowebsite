@@ -93,7 +93,7 @@ const defaultSenders = [
 
 const senders = ref([]);
 
-const open = (customSenders = null) => {
+const open = (customSenders = null, targetSender = null) => {
   isOpen.value = true;
   view.value = 'list';
   activeSender.value = null;
@@ -102,19 +102,30 @@ const open = (customSenders = null) => {
   const raw = customSenders || props.giftsReceived || [];
   if (raw.length > 0) {
     senders.value = raw.map(g => ({
-      id: g.sender?.id || g.sender_id || 1,
-      name: g.sender?.name || 'Supporter',
-      gift_name: g.name || 'Gift',
+      id: g.sender?.id || g.sender_id || g.id || 1,
+      name: g.sender?.name || g.name || 'Supporter',
+      gift_name: g.gift_name || g.name || 'Gift',
       coins: g.coins || 100,
-      avatar: g.sender?.avatar
+      avatar: g.sender?.avatar || g.avatar
     }));
   } else {
     senders.value = defaultSenders;
   }
 
-  nextTick(() => {
-    if (window.lucide) window.lucide.createIcons();
-  });
+  if (targetSender) {
+    const formattedSender = {
+      id: targetSender.id || targetSender.sender_id || targetSender.user_id,
+      name: targetSender.name || targetSender.handle || 'Supporter',
+      gift_name: targetSender.gift_name || 'Gift',
+      coins: targetSender.coins || 100,
+      avatar: targetSender.avatar
+    };
+    openComposer(formattedSender);
+  } else {
+    nextTick(() => {
+      if (window.lucide) window.lucide.createIcons();
+    });
+  }
 };
 
 const close = () => {
@@ -132,7 +143,10 @@ const openComposer = (sender) => {
 };
 
 const sendThankYou = async () => {
-  if (!activeSender.value || !thankMessage.value.trim()) return;
+  if (!activeSender.value || !activeSender.value.id || !thankMessage.value.trim()) {
+    if (window.toast) window.toast('Please select a valid user to send thank you');
+    return;
+  }
 
   sending.value = true;
   try {
@@ -147,13 +161,14 @@ const sendThankYou = async () => {
     close();
   } catch (e) {
     console.error('Failed to send thank you', e);
-    if (window.toast) window.toast(e.response?.data?.message || 'Failed to send thank you message');
+    const errorMsg = e.response?.data?.errors?.user_id?.[0] || e.response?.data?.message || 'Failed to send thank you message';
+    if (window.toast) window.toast(errorMsg);
   } finally {
     sending.value = false;
   }
 };
 
-defineExpose({ open, close });
+defineExpose({ open, close, openComposer });
 </script>
 
 <style scoped>

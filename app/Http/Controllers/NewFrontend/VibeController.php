@@ -30,6 +30,7 @@ class VibeController extends Controller
                 $tag = [
                     'kind' => 'product',
                     'vibe_id' => $vibe->id,
+                    'affiliate_user_id' => $vibe->created_by,
                     'id' => $p->id,
                     'title' => $p->name,
                     'price' => $p->price,
@@ -41,6 +42,7 @@ class VibeController extends Controller
                 $tag = [
                     'kind' => 'event',
                     'vibe_id' => $vibe->id,
+                    'affiliate_user_id' => $vibe->created_by,
                     'id' => $e->id,
                     'title' => $e->title,
                     'price' => $e->tickets->min('price') ?? 0,

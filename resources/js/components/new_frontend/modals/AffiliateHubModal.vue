@@ -101,9 +101,9 @@
           <!-- Actions -->
           <div class="flex gap-2">
             <button v-if="stats.pending > 0" @click="releaseEarnings" class="btn btn-ghost flex-1 py-3">Simulate deliveries → release</button>
-            <button @click="transferEarnings" class="btn btn-primary flex-1 py-3 font-black">Transfer {{ money(stats.available * 0.95) }} to Wallet</button>
+            <button @click="transferEarnings" class="btn btn-primary flex-1 py-3 font-black">Transfer {{ money(stats.available * 0.80) }} to Wallet</button>
           </div>
-          <p class="text-[11px] text-slate-400 text-center">LinkUp keeps 5% fee on payouts · already paid out {{ money(stats.paid) }}</p>
+          <p class="text-[11px] text-slate-400 text-center">LinkUp keeps 20% fee on payouts · already paid out {{ money(stats.paid) }}</p>
 
           <!-- Recent commissions -->
           <div class="flex items-center justify-between mt-4 mb-2">
@@ -193,7 +193,7 @@ const getSourceColor = (source) => {
 
 const money = (n) => '$' + Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const PLATFORM_FEE = 5;
+const PLATFORM_FEE = 20;
 
 const fmtDate = (d) => {
   if (!d) return '';

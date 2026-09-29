@@ -606,9 +606,9 @@
               <button v-if="affPending > 0" @click="releaseAffEarnings"
                 class="btn btn-ghost flex-1 py-3 text-sm">Simulate deliveries → release</button>
               <button @click="transferAffToWallet" class="btn btn-primary flex-1 py-3 text-sm">Transfer {{
-                money(affAvailable) }} to Wallet</button>
+                money(affAvailable * 0.80) }} to Wallet</button>
             </div>
-            <p class="text-[11px] text-slate-400 text-center mt-2">LinkUp keeps 5% · already paid out {{ money(affPaid)
+            <p class="text-[11px] text-slate-400 text-center mt-2">LinkUp keeps 20% · already paid out {{ money(affPaid)
               }}</p>
             <p class="font-black mt-3 mb-1">Recent commissions</p>
             <div class="space-y-1.5 max-h-40 overflow-y-auto">
