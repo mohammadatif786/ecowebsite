@@ -12,6 +12,7 @@ use App\Http\Controllers\NewFrontend\ProfileSecurityController;
 use App\Http\Controllers\NewFrontend\ReelController;
 use App\Http\Controllers\NewFrontend\ReelInteractionController;
 use App\Http\Controllers\NewFrontend\TicketPurchaseController;
+use App\Http\Controllers\NewFrontend\VibeChatController;
 use App\Http\Controllers\NewFrontend\VibeController;
 use App\Http\Controllers\NewFrontend\VibeInteractionController;
 use App\Http\Controllers\NewFrontend\WalletController;
@@ -34,6 +35,8 @@ Route::prefix('new_frontend')->name('new_frontend.')->group(function () {
         Route::post('/vibes/{vibe}/bigup', [VibeInteractionController::class, 'sendBigUp'])->name('vibes.bigup');
         Route::post('/vibes/bigup', [VibeInteractionController::class, 'sendBigUp'])->name('vibes.send-vibe');
         Route::post('/vibes/thank-sender', [DashboardController::class, 'thankSender'])->name('vibes.thank-sender');
+        Route::get('/vibes/chats/{recipient}/messages', [VibeChatController::class, 'getMessages'])->name('vibes.chats.messages');
+        Route::post('/vibes/chats/{recipient}/messages', [VibeChatController::class, 'storeMessage'])->middleware('throttle:30,1')->name('vibes.chats.messages.store');
 
         // Reels routes
         Route::post('/reels', [ReelController::class, 'store'])->name('reels.store');

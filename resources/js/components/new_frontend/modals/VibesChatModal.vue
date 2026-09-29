@@ -171,7 +171,7 @@ const fetchMessages = async () => {
     loading.value = true;
     try {
         const recipientId = targetUser.value.user_id || targetUser.value.id;
-        const response = await axios.get(route('new_frontend.dating.chats.messages', { recipient: recipientId }));
+        const response = await axios.get(route('new_frontend.vibes.chats.messages', { recipient: recipientId }));
         messages.value = response.data.messages || [];
     } catch (error) {
         console.error('Failed to load chat messages:', error);
@@ -188,7 +188,7 @@ const pollMessagesSilently = async () => {
     if (!targetUser.value || !isOpen.value) return;
     try {
         const recipientId = targetUser.value.user_id || targetUser.value.id;
-        const response = await axios.get(route('new_frontend.dating.chats.messages', { recipient: recipientId }));
+        const response = await axios.get(route('new_frontend.vibes.chats.messages', { recipient: recipientId }));
         const fetched = response.data.messages || [];
 
         if (fetched.length !== messages.value.length) {
@@ -221,7 +221,7 @@ const sendMessage = async () => {
     scrollToBottom();
 
     try {
-        const response = await axios.post(route('new_frontend.dating.chats.messages.store', { recipient: recipientId }), {
+        const response = await axios.post(route('new_frontend.vibes.chats.messages.store', { recipient: recipientId }), {
             content: content
         });
 

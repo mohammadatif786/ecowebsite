@@ -130,6 +130,7 @@ class ReelController extends Controller
                     'bigups_count' => $reel->bigups_count,
                     'is_liked' => $isLiked,
                     'is_saved' => $isSaved,
+                    'allow_coin_gifts' => (bool) ($reel->allow_coin_gifts ?? true),
                     'created_at' => $reel->created_at,
                 ];
             });

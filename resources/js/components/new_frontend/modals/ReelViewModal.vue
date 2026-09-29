@@ -132,7 +132,7 @@
 
                         <!-- Gift -->
                         <button
-                            v-if="activeReel?.allow_coin_gifts"
+                            v-if="activeReel?.allow_coin_gifts !== false"
                             type="button"
                             class="action-button"
                             @click.stop="openBigUp"

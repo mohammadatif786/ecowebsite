@@ -416,6 +416,7 @@ class DashboardController extends Controller
                 $tag = [
                     'kind' => 'product',
                     'vibe_id' => $vibe->id,
+                    'affiliate_user_id' => $vibe->created_by,
                     'id' => $p->id,
                     'title' => $p->name,
                     'price' => $p->price,
@@ -427,6 +428,7 @@ class DashboardController extends Controller
                 $tag = [
                     'kind' => 'event',
                     'vibe_id' => $vibe->id,
+                    'affiliate_user_id' => $vibe->created_by,
                     'id' => $e->id,
                     'title' => $e->title,
                     'price' => $e->tickets->min('price') ?? 0,
@@ -594,11 +596,12 @@ class DashboardController extends Controller
         ->unique()
         ->toArray();
 
-        // Latest reel per followed user for the stories carousel
+        // Latest reel per followed user for the stories carousel (within last 24 hours)
         $latestStoryIds = DB::query()
             ->fromSub(
                 UserReel::active()
                     ->whereIn('user_id', $followedUserIds)
+                    ->where('created_at', '>=', now()->subHours(24))
                     ->select([
                         'id',
                         'user_id',
@@ -617,6 +620,7 @@ class DashboardController extends Controller
         $stories = UserReel::active()
             ->with('user:id,name,avatar,linkup_id')
             ->whereIn('id', $latestStoryIds)
+            ->where('created_at', '>=', now()->subHours(24))
             ->get()
             ->sortByDesc(function ($reel) {
                 return $reel->created_at?->timestamp ?? 0;
@@ -718,6 +722,7 @@ class DashboardController extends Controller
             ]);
 
         return Inertia::render('new_front/vibes/Index', [
+            'shopFee' => app(\App\Repositories\ShopFeeRepository::class)->getFee(),
             'vibes' => $formattedVibes,
             'stories' => $stories,
             'allReels' => $allReels,
@@ -1599,6 +1604,7 @@ class DashboardController extends Controller
                     'shares_count' => $reel->shares_count,
                     'is_liked' => $reel->likes()->where('user_id', $currentUser->id)->exists(),
                     'is_saved' => $reel->saves()->where('user_id', $currentUser->id)->exists(),
+                    'allow_coin_gifts' => (bool) ($reel->allow_coin_gifts ?? true),
                     'created_at' => $reel->created_at?->toISOString(),
                 ];
             });
@@ -1764,6 +1770,7 @@ class DashboardController extends Controller
         $postsCount = UserReel::where('user_id', $user->id)->count() + Vibe::where('created_by', $user->id)->count();
 
         return Inertia::render('new_front/vibes/UserProfile', [
+            'shopFee' => app(\App\Repositories\ShopFeeRepository::class)->getFee(),
             'profileUser' => [
                 'id' => $user->id,
                 'name' => $user->name,
