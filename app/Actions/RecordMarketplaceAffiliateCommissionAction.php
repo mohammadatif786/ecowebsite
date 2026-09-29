@@ -25,10 +25,6 @@ class RecordMarketplaceAffiliateCommissionAction
 
             if ($amount <= 0) continue;
 
-            // LinkUp Platform Fee: Remove 5% from the commission
-            $linkupFee = $amount * 0.05;
-            $finalCommission = $amount - $linkupFee;
-
             MarketplaceAffiliateEarning::firstOrCreate([
                 'promotion_id' => $promotion->id,
                 'order_item_id' => $item->id,
@@ -36,7 +32,7 @@ class RecordMarketplaceAffiliateCommissionAction
                 'affiliate_user_id' => $promotion->user_id,
                 'order_id' => $order->id,
                 'product_id' => $item->product_id,
-                'commission_amount' => round($finalCommission, 2),
+                'commission_amount' => round($amount, 2),
                 'status' => 'pending',
             ]);
         }

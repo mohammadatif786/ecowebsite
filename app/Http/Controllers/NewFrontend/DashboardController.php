@@ -1603,13 +1603,78 @@ class DashboardController extends Controller
                 ];
             });
 
-        $vibes = Vibe::where('created_by', $user->id)
-            ->with(['creator', 'media', 'products', 'events'])
+        $vibesRaw = Vibe::where('created_by', $user->id)
+            ->with(['creator', 'media', 'products', 'events', 'comments', 'likes'])
             ->latest()
             ->get();
 
+        $vibes = $vibesRaw->map(function ($vibe) use ($currentUser) {
+            $tag = null;
+            if ($vibe->products->isNotEmpty()) {
+                $p = $vibe->products->first();
+                $tag = [
+                    'kind' => 'product',
+                    'vibe_id' => $vibe->id,
+                    'id' => $p->id,
+                    'title' => $p->name,
+                    'price' => $p->price,
+                    'seller' => $p->user?->name ?? $p->seller?->name,
+                    'image' => $this->resolveStorageImage($p->cover_image) ?? $p->image_url,
+                ];
+            } elseif ($vibe->events->isNotEmpty()) {
+                $e = $vibe->events->first();
+                $tag = [
+                    'kind' => 'event',
+                    'vibe_id' => $vibe->id,
+                    'id' => $e->id,
+                    'title' => $e->title,
+                    'price' => $e->tickets?->min('price') ?? 0,
+                    'date' => $e->start_date?->format('Y-m-d'),
+                    'location' => $e->venue,
+                    'seller' => $e->user?->name,
+                    'image' => $this->resolveStorageImage($e->featured_image) ?? $e->image_url,
+                ];
+            }
+
+            $mediaItems = $vibe->media->map(function ($m) {
+                return [
+                    'id' => $m->id,
+                    'type' => $m->media_type->value ?? 'image',
+                    'url' => $m->disk === 'public' ? asset('storage/' . $m->path) : Storage::disk($m->disk)->url($m->path),
+                    'file_path' => $m->disk === 'public' ? asset('storage/' . $m->path) : Storage::disk($m->disk)->url($m->path),
+                    'thumbnail' => $m->thumbnail_path ? ($m->disk === 'public' ? asset('storage/' . $m->thumbnail_path) : Storage::disk($m->disk)->url($m->thumbnail_path)) : null,
+                ];
+            });
+
+            $firstMedia = $mediaItems->first();
+
+            return [
+                'id' => $vibe->id,
+                'uid' => $vibe->id,
+                'user_id' => $vibe->created_by,
+                'is_vibe' => true,
+                'caption' => $vibe->caption,
+                'content' => $vibe->caption,
+                'file_path' => $firstMedia['file_path'] ?? null,
+                'thumbnail_path' => $firstMedia['thumbnail'] ?? null,
+                'type' => $firstMedia['type'] ?? 'image',
+                'media' => $mediaItems,
+                'tag' => $tag,
+                'creator' => [
+                    'id' => $vibe->creator?->id,
+                    'name' => $vibe->creator?->name,
+                    'handle' => '@' . ($vibe->creator?->linkup_id ?? $vibe->creator?->name),
+                    'avatar' => $vibe->creator?->avatar,
+                ],
+                'likes_count' => $vibe->likes ? $vibe->likes->count() : 0,
+                'comments_count' => $vibe->comments ? $vibe->comments->count() : 0,
+                'is_liked' => $currentUser && $vibe->likes ? $vibe->likes->where('user_id', $currentUser->id)->isNotEmpty() : false,
+                'created_at' => $vibe->created_at?->diffForHumans(),
+            ];
+        });
+
         $shopItems = collect();
-        foreach ($vibes as $vibe) {
+        foreach ($vibesRaw as $vibe) {
             foreach ($vibe->products as $p) {
                 $shopItems->push([
                     'id' => $p->id,
@@ -1640,6 +1705,8 @@ class DashboardController extends Controller
             ->get()
             ->map(fn($g, $index) => [
                 'rank' => $index + 1,
+                'id' => $g->sender_id,
+                'user_id' => $g->sender_id,
                 'name' => $g->sender?->name ?? 'Supporter',
                 'handle' => '@' . ($g->sender?->linkup_id ?? 'supporter'),
                 'avatar' => $g->sender?->avatar,

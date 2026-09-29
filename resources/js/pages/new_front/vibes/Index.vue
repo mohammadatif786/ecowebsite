@@ -16,7 +16,7 @@
                 <button @click="openSayThankYouModal" class="h-10 w-10 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 grid place-items-center text-slate-700 hover:text-lkblue transition shadow-sm active:scale-95" title="Say Thank You">
                     <span class="text-base">🙏</span>
                 </button>
-                <button @click="openNewReelModal" class="btn btn-primary px-4 py-2.5 flex items-center gap-2">
+                <button @click="openCompose" class="btn btn-primary px-4 py-2.5 flex items-center gap-2">
                     <i data-lucide="plus" class="w-4 h-4"></i>Post
                 </button>
             </div>
@@ -175,7 +175,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, nextTick } from 'vue';
-import { usePage } from '@inertiajs/vue3';
+import { usePage, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { formatMoney } from '../../../lib/utils';
 import MainLayout from '../../../layouts/new_front_layout/MainLayout.vue';
