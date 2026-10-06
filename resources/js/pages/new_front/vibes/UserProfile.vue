@@ -152,7 +152,13 @@ const filteredItems = computed(() => {
 });
 
 const openReel = (reel) => {
-  currentReel.value = reel;
+  currentReel.value = {
+    ...reel,
+    handle: reel.handle || user.value.handle || user.value.name || 'User',
+    avatar: reel.avatar || user.value.avatar,
+    user_id: reel.user_id || user.value.id,
+    verified: reel.verified ?? user.value.verified,
+  };
   if (reelViewModalRef.value) {
     reelViewModalRef.value.open();
   }

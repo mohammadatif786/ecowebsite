@@ -103,8 +103,7 @@ const sendBigUp = async (gift) => {
     return;
   }
 
-  sending.value = true;
-  error.value = '';
+  close();
 
   try {
     const routeName = props.isReel ? 'new_frontend.reels.bigup' : 'new_frontend.vibes.bigup';
@@ -116,18 +115,14 @@ const sendBigUp = async (gift) => {
       coins: gift.cost
     });
 
-    // Update global auth user coins via Inertia if possible, or just emit success
     if (page.props.auth?.user) {
       page.props.auth.user.coins = response.data.user_coins;
     }
 
     emit('sent', response.data.bigups_count);
     if (window.toast) window.toast(`Sent ${gift.name}! 🪙`);
-    close();
   } catch (e) {
-    error.value = e.response?.data?.message || "Failed to send Big Up";
-  } finally {
-    sending.value = false;
+    if (window.toast) window.toast(e.response?.data?.message || "Failed to send Big Up");
   }
 };
 

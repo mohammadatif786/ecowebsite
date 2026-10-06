@@ -126,6 +126,7 @@ class VibeInteractionController extends Controller
                 'sender_id' => $sender->id,
                 'recieved_id' => $receiver->id,
                 'vibe_id' => $vibe?->id,
+                'source' => 'vibe',
                 'name' => $giftName,
                 'emoji' => $emoji,
                 'coins' => $request->coins,

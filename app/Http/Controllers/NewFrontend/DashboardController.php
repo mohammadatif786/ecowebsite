@@ -706,20 +706,7 @@ class DashboardController extends Controller
             })
             ->values();
 
-        $giftsReceived = GiftCoins::with(['sender', 'receiver'])
-            ->where('recieved_id', $user->id)
-            ->latest()
-            ->get()
-            ->map(fn($g) => [
-                'id' => $g->id,
-                'name' => $g->name ?? 'Gift',
-                'coins' => (int) $g->coins,
-                'sender' => $g->sender ? [
-                    'id' => $g->sender->id,
-                    'name' => $g->sender->name,
-                    'avatar' => $g->sender->avatar,
-                ] : null,
-            ]);
+        $giftsReceived = $this->getGiftsReceived($user);
 
         return Inertia::render('new_front/vibes/Index', [
             'shopFee' => app(\App\Repositories\ShopFeeRepository::class)->getFee(),
@@ -1113,6 +1100,33 @@ class DashboardController extends Controller
         };
     }
 
+    protected function getGiftsReceived(?User $user)
+    {
+        if (! $user) {
+            return collect();
+        }
+
+        return GiftCoins::with(['sender', 'receiver'])
+            ->where('recieved_id', $user->id)
+            ->whereNull('responded_at')
+            ->where(function($q) {
+                $q->where('source', 'vibe')
+                  ->orWhereNotNull('vibe_id');
+            })
+            ->latest()
+            ->get()
+            ->map(fn($g) => [
+                'id' => $g->id,
+                'sender_id' => $g->sender_id,
+                'name' => $g->name ?? 'Gift',
+                'coins' => (int) $g->coins,
+                'sender' => $g->sender ? [
+                    'id' => $g->sender->id,
+                    'name' => $g->sender->name,
+                    'avatar' => $g->sender->avatar,
+                ] : null,
+            ]);
+    }
     protected function walletSubscriptions(?User $user)
     {
         if (! $user) {
@@ -1790,6 +1804,7 @@ class DashboardController extends Controller
             'topSenders' => $topSenders,
             'followers' => $followers,
             'earningsStats' => $earningsStats,
+            'gifts_received' => $this->getGiftsReceived($user),
         ]);
     }
 
@@ -1798,10 +1813,23 @@ class DashboardController extends Controller
         $request->validate([
             'user_id' => 'required|exists:users,id',
             'message' => 'required|string',
+            'gift_coins_id' => 'nullable|exists:gift_coins,id',
         ]);
 
         $sender = Auth::user();
         $recipient = User::findOrFail($request->input('user_id'));
+
+        if ($giftId = $request->input('gift_coins_id')) {
+            \App\Models\GiftCoins::where('id', $giftId)
+                ->where('recieved_id', $sender->id)
+                ->update(['responded_at' => now()]);
+        } else {
+            \App\Models\GiftCoins::where('recieved_id', $sender->id)
+                ->where('sender_id', $recipient->id)
+                ->whereNull('responded_at')
+                ->latest()
+                ->update(['responded_at' => now()]);
+        }
 
         \App\Models\Notification::create([
             'title'    => 'Thank you for your support!',

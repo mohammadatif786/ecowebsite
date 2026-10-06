@@ -17,12 +17,12 @@
       <!-- View 1: List of Senders -->
       <div v-if="view === 'list'" class="p-4 overflow-y-auto max-h-[60vh] space-y-2.5 hide-scroll">
         <div v-if="senders.length === 0" class="py-16 text-center text-slate-400 font-bold text-sm">
-          No gift senders yet
+          No unthanked gift senders yet
         </div>
         <div v-for="sender in senders" :key="sender.id"
             class="flex items-center justify-between p-3.5 rounded-2xl border border-slate-100 bg-white hover:border-slate-200 transition">
           <div class="flex items-center gap-3 min-w-0">
-            <img :src="sender.avatar || ('https://i.pravatar.cc/150?u=' + sender.id)" class="w-11 h-11 rounded-full object-cover border border-slate-200 shrink-0 bg-slate-100" />
+            <img :src="sender.avatar || ('https://i.pravatar.cc/150?u=' + sender.user_id)" class="w-11 h-11 rounded-full object-cover border border-slate-200 shrink-0 bg-slate-100" />
             <div class="min-w-0">
               <p class="font-black text-sm text-slate-900 truncate">{{ sender.name }}</p>
               <p class="text-[11px] font-bold text-slate-500 truncate">Sent you {{ sender.gift_name || 'Gift' }} · 🪙 {{ sender.coins }}</p>
@@ -84,11 +84,9 @@ const sending = ref(false);
 const thankMessage = ref('');
 
 const defaultSenders = [
-  { id: 101, name: 'Aaliyah', gift_name: 'Caribbean Crown', coins: 500, avatar: 'https://i.pravatar.cc/150?img=35' },
-  { id: 102, name: 'Renee', gift_name: 'Caribbean Crown', coins: 500, avatar: 'https://i.pravatar.cc/150?img=45' },
-  { id: 103, name: 'Marcus', gift_name: 'Caribbean Crown', coins: 500, avatar: 'https://i.pravatar.cc/150?img=52' },
-  { id: 104, name: 'Denise', gift_name: 'Caribbean Crown', coins: 500, avatar: 'https://i.pravatar.cc/150?img=28' },
-  { id: 105, name: 'Carlos', gift_name: 'Caribbean Crown', coins: 400, avatar: 'https://i.pravatar.cc/150?img=60' },
+  { id: 101, user_id: 101, name: 'Aaliyah', gift_name: 'Caribbean Crown', coins: 500, avatar: 'https://i.pravatar.cc/150?img=35' },
+  { id: 102, user_id: 102, name: 'Renee', gift_name: 'Caribbean Crown', coins: 500, avatar: 'https://i.pravatar.cc/150?img=45' },
+  { id: 103, user_id: 103, name: 'Marcus', gift_name: 'Caribbean Crown', coins: 500, avatar: 'https://i.pravatar.cc/150?img=52' },
 ];
 
 const senders = ref([]);
@@ -101,24 +99,32 @@ const open = (customSenders = null, targetSender = null) => {
 
   const raw = customSenders || props.giftsReceived || [];
   if (raw.length > 0) {
-    senders.value = raw.map(g => ({
-      id: g.sender?.id || g.sender_id || g.id || 1,
-      name: g.sender?.name || g.name || 'Supporter',
-      gift_name: g.gift_name || g.name || 'Gift',
-      coins: g.coins || 100,
-      avatar: g.sender?.avatar || g.avatar
-    }));
+    senders.value = raw.map(g => {
+      const isTopSender = g.rank !== undefined || g.total_coins !== undefined || g.handle !== undefined || (g.user_id && !g.recieved_id && !g.sender_id);
+      return {
+        id: isTopSender ? null : g.id,
+        user_id: isTopSender ? (g.user_id || g.id) : (g.sender_id || g.sender?.id || g.user_id),
+        name: g.name || g.sender?.name || 'Supporter',
+        gift_name: g.gift_name || g.name || 'Gift',
+        coins: g.coins || g.total_coins || 100,
+        avatar: g.avatar || g.sender?.avatar,
+        is_top_sender: isTopSender
+      };
+    });
   } else {
     senders.value = defaultSenders;
   }
 
   if (targetSender) {
+    const isTopSender = targetSender.rank !== undefined || targetSender.total_coins !== undefined || targetSender.handle !== undefined || (targetSender.user_id && !targetSender.recieved_id && !targetSender.sender_id);
     const formattedSender = {
-      id: targetSender.id || targetSender.sender_id || targetSender.user_id,
+      id: isTopSender ? null : (targetSender.id || targetSender.gift_coins_id),
+      user_id: isTopSender ? (targetSender.user_id || targetSender.id) : (targetSender.sender_id || targetSender.sender?.id || targetSender.user_id),
       name: targetSender.name || targetSender.handle || 'Supporter',
-      gift_name: targetSender.gift_name || 'Gift',
-      coins: targetSender.coins || 100,
-      avatar: targetSender.avatar
+      gift_name: targetSender.gift_name || targetSender.name || 'Gift',
+      coins: targetSender.coins || targetSender.total_coins || 100,
+      avatar: targetSender.avatar || targetSender.sender?.avatar,
+      is_top_sender: isTopSender
     };
     openComposer(formattedSender);
   } else {
@@ -129,7 +135,6 @@ const open = (customSenders = null, targetSender = null) => {
 };
 
 const close = () => {
-  if (sending.value) return;
   isOpen.value = false;
 };
 
@@ -143,27 +148,39 @@ const openComposer = (sender) => {
 };
 
 const sendThankYou = async () => {
-  if (!activeSender.value || !activeSender.value.id || !thankMessage.value.trim()) {
+  const userId = activeSender.value?.user_id;
+
+  if (!activeSender.value || !userId || !thankMessage.value.trim()) {
     if (window.toast) window.toast('Please select a valid user to send thank you');
     return;
   }
 
   sending.value = true;
   try {
-    await axios.post(route('new_frontend.vibes.thank-sender'), {
-      user_id: activeSender.value.id,
+    const payload = {
+      user_id: userId,
       message: thankMessage.value
-    });
+    };
+
+    if (!activeSender.value.is_top_sender && activeSender.value.id) {
+      payload.gift_coins_id = activeSender.value.id;
+    }
+
+    await axios.post(route('new_frontend.vibes.thank-sender'), payload);
 
     if (window.toast) {
       window.toast(`🙏 Thank you message sent to ${activeSender.value.name}!`);
     }
+
+    sending.value = false;
     close();
   } catch (e) {
     console.error('Failed to send thank you', e);
-    const errorMsg = e.response?.data?.errors?.user_id?.[0] || e.response?.data?.message || 'Failed to send thank you message';
+    console.error('Validation error response data:', e.response?.data);
+    const errors = e.response?.data?.errors;
+    const firstError = errors ? Object.values(errors)[0]?.[0] : null;
+    const errorMsg = firstError || e.response?.data?.message || 'Failed to send thank you message';
     if (window.toast) window.toast(errorMsg);
-  } finally {
     sending.value = false;
   }
 };

@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\UserWizardController;
 use App\Http\Controllers\Frontend\LiveStreamGumletController;
 use App\Http\Controllers\NewFrontend\NightLifeController;
 use App\Http\Controllers\NewFrontend\VibeController;
+use App\Http\Controllers\NewFrontend\VibeInteractionController;
 use App\Http\Controllers\V1\AppWalletController;
 use App\Http\Controllers\V1\ChatController;
 use App\Http\Controllers\V1\EventController;
@@ -32,6 +33,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
             Route::get('vibes/posts', [VibeController::class, 'index'])->name('vibes.posts');
             Route::post('vibes/store', [VibeController::class, 'store'])->name('vibes.store');
+            Route::post('vibes/{vibe}/like', [VibeInteractionController::class, 'toggleLike'])->name('vibes.like');
+            Route::get('vibes/{vibe}/comments', [VibeInteractionController::class, 'indexComments'])->name('vibes.comments.index');
+            Route::get('vibes/{vibe}/top-comments', [VibeInteractionController::class, 'topComments'])->name('vibes.top-comments');
+            Route::post('vibes/{vibe}/comments', [VibeInteractionController::class, 'storeComment'])->name('vibes.comments.store');
+            Route::post('vibes/{vibe}/share', [VibeInteractionController::class, 'share'])->name('vibes.share');
+            Route::post('vibes/{vibe}/bigup', [VibeInteractionController::class, 'sendBigUp'])->name('vibes.bigup');
+            Route::post('vibe-comments/{comment}/like', [VibeInteractionController::class, 'toggleCommentLike'])->name('vibes.comments.like');
 
             Route::post('send-otp', [UserWizardController::class, 'sendOtp']);
 
