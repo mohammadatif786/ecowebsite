@@ -13,7 +13,7 @@ class Vibe extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ['created_by', 'publisher_type', 'publisher_id', 'caption', 'location_name', 'location_place_id', 'latitude', 'longitude', 'allow_coin_gifts', 'visibility', 'status', 'published_at', 'archived_at'];
+    protected $fillable = ['created_by', 'publisher_type', 'publisher_id', 'caption', 'text_bg', 'text_font', 'location_name', 'location_place_id', 'latitude', 'longitude', 'allow_coin_gifts', 'visibility', 'status', 'published_at', 'archived_at'];
 
     protected function casts(): array
     {

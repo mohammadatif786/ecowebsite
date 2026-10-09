@@ -44,6 +44,9 @@
             <span class="text-[11px] font-black px-2.5 py-1 rounded-full" :style="{ background: categoryColor(n.category) + '1a', color: categoryColor(n.category) }">
               {{ n.category }}
             </span>
+            <span v-if="n.origin" class="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+              {{ n.origin }}
+            </span>
             <span class="text-xs text-slate-400 font-semibold">{{ n.timeAgo }}</span>
           </span>
         </span>

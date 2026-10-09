@@ -59,12 +59,54 @@
           </div>
         </div>
       </div>
-      <div class="rounded-2xl border-2 border-dashed p-4">
-        <div class="grid grid-cols-3 gap-2">
-          <label v-for="picker in pickers" :key="picker.source" class="cursor-pointer rounded-xl bg-slate-50 p-3 text-center text-xs font-bold">
-            <input type="file" :accept="picker.accept" :capture="picker.capture" :multiple="picker.multiple" class="hidden" @change="selectMedia($event, picker.source)" />{{ picker.label }}
-          </label>
+
+      <!-- Pickers & Text Mode Box -->
+      <div class="rounded-2xl border-2 border-dashed border-slate-200 p-4">
+        <div class="grid grid-cols-4 gap-2 mb-2">
+          <template v-for="picker in pickers" :key="picker.source">
+            <label v-if="picker.source !== 'text'" class="cursor-pointer rounded-xl bg-slate-50 hover:bg-slate-100 p-3 text-center text-xs font-bold transition flex flex-col items-center gap-1">
+              <span class="text-base">{{ picker.icon }}</span>
+              <span>{{ picker.label }}</span>
+              <input type="file" :accept="picker.accept" :capture="picker.capture" :multiple="picker.multiple" class="hidden" @change="selectMedia($event, picker.source)" />
+            </label>
+            <button v-else type="button" @click="toggleTextMode" :class="['rounded-xl p-3 text-center text-xs font-bold transition flex flex-col items-center gap-1', isTextMode ? 'bg-lkblue text-white shadow-sm' : 'bg-slate-50 hover:bg-slate-100 text-slate-700']">
+              <span class="text-base font-black">T</span>
+              <span>Text</span>
+            </button>
+          </template>
         </div>
+        <p class="text-[11px] text-slate-400 text-center font-medium">Take photo · record video · gallery (select multiple for a carousel), or share a text-only vibe</p>
+
+        <!-- Text Vibe Card Preview Box -->
+        <div v-if="isTextMode" class="mt-4 space-y-3">
+          <div class="w-full h-80 rounded-3xl p-6 flex items-center justify-center text-center shadow-lg transition-all duration-300 relative overflow-hidden"
+               :style="{ background: selectedTextBg }">
+            <textarea
+              v-model="textVibeContent"
+              rows="4"
+              placeholder="Your text vibe here..."
+              :class="['w-full bg-transparent text-white placeholder:text-white/70 focus:bg-transparent text-xl md:text-2xl text-center outline-none resize-none leading-relaxed', currentFont.class]"
+            ></textarea>
+          </div>
+
+          <!-- Color Circles & Font Family Cycle Button -->
+          <div class="flex items-center justify-between flex-wrap gap-3 pt-2">
+            <div class="flex items-center gap-2 flex-wrap">
+              <button
+                v-for="(bg, idx) in textBackgrounds"
+                :key="idx"
+                @click="selectedTextBg = bg"
+                class="w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 shadow-sm"
+                :style="{ background: bg, borderColor: selectedTextBg === bg ? '#fff' : 'transparent' }"
+                :class="{ 'ring-2 ring-blue-500 scale-110': selectedTextBg === bg }"
+              ></button>
+            </div>
+            <button type="button" @click="toggleFont" class="bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-xs px-4 py-2 rounded-xl transition shadow-xs">
+              {{ currentFont.name }}
+            </button>
+          </div>
+        </div>
+
         <div v-if="media.length" class="mt-3 grid grid-cols-2 gap-2">
           <div v-for="(item, i) in media" :key="item.url" class="relative overflow-hidden rounded-xl bg-black">
             <video v-if="item.video" :src="item.url" controls class="h-36 w-full object-contain"/><img v-else :src="item.url" class="h-36 w-full object-cover"/>
@@ -72,6 +114,7 @@
           </div>
         </div>
       </div>
+
       <textarea v-model="caption" maxlength="2200" rows="3" placeholder="Write a caption… #carnival #island" class="w-full rounded-2xl border p-3"/>
       <input v-model="location" placeholder="📍 Add location" class="w-full rounded-2xl border p-3"/>
 
@@ -135,6 +178,47 @@ const taggedItem = ref(null);
 const customName = ref(''); const customType = ref('organization'); const addingPublisher = ref(false);
 const localCustomPublishers = ref([...props.publishers.custom]);
 
+const isTextMode = ref(false);
+const textVibeContent = ref('');
+const selectedTextBg = ref('linear-gradient(135deg, #a855f7, #ec4899)');
+
+const fonts = [
+  { name: 'Aa Classic', class: 'font-serif italic' },
+  { name: 'Aa Modern', class: 'font-sans font-bold' },
+  { name: 'Aa Mono', class: 'font-mono' },
+  { name: 'Aa Script', class: 'font-serif tracking-wide' },
+  { name: 'Aa Heavy', class: 'font-black tracking-tighter' },
+  { name: 'Aa Italic', class: 'font-sans italic font-semibold' },
+  { name: 'Aa Impact', class: 'font-sans uppercase font-extrabold tracking-widest' },
+  { name: 'Aa Typewriter', class: 'font-mono tracking-widest' },
+  { name: 'Aa Elegant', class: 'font-serif tracking-widest font-light' },
+];
+
+const fontIndex = ref(0);
+const currentFont = computed(() => fonts[fontIndex.value]);
+
+const toggleFont = () => {
+  fontIndex.value = (fontIndex.value + 1) % fonts.length;
+};
+
+const textBackgrounds = [
+  'linear-gradient(135deg, #a855f7, #ec4899)',
+  'linear-gradient(135deg, #f97316, #ea580c)',
+  '#0d9488',
+  '#1e293b',
+  '#db2777',
+  '#7c3aed',
+  '#d97706',
+  '#2563eb'
+];
+
+const toggleTextMode = () => {
+  isTextMode.value = !isTextMode.value;
+  if (isTextMode.value) {
+    media.value = [];
+  }
+};
+
 const money = (n) => '$' + Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const allPublishers = computed(() => {
@@ -180,9 +264,19 @@ const addCustomPublisher = async () => {
 };
 
 const location = ref(`${user.city}, ${user.country}`); const allowGifts = ref(true); const media = ref([]); const busy = ref(false); const error = ref('');
-const pickers = [{ label: '📷 Take Photo', accept: 'image/*', capture: 'environment', source: 'camera' }, { label: '🎥 Record Video', accept: 'video/*', capture: 'environment', source: 'video_recording' }, { label: '🖼️ Gallery', accept: 'image/*,video/*', multiple: true, source: 'gallery' }];
+const pickers = [
+  { label: 'Take Photo', icon: '📷', accept: 'image/*', capture: 'environment', source: 'camera' },
+  { label: 'Record Video', icon: '🎥', accept: 'video/*', capture: 'environment', source: 'video_recording' },
+  { label: 'Gallery', icon: '🖼️', accept: 'image/*,video/*', multiple: true, source: 'gallery' },
+  { label: 'Text', icon: 'T', source: 'text' }
+];
+
 const open = () => modalRef.value?.open(); const close = () => modalRef.value?.close(); defineExpose({ open, close });
-const selectMedia = (event, source) => { Array.from(event.target.files || []).forEach(file => media.value.push({ file, source, video: file.type.startsWith('video/'), url: URL.createObjectURL(file) })); event.target.value = ''; };
+const selectMedia = (event, source) => {
+  isTextMode.value = false;
+  Array.from(event.target.files || []).forEach(file => media.value.push({ file, source, video: file.type.startsWith('video/'), url: URL.createObjectURL(file) }));
+  event.target.value = '';
+};
 const removeMedia = i => { URL.revokeObjectURL(media.value[i].url); media.value.splice(i, 1); };
 const openTagModal = () => tagModalRef.value?.open();
 const onItemSelected = (item) => { taggedItem.value = item; };
@@ -198,7 +292,12 @@ const formatTagImageUrl = (path) => {
 };
 
 const submit = async () => {
-  error.value = ''; if (!caption.value.trim() && !media.value.length) { error.value = 'Add a caption or media.'; return; }
+  const finalCaption = isTextMode.value ? textVibeContent.value : caption.value;
+  error.value = '';
+  if (!finalCaption.trim() && !media.value.length) {
+    error.value = 'Add text or media.';
+    return;
+  }
 
   let type = 'user';
   let id = user.id;
@@ -217,10 +316,12 @@ const submit = async () => {
   Object.entries({
     publisher_type: type,
     publisher_id: id,
-    caption: caption.value,
+    caption: finalCaption,
     location_name: location.value,
     allow_coin_gifts: allowGifts.value ? 1 : 0,
-    visibility: 'public'
+    visibility: 'public',
+    text_bg: isTextMode.value ? selectedTextBg.value : '',
+    text_font: isTextMode.value ? currentFont.value.name : ''
   }).forEach(([k, v]) => form.append(k, v));
 
   if (taggedItem.value) {
@@ -248,6 +349,9 @@ const submit = async () => {
         thumbnail: m.thumbnail_url
       })),
       caption: vibe.caption,
+      kind: vibe.kind || (isTextMode.value ? 'text' : 'photo'),
+      text_bg: vibe.text_bg || (isTextMode.value ? selectedTextBg.value : null),
+      text_font: vibe.text_font || (isTextMode.value ? currentFont.value.name : null),
       likes: 0,
       comments: 0,
       bigup: 0,
@@ -264,6 +368,8 @@ const submit = async () => {
     media.value.forEach(x => URL.revokeObjectURL(x.url));
     media.value = [];
     caption.value = '';
+    textVibeContent.value = '';
+    isTextMode.value = false;
     taggedItem.value = null;
     close();
   }

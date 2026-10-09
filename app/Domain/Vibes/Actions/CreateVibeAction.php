@@ -41,6 +41,8 @@ class CreateVibeAction
                     'publisher_type' => $data->publisherType->value,
                     'publisher_id' => $data->publisherId,
                     'caption' => $data->caption,
+                    'text_bg' => $data->textBg,
+                    'text_font' => $data->textFont,
                     'location_name' => $data->locationName,
                     'location_place_id' => $data->locationPlaceId,
                     'latitude' => $data->latitude,

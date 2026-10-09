@@ -26,6 +26,10 @@ class StoreOrderRequest extends FormRequest
             'items' => 'nullable|array|min:1',
             'items.*.id'  => 'nullable|exists:products,id',
             'items.*.qty' => 'nullable|integer|min:1',
+            'items.*.affiliate_user_id' => 'nullable|exists:users,id',
+            'items.*.vibe_id' => 'nullable|exists:vibes,id',
+            'affiliate_user_id' => 'nullable|exists:users,id',
+            'vibe_id' => 'nullable|exists:vibes,id',
         ];
     }
 

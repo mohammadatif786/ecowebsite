@@ -35,6 +35,8 @@ class StoreVibeRequest extends FormRequest
             'publisher_type' => ['required', Rule::enum(VibePublisherType::class)],
             'publisher_id' => ['required', 'integer', 'min:1'],
             'caption' => ['nullable', 'string', 'max:'.config('vibes.caption_max')],
+            'text_bg' => ['nullable', 'string', 'max:255'],
+            'text_font' => ['nullable', 'string', 'max:100'],
             'location_name' => ['nullable', 'string', 'max:255'],
             'location_place_id' => ['nullable', 'string', 'max:255'],
             'latitude' => ['nullable', 'numeric', 'between:-90,90', 'required_with:longitude'],

@@ -267,12 +267,24 @@ class DashboardController extends Controller
         $notifications = $notifications
             ->map(function (Notification $n) use ($senders) {
                 $sender = is_numeric($n->send_by) ? $senders->get((int) $n->send_by) : null;
+                $metadata = is_array($n->metadata) ? $n->metadata : json_decode($n->metadata ?? '{}', true);
+                $origin = null;
+                if ($n->type === 'gift' || $this->notificationCategory($n->type, $n->context) === 'Gifts') {
+                    if (!empty($metadata['vibe_id']) || in_array($n->context, ['vibe_bigup', 'say_thank_you'], true)) {
+                        $origin = 'From Vibes';
+                    } elseif (!empty($metadata['stream_id']) || str_contains(strtolower($n->message), 'live')) {
+                        $origin = 'From Live';
+                    } else {
+                        $origin = 'Direct';
+                    }
+                }
 
                 return [
                     'id' => $n->id,
                     'title' => $n->title,
                     'message' => $n->message,
                     'category' => $this->notificationCategory($n->type, $n->context),
+                    'origin' => $origin,
                     'unread' => (bool) $n->unread,
                     'priority' => (bool) $n->priority,
                     'avatar' => $sender?->avatar ?? $n->avatar,

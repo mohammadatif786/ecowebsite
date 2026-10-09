@@ -160,7 +160,7 @@ class CheckOutController extends Controller
                 }
 
                 app(\App\Actions\RecordMarketplaceAffiliateCommissionAction::class)
-                    ->execute($order, session('marketplace.affiliate_promotion_id'));
+                    ->execute($order, session('marketplace.affiliate_promotion_id'), $request->input('affiliate_user_id'), $request->input('vibe_id'));
 
                 $this->trackingService->addTracking($order, new OrderTracking(
                     orderId: $order->id,
@@ -265,7 +265,7 @@ class CheckOutController extends Controller
             }
 
             app(\App\Actions\RecordMarketplaceAffiliateCommissionAction::class)
-                ->execute($order, session('marketplace.affiliate_promotion_id'));
+                ->execute($order, session('marketplace.affiliate_promotion_id'), $session->metadata->affiliate_user_id ?? null, $session->metadata->vibe_id ?? null);
 
             $this->trackingService->addTracking($order, new OrderTracking(
                 orderId: $order->id,

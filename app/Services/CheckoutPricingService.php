@@ -26,6 +26,10 @@ class CheckoutPricingService
                 'unit_price' => $price,
                 'qty' => $qty,
                 'sub_total' => $lineTotal,
+                'meta' => [
+                    'affiliate_user_id' => $item['affiliate_user_id'] ?? null,
+                    'vibe_id' => $item['vibe_id'] ?? null,
+                ],
             ];
 
             if ($product->collect_tax) {
@@ -49,14 +53,14 @@ class CheckoutPricingService
         $discount = 0;
         $feeAmount = 0;
         $feeLabel = 'Marketplace Fee';
-        
+
         // Calculate shop fee
         $shopFeeRepo = app(\App\Repositories\ShopFeeRepository::class);
         $feeSetting = $shopFeeRepo->getFee();
 
         if ($feeSetting && $feeSetting->enabled) {
             $feeLabel = $feeSetting->label;
-            
+
             if ($feeSetting->fee_type === 'percent') {
                 $feeAmount = $subtotal * ($feeSetting->percent / 100);
             } elseif ($feeSetting->fee_type === 'fixed') {

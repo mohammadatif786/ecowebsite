@@ -42,8 +42,16 @@
         </div>
 
         <div class="relative bg-black group w-full">
+            <!-- Text Vibe Card -->
+            <div v-if="p.kind === 'text' || p.text_bg" class="w-full h-[400px] md:h-[500px] p-8 flex items-center justify-center text-center relative overflow-hidden"
+                 :style="{ background: p.text_bg || 'linear-gradient(135deg, #a855f7, #ec4899)' }">
+                <p class="text-white text-2xl md:text-3xl font-black leading-relaxed select-none px-4">
+                    {{ p.caption }}
+                </p>
+            </div>
+
             <!-- Media Carousel -->
-            <div class="relative overflow-hidden w-full h-[500px] md:h-[600px]">
+            <div v-else class="relative overflow-hidden w-full h-[500px] md:h-[600px]">
                 <div class="flex h-full transition-transform duration-300 ease-in-out"
                     :style="{ transform: `translateX(-${currentIndex * 100}%)` }">
                     <div v-for="(item, index) in p.media" :key="item.id || index"
