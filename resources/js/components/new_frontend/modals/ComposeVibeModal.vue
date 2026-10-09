@@ -69,7 +69,7 @@
               <span>{{ picker.label }}</span>
               <input type="file" :accept="picker.accept" :capture="picker.capture" :multiple="picker.multiple" class="hidden" @change="selectMedia($event, picker.source)" />
             </label>
-            <button v-else type="button" @click="toggleTextMode" :class="['rounded-xl p-3 text-center text-xs font-bold transition flex flex-col items-center gap-1', isTextMode ? 'bg-lkblue text-white shadow-sm' : 'bg-slate-50 hover:bg-slate-100 text-slate-700']">
+            <button v-else type="button" @click="toggleTextMode" :class="['rounded-xl p-3 text-center text-xs font-bold transition flex flex-col items-center gap-1', isTextMode ? 'bg-blue-50 border-2 border-lkblue text-lkblue shadow-sm' : 'bg-slate-50 hover:bg-slate-100 text-slate-700']">
               <span class="text-base font-black">T</span>
               <span>Text</span>
             </button>

@@ -99,6 +99,7 @@ class VibeController extends Controller
                 'likes_count' => $vibe->likes_count,
                 'comments_count' => $vibe->comments_count,
                 'shares_count' => $vibe->shares_count,
+                'reposts_count' => $vibe->reposts_count ?? 0,
                 'bigups_count' => $vibe->bigups_count,
                 'is_liked' => $user ? $vibe->likes()->where('user_id', $user->id)->exists() : false,
                 'allow_coin_gifts' => (bool) $vibe->allow_coin_gifts,

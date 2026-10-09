@@ -314,4 +314,97 @@ class VibeInteractionController extends Controller
             return response()->json(['message' => 'Transfer failed: ' . $e->getMessage()], 500);
         }
     }
+
+    public function repost(Vibe $vibe): JsonResponse
+    {
+        $user = auth()->user();
+
+        $newVibe = DB::transaction(function () use ($user, $vibe) {
+            $newVibe = Vibe::create([
+                'created_by' => $user->id,
+                'publisher_type' => 'user',
+                'publisher_id' => $user->id,
+                'caption' => $vibe->caption,
+                'text_bg' => $vibe->text_bg,
+                'text_font' => $vibe->text_font,
+                'location_name' => $vibe->location_name,
+                'location_place_id' => $vibe->location_place_id,
+                'latitude' => $vibe->latitude,
+                'longitude' => $vibe->longitude,
+                'allow_coin_gifts' => $vibe->allow_coin_gifts,
+                'visibility' => 'public',
+                'status' => \App\Domain\Vibes\Enums\VibeStatus::Published,
+                'published_at' => now(),
+            ]);
+
+            foreach ($vibe->media as $m) {
+                $newVibe->media()->create([
+                    'media_type' => $m->media_type,
+                    'source' => $m->source,
+                    'disk' => $m->disk,
+                    'path' => $m->path,
+                    'thumbnail_path' => $m->thumbnail_path,
+                    'original_name' => $m->original_name,
+                    'mime_type' => $m->mime_type,
+                    'size' => $m->size,
+                    'width' => $m->width,
+                    'height' => $m->height,
+                    'duration' => $m->duration,
+                    'processing_status' => $m->processing_status,
+                    'metadata' => $m->metadata,
+                    'sort_order' => $m->sort_order,
+                ]);
+            }
+
+            $productIds = $vibe->products()->pluck('products.id')->toArray();
+            $eventIds = $vibe->events()->pluck('link_up_events.id')->toArray();
+
+            if (!empty($productIds)) {
+                $newVibe->products()->sync($productIds);
+            }
+            if (!empty($eventIds)) {
+                $newVibe->events()->sync($eventIds);
+            }
+
+            $vibe->increment('reposts_count');
+
+            return $newVibe;
+        });
+
+        $mediaItems = $newVibe->media->map(function ($m) {
+            return [
+                'id' => $m->id,
+                'type' => $m->media_type,
+                'url' => asset('storage/' . $m->path),
+                'thumbnail' => $m->thumbnail_path ? asset('storage/' . $m->thumbnail_path) : null,
+            ];
+        });
+
+        return response()->json([
+            'is_reposed' => true,
+            'reposts_count' => $vibe->fresh()->reposts_count,
+            'new_vibe' => [
+                'id' => $newVibe->id,
+                'created_by' => $newVibe->created_by,
+                'handle' => $user->name,
+                'publisher_type' => 'user',
+                'avatar' => $user->avatar,
+                'location' => $newVibe->location_name,
+                'media' => $mediaItems,
+                'kind' => !empty($newVibe->text_bg) && $mediaItems->isEmpty() ? 'text' : 'photo',
+                'caption' => $newVibe->caption,
+                'text_bg' => $newVibe->text_bg,
+                'text_font' => $newVibe->text_font,
+                'likes_count' => 0,
+                'comments_count' => 0,
+                'shares_count' => 0,
+                'bigups_count' => 0,
+                'is_liked' => false,
+                'allow_coin_gifts' => (bool) $newVibe->allow_coin_gifts,
+                'bigup' => 0,
+                'shoppable' => false,
+                'tag' => null,
+            ]
+        ]);
+    }
 }

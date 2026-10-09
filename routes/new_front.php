@@ -32,6 +32,7 @@ Route::prefix('new_frontend')->name('new_frontend.')->group(function () {
         Route::get('/vibes/{vibe}/top-comments', [VibeInteractionController::class, 'topComments'])->name('vibes.top-comments');
         Route::post('/vibes/{vibe}/comments', [VibeInteractionController::class, 'storeComment'])->name('vibes.comments.store');
         Route::post('/vibes/{vibe}/share', [VibeInteractionController::class, 'share'])->name('vibes.share');
+        Route::post('/vibes/{vibe}/repost', [VibeInteractionController::class, 'repost'])->name('vibes.repost');
         Route::post('/vibes/{vibe}/bigup', [VibeInteractionController::class, 'sendBigUp'])->name('vibes.bigup');
         Route::post('/vibes/bigup', [VibeInteractionController::class, 'sendBigUp'])->name('vibes.send-vibe');
         Route::post('/vibes/thank-sender', [DashboardController::class, 'thankSender'])->name('vibes.thank-sender');

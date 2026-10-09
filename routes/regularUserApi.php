@@ -40,6 +40,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('vibes/{vibe}/top-comments', [VibeInteractionController::class, 'topComments'])->name('vibes.top-comments');
             Route::post('vibes/{vibe}/comments', [VibeInteractionController::class, 'storeComment'])->name('vibes.comments.store');
             Route::post('vibes/{vibe}/share', [VibeInteractionController::class, 'share'])->name('vibes.share');
+            Route::post('vibes/{vibe}/repost', [VibeInteractionController::class, 'repost'])->name('vibes.repost');
             Route::post('vibes/{vibe}/bigup', [VibeInteractionController::class, 'sendBigUp'])->name('vibes.bigup');
             Route::post('vibe-comments/{comment}/like', [VibeInteractionController::class, 'toggleCommentLike'])->name('vibes.comments.like');
 

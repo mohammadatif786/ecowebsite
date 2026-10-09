@@ -95,23 +95,28 @@
 
         <div class="p-4">
             <div class="flex items-center gap-5 mb-2">
-                <button @click="toggleLike" class="flex items-center gap-1.5 font-black transition-colors"
+                <button @click="toggleLike" class="cursor-pointer flex items-center gap-1.5 font-black transition-colors"
                     :class="isLiked ? 'text-rose-500' : 'text-slate-700'">
                     <i data-lucide="heart" class="w-5 h-5" :fill="isLiked ? 'currentColor' : 'none'"></i>
                     <span>{{ num(likesCount) }}</span>
                 </button>
-                <button @click="toggleComments" class="flex items-center gap-1.5 font-black text-slate-700">
+                <button @click="toggleComments" class="cursor-pointer flex items-center gap-1.5 font-black text-slate-700">
                     <i data-lucide="message-circle" class="w-5 h-5"></i><span>{{ num(commentsCount) }}</span>
                 </button>
-                <button @click="shareVibe" class="flex items-center gap-1.5 font-black text-slate-700">
+                <button @click="shareVibe" class="cursor-pointer flex items-center gap-1.5 font-black text-slate-700">
                     <i data-lucide="send" class="w-5 h-5"></i>
                 </button>
+                <button @click="repostVibe" class="cursor-pointer flex items-center gap-1.5 font-black transition-colors"
+                    :class="isReposed ? 'text-lkblue' : 'text-slate-700'">
+                    <i data-lucide="repeat-2" class="w-5 h-5"></i>
+                    <span>{{ num(repostsCount) }}</span>
+                </button>
                 <button v-if="p.allow_coin_gifts" @click="openBigUp"
-                    class="ml-auto flex items-center gap-1.5 text-white bg-gradient-to-r from-orange-500 to-amber-500 px-3 py-1.5 rounded-full text-sm font-black transition-transform active:scale-95 shadow-lg shadow-orange-500/20">
+                    class="cursor-pointer ml-auto flex items-center gap-1.5 text-white bg-gradient-to-r from-orange-500 to-amber-500 px-3 py-1.5 rounded-full text-sm font-black transition-transform active:scale-95 shadow-lg shadow-orange-500/20">
                     <i data-lucide="zap" class="w-4 h-4 fill-white"></i>
                     Big Up {{ num(bigupsCount) }}
                 </button>
-                <button @click="showToast('🔖 Saved')" class="text-slate-500"
+                <button @click="showToast('🔖 Saved')" class="cursor-pointer text-slate-500"
                     :class="{ 'ml-auto': !p.allow_coin_gifts }"><i data-lucide="bookmark" class="w-5 h-5"></i></button>
             </div>
             <p class="text-sm"><span class="font-black cursor-pointer hover:underline" @click="openUserProfile">{{ p.handle }}</span> {{ p.caption }}</p>
@@ -204,7 +209,7 @@ const props = defineProps({
     p: Object
 });
 
-const emit = defineEmits(['deleted']);
+const emit = defineEmits(['deleted', 'reposted']);
 
 const page = usePage();
 const user = computed(() => page.props.auth?.user || {});
@@ -229,6 +234,26 @@ const isLiked = ref(props.p.is_liked || false);
 const likesCount = ref(props.p.likes_count || props.p.likes || 0);
 const commentsCount = ref(props.p.comments_count || props.p.comments || 0);
 const bigupsCount = ref(props.p.bigups_count || props.p.bigup || 0);
+const isReposed = ref(props.p.is_reposed || false);
+const repostsCount = ref(props.p.reposts_count || props.p.reposts || 0);
+
+const repostVibe = async () => {
+    isReposed.value = true;
+    repostsCount.value++;
+    showToast('🔁 Reposted to your feed');
+
+    try {
+        const response = await axios.post(route('new_frontend.vibes.repost', { vibe: props.p.id }));
+        if (response.data?.reposts_count !== undefined) {
+            repostsCount.value = response.data.reposts_count;
+        }
+        if (response.data?.new_vibe) {
+            emit('reposted', response.data.new_vibe);
+        }
+    } catch (error) {
+        console.error('Failed to repost', error);
+    }
+};
 
 const next = () => {
     if (props.p.media && props.p.media.length) {

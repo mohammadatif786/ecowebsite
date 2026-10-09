@@ -64,7 +64,7 @@
 
                 <!-- Feed List -->
                 <div id="vibeFeed" class="space-y-4">
-                    <VibeCard v-for="post in posts" :key="post.id" :p="post" @deleted="onPostDeleted" />
+                    <VibeCard v-for="post in posts" :key="post.id" :p="post" @deleted="onPostDeleted" @reposted="onPostReposted" />
                 </div>
             </div>
 
@@ -349,6 +349,12 @@ const onPostCreated = (newPost) => {
 
 const onPostDeleted = (vibeId) => {
     posts.value = posts.value.filter(p => p.id !== vibeId);
+};
+
+const onPostReposted = (newVibe) => {
+    if (newVibe) {
+        posts.value.unshift(newVibe);
+    }
 };
 
 const onReelCreated = (newReel) => {
