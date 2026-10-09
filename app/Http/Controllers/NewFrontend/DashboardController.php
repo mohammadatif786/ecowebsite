@@ -524,14 +524,21 @@ class DashboardController extends Controller
             'pending' => $pendingAff,
             'available' => $availableAff,
             'paid' => $paidAff,
-            'recent' => $affEarnings->take(20)->map(fn($e) => [
-                'title' => $e->product_id ? (\App\Models\MarketplaceProduct::find($e->product_id)?->name ?? 'Affiliate Sale') : 'Affiliate Sale',
-                'amount' => (float) $e->commission_amount,
-                'commission' => (float) $e->commission_amount,
-                'rate' => 0,
-                'status' => $e->status,
-                'source' => $e->order_id ? 'marketplace' : 'vibe'
-            ])
+            'recent' => $affEarnings->take(20)->map(function($e) {
+                $product = $e->product_id ? \App\Models\MarketplaceProduct::find($e->product_id) : null;
+                $rate = $product ? (float) $product->commission : 10;
+                $commission = (float) $e->commission_amount;
+                $saleAmount = $product && $product->price ? (float) $product->price : (($rate > 0) ? ($commission / ($rate / 100)) : $commission);
+
+                return [
+                    'title' => $product?->name ?? 'Affiliate Sale',
+                    'amount' => round($saleAmount, 2),
+                    'commission' => $commission,
+                    'rate' => $rate,
+                    'status' => $e->status,
+                    'source' => $e->order_id ? 'marketplace' : 'vibe'
+                ];
+            })
         ];
 
         $affiliateProducts = MarketplaceProduct::with(['seller:id,name,avatar'])
@@ -1056,7 +1063,9 @@ class DashboardController extends Controller
                 $meta = is_array($transaction->meta) ? $transaction->meta : [];
                 $type = $meta['type'] ?? ($transaction->processor_id === 'live deposit'
                     ? 'live_earnings_transfer'
-                    : ($transaction->type ?? $transaction->processor_id ?? 'wallet'));
+                    : ($transaction->processor_id === 'vibe commission'
+                        ? 'vibe_commission_transfer'
+                        : ($transaction->type ?? $transaction->processor_id ?? 'wallet')));
 
                 $counterpartyName = $isPositive
                     ? ($meta['sender_name'] ?? $transaction->from?->name ?? 'System')
@@ -1069,6 +1078,9 @@ class DashboardController extends Controller
                 if ($type === 'live_earnings_transfer') {
                     $counterpartyName = 'Live Dashboard';
                     $counterpartyTag = '';
+                } elseif ($type === 'vibe_commission_transfer') {
+                    $counterpartyName = 'Vibes Affiliate';
+                    $counterpartyTag = '';
                 }
 
                 return [
@@ -1079,7 +1091,7 @@ class DashboardController extends Controller
                     'status' => strtolower((string) ($transaction->status ?? 'success')),
                     'type' => $type,
                     'counterparty' => trim($counterpartyName . ($counterpartyTag ? ' @' . ltrim($counterpartyTag, '@') : '')),
-                    'note' => $meta['note'] ?? ($type === 'live_earnings_transfer' ? 'Live analytics earnings transfer' : null),
+                    'note' => $meta['note'] ?? ($type === 'live_earnings_transfer' ? 'Live analytics earnings transfer' : ($type === 'vibe_commission_transfer' ? 'Vibes affiliate commission payout' : null)),
                     'runningBalance' => $currentRunningBalance,
                     'date' => optional($transaction->created_at)->toISOString(),
                     'dateLabel' => optional($transaction->created_at)->diffForHumans(null, true) . ' ago',
@@ -1093,6 +1105,7 @@ class DashboardController extends Controller
         $type = strtolower(trim($type));
         return match ($type) {
             'live_earnings_transfer' => 'Transferred from Live Dashboard',
+            'vibe_commission_transfer' => 'Transferred from Vibes Commission',
             'recharge', 'deposit' => 'Top Up - Card',
             'p2p_transfer', 'transfer', 'send', 'p2p' => $isPositive ? 'Received from ' . $counterpartyName : 'Sent to ' . $counterpartyName,
             'money_request_payment', 'request' => $isPositive ? 'Request paid by ' . $counterpartyName : 'Paid request to ' . $counterpartyName,
@@ -1771,14 +1784,21 @@ class DashboardController extends Controller
             'pending' => $pendingAff,
             'available' => $availableAff,
             'paid' => $paidAff,
-            'recent' => $affEarnings->take(20)->map(fn($e) => [
-                'title' => $e->product_id ? (\App\Models\MarketplaceProduct::find($e->product_id)?->name ?? 'Affiliate Sale') : 'Affiliate Sale',
-                'amount' => (float) $e->commission_amount,
-                'commission' => (float) $e->commission_amount,
-                'rate' => 0,
-                'status' => $e->status,
-                'source' => $e->order_id ? 'marketplace' : 'vibe'
-            ])
+            'recent' => $affEarnings->take(20)->map(function($e) {
+                $product = $e->product_id ? \App\Models\MarketplaceProduct::find($e->product_id) : null;
+                $rate = $product ? (float) $product->commission : 10;
+                $commission = (float) $e->commission_amount;
+                $saleAmount = $product && $product->price ? (float) $product->price : (($rate > 0) ? ($commission / ($rate / 100)) : $commission);
+
+                return [
+                    'title' => $product?->name ?? 'Affiliate Sale',
+                    'amount' => round($saleAmount, 2),
+                    'commission' => $commission,
+                    'rate' => $rate,
+                    'status' => $e->status,
+                    'source' => $e->order_id ? 'marketplace' : 'vibe'
+                ];
+            })
         ];
 
         $postsCount = UserReel::where('user_id', $user->id)->count() + Vibe::where('created_by', $user->id)->count();

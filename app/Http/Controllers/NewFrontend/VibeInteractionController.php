@@ -275,8 +275,8 @@ class VibeInteractionController extends Controller
             return response()->json(['message' => 'Nothing available to transfer'], 422);
         }
 
-        // LinkUp Platform Fee: Take 20% during transfer before sending to wallet
-        $linkupFee = round($totalAmount * 0.20, 2);
+        // LinkUp Platform Fee: Take 5% during transfer before sending to wallet
+        $linkupFee = round($totalAmount * 0.05, 2);
         $userPayout = round($totalAmount - $linkupFee, 2);
 
         try {
@@ -288,13 +288,15 @@ class VibeInteractionController extends Controller
                         'paid_at' => now()
                     ]);
 
-                // 2. Deposit the NET amount (80%) to user wallet
+                // 2. Deposit the NET amount (95%) to user wallet
                 deposit($userPayout, 'USD')
                     ->from(Custodian::of('e_money'))
                     ->to($user)
                     ->overcharge()
                     ->meta([
-                        'note' => 'Affiliate commission payout (after 20% LinkUp fee)',
+                        'type' => 'vibe_commission_transfer',
+                        'processor_id' => 'vibe commission',
+                        'note' => 'Affiliate commission payout (after 5% LinkUp fee)',
                         'gross_amount' => $totalAmount,
                         'platform_fee' => $linkupFee,
                         'net_payout' => $userPayout,
@@ -306,7 +308,7 @@ class VibeInteractionController extends Controller
                 'success' => true,
                 'amount' => $userPayout,
                 'linkup_fee' => $linkupFee,
-                'message' => '$' . number_format($userPayout, 2) . ' transferred to your wallet! (20% LinkUp fee applied: $' . number_format($linkupFee, 2) . ')'
+                'message' => '$' . number_format($userPayout, 2) . ' transferred to your wallet! (5% LinkUp fee applied: $' . number_format($linkupFee, 2) . ')'
             ]);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Transfer failed: ' . $e->getMessage()], 500);
