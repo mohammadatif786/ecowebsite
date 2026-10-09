@@ -5,6 +5,8 @@ use App\Http\Controllers\Frontend\LiveStreamGumletController;
 use App\Http\Controllers\NewFrontend\NightLifeController;
 use App\Http\Controllers\NewFrontend\VibeController;
 use App\Http\Controllers\NewFrontend\VibeInteractionController;
+use App\Http\Controllers\NewFrontend\ReelController;
+use App\Http\Controllers\NewFrontend\ReelInteractionController;
 use App\Http\Controllers\V1\AppWalletController;
 use App\Http\Controllers\V1\ChatController;
 use App\Http\Controllers\V1\EventController;
@@ -40,6 +42,22 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('vibes/{vibe}/share', [VibeInteractionController::class, 'share'])->name('vibes.share');
             Route::post('vibes/{vibe}/bigup', [VibeInteractionController::class, 'sendBigUp'])->name('vibes.bigup');
             Route::post('vibe-comments/{comment}/like', [VibeInteractionController::class, 'toggleCommentLike'])->name('vibes.comments.like');
+
+            // Reels routes
+            Route::get('reels', [ReelController::class, 'index'])->name('reels.index');
+            Route::post('reels/store', [ReelController::class, 'store'])->name('reels.store');
+            Route::get('reels/followed', [ReelController::class, 'getFollowedReels'])->name('reels.followed');
+            Route::get('reels/user/{user}', [ReelController::class, 'getUserReels'])->name('reels.user');
+            Route::get('reels/{reel}', [ReelController::class, 'show'])->name('reels.show');
+            Route::delete('reels/{reel}', [ReelController::class, 'destroy'])->name('reels.destroy');
+            Route::post('reels/{reel}/like', [ReelInteractionController::class, 'toggleLike'])->name('reels.like');
+            Route::post('reels/{reel}/comments', [ReelInteractionController::class, 'storeComment'])->name('reels.comments.store');
+            Route::get('reels/{reel}/comments', [ReelInteractionController::class, 'indexComments'])->name('reels.comments.index');
+            Route::post('reels/{reel}/share', [ReelInteractionController::class, 'share'])->name('reels.share');
+            Route::post('reels/{reel}/save', [ReelInteractionController::class, 'toggleSave'])->name('reels.save');
+            Route::post('reels/{reel}/bigup', [ReelInteractionController::class, 'sendBigUp'])->name('reels.bigup');
+            Route::post('reels/{reel}/gift', [ReelInteractionController::class, 'sendGift'])->name('reels.gift');
+            Route::post('reel-comments/{comment}/like', [ReelInteractionController::class, 'toggleCommentLike'])->name('reels.comments.like');
 
             Route::post('send-otp', [UserWizardController::class, 'sendOtp']);
 

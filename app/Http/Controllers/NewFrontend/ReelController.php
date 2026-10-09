@@ -5,6 +5,8 @@ namespace App\Http\Controllers\NewFrontend;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\UserReel;
+use App\Domain\Reels\Actions\CreateReelAction;
+use App\Domain\Reels\DTOs\CreateReelData;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -12,7 +14,45 @@ use Illuminate\Support\Str;
 
 class ReelController extends Controller
 {
-    public function store(Request $request): JsonResponse
+    public function index(Request $request): JsonResponse
+    {
+        $user = auth()->user();
+        $reels = UserReel::active()
+            ->with('user:id,name,avatar,linkup_id,city,country')
+            ->latest()
+            ->take(50)
+            ->get()
+            ->map(function ($reel) use ($user) {
+                $isLiked = $reel->likes()->where('user_id', $user->id)->exists();
+                $isSaved = $reel->saves()->where('user_id', $user->id)->exists();
+
+                return [
+                    'id' => $reel->id,
+                    'uid' => $reel->uid,
+                    'user_id' => $reel->user_id,
+                    'handle' => $reel->user_id === $user->id ? 'Your Reel' : ($reel->user?->linkup_id ?? $reel->user?->name ?? 'User'),
+                    'avatar' => $reel->user?->avatar,
+                    'name' => $reel->user?->name ?? 'User',
+                    'type' => $reel->type,
+                    'file_path' => $reel->file_path,
+                    'thumbnail_path' => $reel->thumbnail_path,
+                    'caption' => $reel->caption,
+                    'location' => $reel->location,
+                    'likes_count' => $reel->likes_count,
+                    'comments_count' => $reel->comments_count,
+                    'shares_count' => $reel->shares_count,
+                    'gifts_count' => $reel->gifts_count,
+                    'bigups_count' => $reel->bigups_count,
+                    'is_liked' => $isLiked,
+                    'is_saved' => $isSaved,
+                    'created_at' => $reel->created_at,
+                ];
+            });
+
+        return response()->json($reels);
+    }
+
+    public function store(Request $request, CreateReelAction $action): JsonResponse
     {
         $request->validate([
             'type' => 'required|in:video,image,gallery',
@@ -21,42 +61,11 @@ class ReelController extends Controller
             'location' => 'nullable|string|max:255',
         ]);
 
-        $user = auth()->user();
-
-        // Handle file upload
-        $file = $request->file('file');
-        $type = $request->type;
-
-        if ($type === 'video') {
-            $path = $file->store('reels/videos', 'public');
-            $thumbnailPath = null;
-
-            // Generate thumbnail for video (if FFmpeg is available)
-            // For now, we'll use the first frame or a placeholder
-            // $thumbnailPath = $this->generateVideoThumbnail($file);
-
-        } elseif ($type === 'image') {
-            $path = $file->store('reels/images', 'public');
-            $thumbnailPath = null;
-        } else {
-            $path = $file->store('reels/gallery', 'public');
-            $thumbnailPath = null;
-        }
-
-        $reel = UserReel::create([
-            'uid' => Str::uuid(),
-            'user_id' => $user->id,
-            'type' => $type,
-            'file_path' => $path,
-            'thumbnail_path' => $thumbnailPath,
-            'caption' => $request->caption,
-            'location' => $request->location,
-            'status' => 'active',
-        ]);
+        $reel = $action->execute(auth()->user(), CreateReelData::fromRequest($request));
 
         return response()->json([
             'success' => true,
-            'reel' => $reel->load('user:id,name,avatar,linkup_id,city,country'),
+            'reel' => $reel,
         ], 201);
     }
 
