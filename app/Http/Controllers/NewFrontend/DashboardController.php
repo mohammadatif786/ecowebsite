@@ -780,7 +780,14 @@ class DashboardController extends Controller
 
     public function uvibe()
     {
-        return Inertia::render('new_front/u_vibe/Index');
+        $user = Auth::user();
+        $affiliateItems = $this->getAffiliateItems($user);
+        $earningsStats = $this->getEarningsStats($user);
+
+        return Inertia::render('new_front/u_vibe/Index', [
+            'affiliateItems' => $affiliateItems,
+            'earningsStats' => $earningsStats,
+        ]);
     }
 
     public function eats()
@@ -1911,6 +1918,97 @@ class DashboardController extends Controller
             'earningsStats' => $earningsStats,
             'gifts_received' => $this->getGiftsReceived($user),
         ]);
+    }
+
+    protected function getEarningsStats($user)
+    {
+        $affEarnings = \App\Models\MarketplaceAffiliateEarning::where('affiliate_user_id', $user->id)
+            ->latest()
+            ->get();
+
+        $pendingAff = (float) $affEarnings->where('status', 'pending')->sum('commission_amount');
+        $availableAff = (float) $affEarnings->where('status', 'released')->sum('commission_amount');
+        $paidAff = (float) $affEarnings->where('status', 'paid')->sum('commission_amount');
+
+        return [
+            'sales_driven' => $affEarnings->count(),
+            'total_commission' => (float) $affEarnings->sum('commission_amount'),
+            'pending' => $pendingAff,
+            'available' => $availableAff,
+            'paid' => $paidAff,
+            'recent' => $affEarnings->take(20)->map(function($e) {
+                $product = $e->product_id ? \App\Models\MarketplaceProduct::find($e->product_id) : null;
+                $rate = $product ? (float) $product->commission : 10;
+                $commission = (float) $e->commission_amount;
+                $saleAmount = $product && $product->price ? (float) $product->price : (($rate > 0) ? ($commission / ($rate / 100)) : $commission);
+
+                return [
+                    'title' => $product?->name ?? 'Affiliate Sale',
+                    'amount' => round($saleAmount, 2),
+                    'commission' => $commission,
+                    'rate' => $rate,
+                    'status' => $e->status,
+                    'source' => $e->order_id ? 'marketplace' : 'vibe'
+                ];
+            })
+        ];
+    }
+
+    protected function getAffiliateItems($user)
+    {
+        $affiliateProducts = \App\Models\MarketplaceProduct::with(['seller:id,name,avatar'])
+            ->where('status', true)
+            ->where('user_id', '!=', $user->id)
+            ->where(function ($query) {
+                $query->where('commMode', 'flat')->where('commFlat', '>', 0)
+                    ->orWhere('commMode', 'pct')->where('commission', '>', 0);
+            })
+            ->latest()
+            ->get()
+            ->map(fn ($p) => [
+                'id' => $p->id,
+                'kind' => 'product',
+                'title' => $p->name,
+                'price' => (float) $p->price,
+                'image' => $this->resolveStorageImage($p->cover_image) ?? $p->image_url,
+                'seller' => $p->seller?->name ?? 'Store',
+                'commMode' => $p->commMode,
+                'commission' => (float) $p->commission,
+                'commFlat' => (float) $p->commFlat,
+            ]);
+
+        $affiliateEvents = \App\Models\LinkUpEvent::with(['eventDetails', 'user', 'tickets'])
+            ->activeTodayAndFuture()
+            ->where('user_id', '!=', $user->id)
+            ->whereHas('tickets', function ($query) {
+                $query->where(function ($q) {
+                    $q->where('commMode', 'flat')->where('commFlat', '>', 0)
+                        ->orWhere('commMode', 'pct')->where('commission', '>', 0);
+                });
+            })
+            ->get()
+            ->map(function ($e) {
+                $ticket = $e->tickets->first(fn ($t) =>
+                    ($t->commMode === 'flat' && $t->commFlat > 0) ||
+                    ($t->commMode === 'pct' && $t->commission > 0)
+                );
+
+                return [
+                    'id' => $e->id,
+                    'kind' => 'event',
+                    'title' => $e->title,
+                    'price' => $e->is_free ? 0 : (float) ($e->tickets->min('price') ?? 0),
+                    'date' => $this->eventDate($e)?->toISOString(),
+                    'location' => $e->venue,
+                    'organizer' => $e->user?->name ?? 'Organizer',
+                    'commMode' => $ticket?->commMode ?? 'none',
+                    'commission' => (float) ($ticket?->commission ?? 0),
+                    'commFlat' => (float) ($ticket?->commFlat ?? 0),
+                    'image' => $e->image_url,
+                ];
+            });
+
+        return $affiliateProducts->concat($affiliateEvents);
     }
 
     public function thankSender(Request $request)

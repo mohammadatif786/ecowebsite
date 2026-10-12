@@ -112,10 +112,29 @@ export const getRestaurants = () => DB.get('lk_restaurants', SEED.restaurants);
 export const getProducts = () => DB.get('lk_products', SEED.products);
 export const getNews = () => SEED.news;
 
-export const UVIBE_CAMPUSES = [['UWI Mona','🇯🇲'],['UWI St. Augustine','🇹🇹'],['UWI Cave Hill','🇧🇧'],['Univ. of The Bahamas','🇧🇸'],['Univ. of Guyana','🇬🇾']];
-export const UVIBE_CATS = [['all','All','grid-3x3'],['events','Events','calendar'],['parties','Parties','party-popper'],['campus-life','Campus Life','building-2'],['clubs','Clubs','users'],['food','Food','utensils']];
+export const UVIBE_CAMPUSES = [
+  ['UWI Mona', '🇯🇲'],
+  ['UWI Cave Hill', '🇧🇧'],
+  ['UWI St. Augustine', '🇹🇹'],
+  ['Univ. of The Bahamas', '🇧🇸'],
+  ['UTech Jamaica', '🇯🇲'],
+  ['Univ. of Guyana', '🇬🇾'],
+  ['Univ. of Puerto Rico', '🇵🇷'],
+  ['FIU Caribbean SA', '🇺🇸'],
+  ['Howard CSA', '🇺🇸']
+];
+export const UVIBE_CATS = [
+  ['all', 'All', 'grid-3x3'],
+  ['events', 'Events', 'calendar'],
+  ['parties', 'Parties', 'party-popper'],
+  ['campus-life', 'Campus Life', 'building-2'],
+  ['clubs', 'Clubs', 'users'],
+  ['food', 'Food', 'utensils'],
+  ['opportunity', 'Gigs', 'briefcase']
+];
 export const UVIBE_POSTS_SEED = [
-  {id:1, org:'UWI St. Augustine', verified:true, group:'Carnival Committee', campus:'UWI St. Augustine', time:'2h ago', category:'parties', tagLabel:'Parties', image:PIC('uv1',800,600), title:"Campus Carnival Fete 🎭", price:30, desc:"J'ouvert vibes, soca trucks & a steelpan set this Friday at the SAC quad. All campuses welcome!", likes:214, comments:28, onVibes:true},
+  {id:0, org:'UWI St. Augustine Guild', verified:true, group:'Student Union', campus:'UWI St. Augustine', time:'5h ago', category:'opportunity', tagLabel:'Gigs', image:null, title:'Flyer the SAC Quad — Carnival Fete', price:15, desc:'Hand out 100 flyers around the SAC quad before Friday. Snap a photo when done.', likes:12, comments:2, onVibes:false},
+  {id:1, org:'UWI St. Augustine', verified:true, group:'Carnival Committee', campus:'UWI St. Augustine', time:'2h ago', category:'parties', tagLabel:'Parties', image:PIC('uv1',800,600), title:"Campus Carnival Fete 🎭", price:30, desc:"J'ouvert vibes, soca trucks & a steelpan set this Friday at the SAC quad. All campuses welcome!", likes:214, comments:28, onVibes:true, tag:{kind:'event', title:'Campus Carnival Fete — Ticket', price:30, date:'2026-10-30', location:'SAC Quad', image:PIC('uv1',800,600)}},
   {id:2, org:'Univ. Of The Bahamas', verified:true, group:'UB Student Union', campus:'Univ. of The Bahamas', time:'4h ago', category:'campus-life', tagLabel:'Student Union', image:null, title:'Student Union elections — meet the candidates', price:0, desc:'Town hall Thursday 5pm in the Harry C. Moore Library. Bring your questions on tuition, housing & campus Wi-Fi.', likes:88, comments:12, onVibes:false},
   {id:3, org:'UWI Mona', verified:true, group:'Caribbean Students Assoc.', campus:'UWI Mona', time:'7h ago', category:'clubs', tagLabel:'Clubs', image:PIC('uv3',800,600), title:'Club fair on the lawns', price:0, desc:'Meet 30+ clubs, grab free merch, and sign up for semester projects. Food vendors on site.', likes:156, comments:19, onVibes:true},
   {id:4, org:'UWI Cave Hill', verified:true, group:'Hospitality Society', campus:'UWI Cave Hill', time:'1d ago', category:'food', tagLabel:'Food', image:PIC('uv4',800,600), title:'Free ice cream on the quad 🍦', price:0, desc:'Cool down between finals! First 200 students get a free scoop.', likes:302, comments:41, onVibes:false},

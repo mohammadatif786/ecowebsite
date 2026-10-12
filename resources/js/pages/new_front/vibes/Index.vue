@@ -287,9 +287,17 @@ const vibesMessagesModalRef = ref(null);
 const vibesChatModalRef = ref(null);
 const sayThankYouModalRef = ref(null);
 
-const openSayThankYouModal = () => {
-    if (sayThankYouModalRef.value) {
-        sayThankYouModalRef.value.open(props.gifts_received);
+const openSayThankYouModal = async () => {
+    try {
+        const res = await axios.get(route('new_frontend.vibes.gifts-received'));
+        const gifts = res.data?.gifts_received || props.gifts_received || [];
+        if (sayThankYouModalRef.value) {
+            sayThankYouModalRef.value.open(gifts);
+        }
+    } catch (e) {
+        if (sayThankYouModalRef.value) {
+            sayThankYouModalRef.value.open(props.gifts_received);
+        }
     }
 };
 
