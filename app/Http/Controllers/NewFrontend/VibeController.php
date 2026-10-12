@@ -121,6 +121,31 @@ class VibeController extends Controller
         return (new VibeResource($vibe))->response()->setStatusCode(201);
     }
 
+    public function update(\Illuminate\Http\Request $request, Vibe $vibe): JsonResponse
+    {
+        abort_unless($vibe->created_by === auth()->id(), 403, 'Unauthorized');
+
+        $request->validate([
+            'caption' => 'nullable|string|max:2200',
+            'location_name' => 'nullable|string|max:255',
+            'text_bg' => 'nullable|string|max:255',
+            'text_font' => 'nullable|string|max:100',
+        ]);
+
+        $vibe->update([
+            'caption' => $request->input('caption', $vibe->caption),
+            'location_name' => $request->input('location_name', $vibe->location_name),
+            'text_bg' => $request->input('text_bg', $vibe->text_bg),
+            'text_font' => $request->input('text_font', $vibe->text_font),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Post updated successfully',
+            'vibe' => $vibe->fresh(),
+        ]);
+    }
+
     public function destroy(Vibe $vibe): JsonResponse
     {
         abort_unless($vibe->created_by === auth()->id(), 403, 'Unauthorized');
@@ -128,6 +153,50 @@ class VibeController extends Controller
         $vibe->delete();
 
         return response()->json(['success' => true]);
+    }
+
+    public function copyLink(Vibe $vibe): JsonResponse
+    {
+        $shareUrl = url("/new_frontend/vibes?id={$vibe->id}");
+
+        return response()->json([
+            'success' => true,
+            'share_url' => $shareUrl,
+        ]);
+    }
+
+    public function suggestedCreators(\Illuminate\Http\Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $followingUserIds = \App\Models\Frontend\FriendRequest::where(function ($q) use ($user) {
+            $q->where('user_id', $user->id)->orWhere('receiver_id', $user->id);
+        })->where('status', 1)
+        ->get()
+        ->map(fn($r) => $r->user_id === $user->id ? $r->receiver_id : $r->user_id)
+        ->toArray();
+
+        $suggestedCreators = User::where(function ($query) {
+                $query->whereHas('vibes')
+                      ->orWhereHas('reels');
+            })
+            ->where('id', '!=', $user->id)
+            ->latest()
+            ->get()
+            ->map(function ($u) use ($followingUserIds) {
+                return [
+                    'user_id' => $u->id,
+                    'handle' => $u->linkup_id ?? $u->name ?? 'User',
+                    'name' => $u->name,
+                    'avatar' => $u->avatar ?: ('https://i.pravatar.cc/150?u=' . $u->id),
+                    'is_following' => in_array($u->id, $followingUserIds),
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'suggested_creators' => $suggestedCreators,
+        ]);
     }
 
     public function toggleFollowCreator(\App\Models\User $user): JsonResponse

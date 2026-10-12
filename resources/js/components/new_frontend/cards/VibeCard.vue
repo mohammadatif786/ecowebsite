@@ -119,7 +119,7 @@
                 <button @click="showToast('🔖 Saved')" class="cursor-pointer text-slate-500"
                     :class="{ 'ml-auto': !p.allow_coin_gifts }"><i data-lucide="bookmark" class="w-5 h-5"></i></button>
             </div>
-            <p class="text-sm"><span class="font-black cursor-pointer hover:underline" @click="openUserProfile">{{ p.handle }}</span> {{ p.caption }}</p>
+            <p class="text-[15px] font-normal text-slate-800 leading-relaxed font-sans"><span class="font-black cursor-pointer hover:underline text-slate-900" @click="openUserProfile">{{ p.handle }}</span> {{ p.caption }}</p>
             <p v-if="p.sound" class="text-xs text-slate-500 mt-1 flex items-center gap-1">
                 <i data-lucide="music" class="w-3 h-3"></i>{{ p.sound }}
             </p>
@@ -190,7 +190,8 @@
         <VibeTagModal ref="vibeTagModalRef" />
         <VibeCommentsModal ref="vibeCommentsModalRef" @commentAdded="onCommentAdded" />
         <VibeBigUpModal ref="vibeBigUpModalRef" :p="p" @sent="onBigUpSent" />
-        <VibeOptionsModal ref="vibeOptionsModalRef" :vibe="p" :isOwner="isOwner" @delete="handleDelete" />
+        <VibeOptionsModal ref="vibeOptionsModalRef" :vibe="p" :isOwner="isOwner" @delete="handleDelete" @edit="handleEdit" />
+        <EditVibeModal ref="editVibeModalRef" @updated="onVibeUpdated" />
     </article>
 </template>
 
@@ -203,13 +204,14 @@ import VibeTagModal from '../modals/VibeTagModal.vue';
 import VibeCommentsModal from '../modals/VibeCommentsModal.vue';
 import VibeBigUpModal from '../modals/VibeBigUpModal.vue';
 import VibeOptionsModal from '../modals/VibeOptionsModal.vue';
+import EditVibeModal from '../modals/EditVibeModal.vue';
 import VibeCommentItem from './VibeCommentItem.vue';
 
 const props = defineProps({
     p: Object
 });
 
-const emit = defineEmits(['deleted', 'reposted']);
+const emit = defineEmits(['deleted', 'reposted', 'edit']);
 
 const page = usePage();
 const user = computed(() => page.props.auth?.user || {});
@@ -228,6 +230,16 @@ const vibeTagModalRef = ref(null);
 const vibeCommentsModalRef = ref(null);
 const vibeBigUpModalRef = ref(null);
 const vibeOptionsModalRef = ref(null);
+const editVibeModalRef = ref(null);
+
+const handleEdit = () => {
+    emit('edit', props.p);
+};
+
+const onVibeUpdated = (updatedData) => {
+    props.p.caption = updatedData.caption;
+    if (updatedData.location) props.p.location = updatedData.location;
+};
 const currentIndex = ref(0);
 
 const isLiked = ref(props.p.is_liked || false);

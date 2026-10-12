@@ -1,6 +1,16 @@
 <template>
   <Modal ref="modalRef" maxWidth="max-w-xs">
     <div class="py-2">
+      <!-- Edit Option (Only if owner) -->
+      <button
+        v-if="isOwner"
+        @click="handleEdit"
+        class="w-full px-6 py-4 flex items-center gap-3 text-lkblue hover:bg-blue-50 transition active:scale-95"
+      >
+        <i data-lucide="edit-3" class="w-5 h-5"></i>
+        <span class="font-black text-sm">Edit post</span>
+      </button>
+
       <!-- Delete Option (Only if owner) -->
       <button
         v-if="isOwner"
@@ -41,7 +51,12 @@ const props = defineProps({
   isOwner: Boolean
 });
 
-const emit = defineEmits(['delete']);
+const emit = defineEmits(['delete', 'edit']);
+
+const handleEdit = () => {
+  emit('edit', props.vibe);
+  close();
+};
 
 const modalRef = ref(null);
 

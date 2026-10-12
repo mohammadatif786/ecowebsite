@@ -1,6 +1,9 @@
 <template>
   <Modal ref="modalRef">
-    <div class="flex items-center justify-between border-b p-4"><h3 class="text-lg font-black">New Vibe</h3><button @click="close">✕</button></div>
+    <div class="flex items-center justify-between border-b p-4">
+      <h3 class="text-lg font-black">{{ editingVibe ? 'Edit Vibe' : 'New Vibe' }}</h3>
+      <button @click="close">✕</button>
+    </div>
     <div class="space-y-4 p-4">
       <!-- Tab Selection -->
       <div class="flex bg-slate-100 p-1 rounded-2xl">
@@ -78,7 +81,7 @@
         <p class="text-[11px] text-slate-400 text-center font-medium">Take photo · record video · gallery (select multiple for a carousel), or share a text-only vibe</p>
 
         <!-- Text Vibe Card Preview Box -->
-        <div v-if="isTextMode" class="mt-4 space-y-3">
+        <div v-if="isTextMode" class="mt-2 space-y-3">
           <div class="w-full h-80 rounded-3xl p-6 flex items-center justify-center text-center shadow-lg transition-all duration-300 relative overflow-hidden"
                :style="{ background: selectedTextBg }">
             <textarea
@@ -108,14 +111,14 @@
         </div>
 
         <div v-if="media.length" class="mt-3 grid grid-cols-2 gap-2">
-          <div v-for="(item, i) in media" :key="item.url" class="relative overflow-hidden rounded-xl bg-black">
+          <div v-for="(item, i) in media" :key="item.url || i" class="relative overflow-hidden rounded-xl bg-black">
             <video v-if="item.video" :src="item.url" controls class="h-36 w-full object-contain"/><img v-else :src="item.url" class="h-36 w-full object-cover"/>
             <button class="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-1 text-white" @click="removeMedia(i)">✕</button>
           </div>
         </div>
       </div>
 
-      <textarea v-model="caption" maxlength="2200" rows="3" placeholder="Write a caption… #carnival #island" class="w-full rounded-2xl border p-3"/>
+      <textarea v-if="!isTextMode" v-model="caption" maxlength="2200" rows="3" placeholder="Write a caption… #carnival #island" class="w-full rounded-2xl border p-3"/>
       <input v-model="location" placeholder="📍 Add location" class="w-full rounded-2xl border p-3"/>
 
       <!-- Tagging Section -->
@@ -149,7 +152,9 @@
 
       <label class="flex justify-between rounded-2xl bg-amber-50 p-3 font-bold">🪙 Allow Big Up coin gifts <input v-model="allowGifts" type="checkbox"/></label>
       <p v-if="error" class="text-sm font-semibold text-red-600">{{ error }}</p>
-      <button :disabled="busy" class="btn btn-primary w-full py-3 disabled:opacity-60" @click="submit">{{ busy ? 'Sharing…' : 'Share Vibe' }}</button>
+      <button :disabled="busy" class="btn btn-primary w-full py-3 disabled:opacity-60" @click="submit">
+        {{ busy ? 'Saving…' : (editingVibe ? 'Save Changes' : 'Share Vibe') }}
+      </button>
     </div>
 
     <!-- Tag Product/Event Modal -->
@@ -170,13 +175,14 @@ const props = defineProps({
   affiliateItems: { type: Array, default: () => [] }
 });
 
-const emit = defineEmits(['postCreated']);
+const emit = defineEmits(['postCreated', 'postUpdated']);
 const user = usePage().props.auth?.user || getUser();
 const modalRef = ref(); const tagModalRef = ref();
 const postAs = ref('me'); const selectedPublisher = ref(null); const caption = ref('');
 const taggedItem = ref(null);
 const customName = ref(''); const customType = ref('organization'); const addingPublisher = ref(false);
 const localCustomPublishers = ref([...props.publishers.custom]);
+const editingVibe = ref(null);
 
 const isTextMode = ref(false);
 const textVibeContent = ref('');
@@ -271,13 +277,62 @@ const pickers = [
   { label: 'Text', icon: 'T', source: 'text' }
 ];
 
-const open = () => modalRef.value?.open(); const close = () => modalRef.value?.close(); defineExpose({ open, close });
+const open = () => {
+  editingVibe.value = null;
+  caption.value = '';
+  textVibeContent.value = '';
+  isTextMode.value = false;
+  taggedItem.value = null;
+  media.value = [];
+  modalRef.value?.open();
+};
+
+const openEdit = (vibeData) => {
+  editingVibe.value = vibeData;
+  caption.value = vibeData.caption || '';
+  location.value = vibeData.location || `${user.city}, ${user.country}`;
+  allowGifts.value = vibeData.allow_coin_gifts ?? true;
+  taggedItem.value = vibeData.tag || null;
+
+  if (vibeData.media && vibeData.media.length > 0) {
+    media.value = vibeData.media.map(m => ({
+      id: m.id,
+      url: m.url,
+      video: m.type === 'video',
+      file: null
+    }));
+  } else {
+    media.value = [];
+  }
+
+  if (vibeData.kind === 'text' || vibeData.text_bg) {
+    isTextMode.value = true;
+    textVibeContent.value = vibeData.caption || '';
+    selectedTextBg.value = vibeData.text_bg || 'linear-gradient(135deg, #a855f7, #ec4899)';
+    const matchFont = fonts.findIndex(f => f.name === vibeData.text_font);
+    if (matchFont !== -1) fontIndex.value = matchFont;
+  } else {
+    isTextMode.value = false;
+    textVibeContent.value = '';
+  }
+
+  modalRef.value?.open();
+};
+
+const close = () => modalRef.value?.close();
+defineExpose({ open, openEdit, close });
+
 const selectMedia = (event, source) => {
   isTextMode.value = false;
   Array.from(event.target.files || []).forEach(file => media.value.push({ file, source, video: file.type.startsWith('video/'), url: URL.createObjectURL(file) }));
   event.target.value = '';
 };
-const removeMedia = i => { URL.revokeObjectURL(media.value[i].url); media.value.splice(i, 1); };
+const removeMedia = i => {
+  if (media.value[i]?.url && media.value[i].url.startsWith('blob:')) {
+    URL.revokeObjectURL(media.value[i].url);
+  }
+  media.value.splice(i, 1);
+};
 const openTagModal = () => tagModalRef.value?.open();
 const onItemSelected = (item) => { taggedItem.value = item; };
 
@@ -299,6 +354,38 @@ const submit = async () => {
     return;
   }
 
+  // Handle Edit Mode
+  if (editingVibe.value) {
+    busy.value = true;
+    try {
+      await axios.put(route('new_frontend.vibes.update', { vibe: editingVibe.value.id }), {
+        caption: finalCaption,
+        location_name: location.value,
+        text_bg: isTextMode.value ? selectedTextBg.value : '',
+        text_font: isTextMode.value ? currentFont.value.name : ''
+      });
+
+      emit('postUpdated', {
+        id: editingVibe.value.id,
+        caption: finalCaption,
+        location: location.value,
+        kind: isTextMode.value ? 'text' : editingVibe.value.kind,
+        text_bg: isTextMode.value ? selectedTextBg.value : null,
+        text_font: isTextMode.value ? currentFont.value.name : null,
+        tag: taggedItem.value
+      });
+
+      if (window.toast) window.toast('✏️ Post updated successfully!');
+      close();
+    } catch (e) {
+      error.value = e.response?.data?.message || 'Failed to update post.';
+    } finally {
+      busy.value = false;
+    }
+    return;
+  }
+
+  // Handle New Vibe Creation
   let type = 'user';
   let id = user.id;
 
@@ -332,7 +419,14 @@ const submit = async () => {
     }
   }
 
-  media.value.forEach((item, i) => { form.append(`media[${i}]`, item.file); form.append(`media_sources[${i}]`, item.source); }); busy.value = true;
+  media.value.forEach((item, i) => {
+    if (item.file) {
+      form.append(`media[${i}]`, item.file);
+      form.append(`media_sources[${i}]`, item.source);
+    }
+  });
+
+  busy.value = true;
   try {
     const vibe = (await axios.post(route('new_frontend.vibes.store'), form)).data.data;
     emit('postCreated', {
@@ -365,7 +459,9 @@ const submit = async () => {
         seller: (vibe.products[0] || vibe.events[0]).user?.name
       } : null
     });
-    media.value.forEach(x => URL.revokeObjectURL(x.url));
+    media.value.forEach(x => {
+      if (x.url && x.url.startsWith('blob:')) URL.revokeObjectURL(x.url);
+    });
     media.value = [];
     caption.value = '';
     textVibeContent.value = '';

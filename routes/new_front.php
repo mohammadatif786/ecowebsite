@@ -26,6 +26,10 @@ Route::prefix('new_frontend')->name('new_frontend.')->group(function () {
     Route::middleware(['auth', 'otp.verified', 'isWizardComplete'])->group(function () {
         Route::post('/vibes', [VibeController::class, 'store'])->middleware('throttle:10,1')->name('vibes.store');
         Route::delete('/vibes/{vibe}', [VibeController::class, 'destroy'])->name('vibes.destroy');
+        Route::put('/vibes/{vibe}', [VibeController::class, 'update'])->name('vibes.update');
+        Route::post('/vibes/{vibe}/update', [VibeController::class, 'update'])->name('vibes.update.post');
+        Route::get('/vibes/{vibe}/copy-link', [VibeController::class, 'copyLink'])->name('vibes.copy-link');
+        Route::get('/vibes/suggested-creators', [VibeController::class, 'suggestedCreators'])->name('vibes.suggested-creators');
         Route::post('/creators/{user}/toggle-follow', [VibeController::class, 'toggleFollowCreator'])->name('creators.toggle-follow');
         Route::post('/vibes/{vibe}/like', [VibeInteractionController::class, 'toggleLike'])->name('vibes.like');
         Route::get('/vibes/{vibe}/comments', [VibeInteractionController::class, 'indexComments'])->name('vibes.comments.index');

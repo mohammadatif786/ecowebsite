@@ -64,7 +64,7 @@
 
                 <!-- Feed List -->
                 <div id="vibeFeed" class="space-y-4">
-                    <VibeCard v-for="post in posts" :key="post.id" :p="post" @deleted="onPostDeleted" @reposted="onPostReposted" />
+                    <VibeCard v-for="post in posts" :key="post.id" :p="post" @deleted="onPostDeleted" @reposted="onPostReposted" @edit="onEditPost" />
                 </div>
             </div>
 
@@ -145,7 +145,7 @@
 
         <!-- Compose Modal -->
         <ComposeVibeModal ref="composeModalRef" :publishers="vibePublishers" :affiliateItems="affiliateItems"
-            @postCreated="onPostCreated" />
+            @postCreated="onPostCreated" @postUpdated="onPostUpdated" />
 
         <!-- Affiliate Hub Modal -->
         <AffiliateHubModal ref="affiliateHubModalRef" :items="affiliateItems" :stats="earningsStats" />
@@ -354,6 +354,19 @@ const onPostDeleted = (vibeId) => {
 const onPostReposted = (newVibe) => {
     if (newVibe) {
         posts.value.unshift(newVibe);
+    }
+};
+
+const onEditPost = (vibe) => {
+    if (composeModalRef.value) {
+        composeModalRef.value.openEdit(vibe);
+    }
+};
+
+const onPostUpdated = (updatedVibe) => {
+    const idx = posts.value.findIndex(p => String(p.id) === String(updatedVibe.id));
+    if (idx !== -1) {
+        posts.value[idx] = { ...posts.value[idx], ...updatedVibe };
     }
 };
 

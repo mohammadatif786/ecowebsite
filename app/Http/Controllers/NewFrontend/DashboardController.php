@@ -715,7 +715,12 @@ class DashboardController extends Controller
         ->map(fn($r) => $r->user_id === $user->id ? $r->receiver_id : $r->user_id)
         ->toArray();
 
-        $suggestedCreators = User::latest()
+        $suggestedCreators = User::where(function ($query) {
+                $query->whereHas('vibes')
+                      ->orWhereHas('reels');
+            })
+            ->where('id', '!=', $user->id)
+            ->latest()
             ->get()
             ->map(function ($u) use ($followingUserIds) {
                 return [
