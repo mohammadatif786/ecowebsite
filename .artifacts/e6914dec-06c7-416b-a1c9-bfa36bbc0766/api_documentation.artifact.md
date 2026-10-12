@@ -1,4 +1,4 @@
-# LinkUp Vibe, Reel, Chat, Activity & Creator Mobile API Documentation
+# LinkUp Vibe, Reel, Chat, Activity, Earnings & Creator Mobile API Documentation
 
 Base URL: `https://your-domain.com/api/regular-user/`
 
@@ -9,42 +9,50 @@ All requests require Sanctum bearer token authentication:
 
 ---
 
-## 1. VIBES ACTIVITY API
+## 1. VIBES EARNINGS APIS
 
-### Get User Activity / Notifications (`GET /vibes/activity`)
-* **Description:** Retrieves the user's recent activity (likes, comments, mentions, follows) grouped by time (`Today`, `Yesterday`, etc.), matching the Instagram-style Activity panel.
-* **Headers:**
-  - `Authorization: Bearer <token>`
-  - `Accept: application/json`
+### Get Earnings Summary (`GET /vibes/earnings`)
+* **Description:** Retrieves the creator's affiliate sales stats, total commission, pending escrow, available balance, paid out amount, and recent commission list.
 * **JSON Response (`200 OK`):**
 ```json
 {
-    "activity": [
-        {
-            "id": 14,
-            "type": "like",
-            "user": {
-                "id": 5,
-                "name": "Kristian R",
-                "handle": "kristian_r",
-                "avatar": "https://...",
-                "is_following": true
-            },
-            "message": "kristian_r and 6 others liked your photo",
-            "title": "New Like",
-            "time_group": "Today",
-            "time_ago": "5m",
-            "media_thumbnail": "https://...",
-            "is_following": true,
-            "created_at": "2026-10-06T15:00:00.000000Z"
-        }
-    ]
+    "success": true,
+    "earnings": {
+        "sales_driven": 3,
+        "total_commission": 150.00,
+        "pending": 50.00,
+        "available": 100.00,
+        "paid": 0.00,
+        "recent": [
+            {
+                "title": "Frontline Costume",
+                "amount": 250.00,
+                "commission": 12.50,
+                "rate": 5.0,
+                "status": "pending",
+                "source": "vibe"
+            }
+        ]
+    }
 }
 ```
 
+### Release Pending Earnings (`POST /vibes/earnings/release`)
+* **Description:** Simulates delivery confirmation and releases pending escrow commissions to available balance.
+* **JSON Response (`200 OK`):** `{"success": true, "count": 1, "message": "Successfully released 1 pending commissions."}`
+
+### Transfer Earnings to Wallet (`POST /vibes/earnings/transfer`)
+* **Description:** Transfers available earnings to the user's digital wallet (applying a 5% LinkUp platform fee).
+* **JSON Response (`200 OK`):** `{"success": true, "amount": 95.00, "linkup_fee": 5.00, "message": "$95.00 transferred to your wallet! (5% LinkUp fee applied: $5.00)"}`
+
 ---
 
-## 2. VIBES MANAGEMENT & THANK YOU APIS
+## 2. VIBES ACTIVITY & NOTIFICATIONS API
+* **Get User Activity:** `GET /vibes/activity`
+
+---
+
+## 3. VIBES MANAGEMENT & THANK YOU APIS
 * **Create Vibe:** `POST /vibes/store` (`multipart/form-data`)
 * **Edit Vibe:** `PUT /vibes/{vibe_id}` (Owner only)
 * **Delete Vibe:** `DELETE /vibes/{vibe_id}` (Owner only)
@@ -55,20 +63,20 @@ All requests require Sanctum bearer token authentication:
 
 ---
 
-## 3. VIBE CHAT & MESSAGES APIS
+## 4. VIBE CHAT & MESSAGES APIS
 * **Get Conversations List:** `GET /vibes/chats/conversations`
 * **Get Messages:** `GET /vibes/chats/{recipient_id}/messages`
 * **Send Message:** `POST /vibes/chats/{recipient_id}/messages` (Params: `content`)
 
 ---
 
-## 4. SUGGESTED CREATORS & FOLLOW APIS
-* **Get Suggested Creators:** `GET /vibes/suggested-creators` (Users who have created at least 1 vibe or reel)
+## 5. SUGGESTED CREATORS & FOLLOW APIS
+* **Get Suggested Creators:** `GET /vibes/suggested-creators`
 * **Toggle Follow / Unfollow:** `POST /creators/{user_id}/toggle-follow`
 
 ---
 
-## 5. VIBE INTERACTIONS APIS
+## 6. VIBE INTERACTIONS APIS
 * **Like Vibe:** `POST /vibes/{vibe_id}/like`
 * **Get Comments:** `GET /vibes/{vibe_id}/comments`
 * **Post Comment/Reply:** `POST /vibes/{vibe_id}/comments` (Params: `comment`, `parent_id`)
@@ -78,6 +86,6 @@ All requests require Sanctum bearer token authentication:
 
 ---
 
-## 6. REELS APIS
+## 7. REELS APIS
 * **Create Reel:** `POST /reels/store`
 * **List Reels:** `GET /reels`, `GET /reels/followed`, `GET /reels/user/{user_id}`, `GET /reels/{reel_id}`

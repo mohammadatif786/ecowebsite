@@ -648,15 +648,16 @@ function uvibePostCard(p){
       <button onclick="openSendVibe('${(p.org||'').replace(/'/g,'')}')" title="Send a Vibe" class="text-lg shrink-0">🌹</button>
       <span class="chip shrink-0" style="background:#7c3aed14;color:#7c3aed;border-color:#7c3aed22">${p.tagLabel}</span>
     </div>
-    ${imgs.length?`<div class="relative">${p.realVideo?`<video id="uvph-${p.id}" src="${imgs[0]}" controls class="w-full h-56 object-cover bg-black"></video>`:`<img id="uvph-${p.id}" src="${imgs[0]}" class="w-full h-56 object-cover"/>`}
+    ${p.isText?`<div class="w-full aspect-square grid place-items-center p-8 text-center" style="background:${p.bg||VIBE_BG_PRESETS_WEB[0]}"><p class="text-white text-2xl leading-snug break-words" style="${p.effect||''}">${(p.desc||'').replace(/</g,'&lt;')}</p></div>`
+    :(imgs.length?`<div class="relative">${p.realVideo?`<video id="uvph-${p.id}" src="${imgs[0]}" controls class="w-full h-56 object-cover bg-black"></video>`:`<img id="uvph-${p.id}" src="${imgs[0]}" class="w-full h-56 object-cover"/>`}
       ${imgs.length>1?`<button onclick="uvImgNav(${p.id},-1)" class="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/50 text-white grid place-items-center"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
       <button onclick="uvImgNav(${p.id},1)" class="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/50 text-white grid place-items-center"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
       <span class="absolute top-3 right-3 bg-black/55 text-white text-[10px] font-black px-2 py-0.5 rounded-full" id="uvpc-${p.id}">1/${imgs.length}</span>
       <div id="uvpd-${p.id}" class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">${imgs.map((x,k)=>`<span class="h-1.5 rounded-full ${k===0?'bg-white w-3':'bg-white/50 w-1.5'}"></span>`).join('')}</div>`:''}
-    </div>`:''}
+    </div>`:'')}
     <div class="p-4">
       <div class="flex items-center justify-between gap-2 mb-1"><p class="font-black text-lg">${p.title}</p>${p.price?`<span class="text-emerald-600 font-black shrink-0">${money(p.price)}</span>`:''}</div>
-      <p class="text-sm text-slate-600">${p.desc}</p>
+      ${p.isText?'':`<p class="text-sm text-slate-600">${p.desc}</p>`}
       ${uvTagCard(p)}
       <div class="flex items-center gap-4 mt-3">
         <span class="flex items-center gap-1.5 text-slate-500 text-sm font-bold"><i data-lucide="heart" class="w-4 h-4"></i>${num(p.likes)}</span>
@@ -748,6 +749,7 @@ function profileUVibePostsGridWeb(name){
   if(!posts.length)return `<p class="text-center text-slate-400 font-bold py-10 text-sm">No posts yet.</p>`;
   return `<div class="grid grid-cols-3 gap-1">${posts.map(p=>{
     const img=(p.imgs&&p.imgs.length)?p.imgs[0]:p.image;
+    if(p.isText)return `<button onclick="openUVibePostModalWeb(${p.id})" class="relative aspect-square rounded-lg overflow-hidden grid place-items-center p-2 text-center" style="background:${p.bg||VIBE_BG_PRESETS_WEB[0]}"><span class="text-white text-[11px] leading-tight line-clamp-5" style="${p.effect||''}">${(p.desc||'').replace(/</g,'&lt;')}</span></button>`;
     if(!img)return `<button onclick="openUVibePostModalWeb(${p.id})" class="relative aspect-square bg-slate-100 rounded-lg grid place-items-center p-2"><span class="text-[11px] font-bold text-slate-500 text-center line-clamp-4">${p.title}</span></button>`;
     return `<button onclick="openUVibePostModalWeb(${p.id})" class="relative aspect-square bg-slate-100 rounded-lg overflow-hidden"><img src="${img}" class="w-full h-full object-cover"/><span class="absolute bottom-1 left-1 text-white text-[10px] font-black flex items-center gap-0.5 drop-shadow"><i data-lucide="heart" class="w-3 h-3" fill="currentColor"></i>${num(p.likes)}</span></button>`;
   }).join('')}</div>`;
@@ -886,10 +888,16 @@ function uvDoBoost(id,cost){
   } catch (e) {}
 }
 let uvComposeImages=[], uvShopTag=null, uvComposeDraft={};
+// Text-card mode for U Vibe posts — same gradient-background + text-"effect" pattern as the
+// general Vibes composer (reuses VIBE_BG_PRESETS_WEB/VIBE_TEXT_EFFECTS_WEB), stored as
+// p.isText rather than overloading p.category, which already carries the post's campus
+// category (events/parties/clubs/campus-life/food/opportunity).
+let uvTextMode=false, uvBgIdx=0, uvEffectIdx=0;
 // Multi-image accumulator — mirrors vibeMediaPick()'s carousel pattern exactly.
 function uvImagePick(inp){
   if(!inp.files||!inp.files.length)return;
   uvSaveDraft();
+  if(uvTextMode){uvTextMode=false;}
   Array.from(inp.files).forEach(f=>{uvComposeImages.push(URL.createObjectURL(f));});
   composeUVibe(true);
 }
@@ -906,7 +914,7 @@ function uvSaveDraft(){
   };
 }
 function composeUVibe(keep){
-  if(!keep){uvComposeImages=[];uvShopTag=null;uvComposeDraft={};}
+  if(!keep){uvComposeImages=[];uvShopTag=null;uvComposeDraft={};uvTextMode=false;uvBgIdx=0;uvEffectIdx=0;}
   $('modalCard').className='card w-full max-w-md max-h-[88vh] overflow-y-auto fade';
   openModal(`<div class="-m-1">
     <div class="rounded-t-[19px] overflow-hidden" style="background:linear-gradient(120deg,#7c3aed,#a855f7)">
@@ -924,8 +932,11 @@ function composeUVibe(keep){
       <div><p class="text-[11px] font-black text-slate-400 uppercase mb-1.5">Type</p>
       <select id="uvComposeCat" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold outline-none">${UVIBE_CATS.filter(c=>c[0]!=='all').map(([id,label])=>`<option value="${id}"${uvComposeDraft.category===id?' selected':''}>${label}</option>`).join('')}</select></div>
       <input id="uvComposeTitle" value="${(uvComposeDraft.title||'').replace(/"/g,'&quot;')}" placeholder="Title (e.g. Campus Culture Night)" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none"/>
-      <textarea id="uvComposeDesc" rows="3" placeholder="What's happening on campus?" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none">${uvComposeDraft.desc||''}</textarea>
-      ${uvComposeImages.length?`<div class="flex gap-2 overflow-x-auto hide-scroll">${uvComposeImages.map((url,i)=>`<div class="relative shrink-0"><img src="${url}" class="h-24 w-24 rounded-xl object-cover"/><button onclick="uvRemoveImageAt(${i})" class="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-rose-500 text-white text-xs font-black grid place-items-center"><i data-lucide="x" class="w-3 h-3"></i></button>${uvComposeImages.length>1?`<span class="absolute bottom-1 left-1 bg-black/55 text-white text-[9px] font-black px-1.5 rounded-full">${i+1}</span>`:''}</div>`).join('')}<label class="h-24 w-24 shrink-0 rounded-xl border-2 border-dashed border-violet-200 text-violet-600 grid place-items-center cursor-pointer"><input type="file" accept="image/*" multiple class="hidden" onchange="uvImagePick(this)"/><i data-lucide="plus" class="w-5 h-5"></i></label></div>`:`<label class="w-full rounded-2xl border-2 border-dashed border-violet-200 text-violet-600 font-black py-3 flex items-center justify-center gap-2 cursor-pointer"><input type="file" accept="image/*" multiple class="hidden" onchange="uvImagePick(this)"/><i data-lucide="image-plus" class="w-4 h-4"></i>Add photos (select multiple for a carousel)</label>`}
+      <div id="uvTextCardBoxWeb"></div>
+      <div class="relative"><textarea id="uvComposeDesc" oninput="renderUvTextCardWeb()" rows="3" placeholder="What's happening on campus?" class="w-full rounded-2xl border border-slate-200 px-4 py-3 pr-11 text-sm outline-none">${uvComposeDraft.desc||''}</textarea><button type="button" onclick="toggleUvEmojiPickerWeb()" class="absolute right-2 top-2 h-7 w-7 rounded-full bg-slate-100 hover:bg-slate-200 grid place-items-center text-base" title="Add emoji">😊</button></div>
+      <div id="uvEmojiBoxWeb" class="hidden"></div>
+      ${uvTextMode?'':(uvComposeImages.length?`<div class="flex gap-2 overflow-x-auto hide-scroll">${uvComposeImages.map((url,i)=>`<div class="relative shrink-0"><img src="${url}" class="h-24 w-24 rounded-xl object-cover"/><button onclick="uvRemoveImageAt(${i})" class="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-rose-500 text-white text-xs font-black grid place-items-center"><i data-lucide="x" class="w-3 h-3"></i></button>${uvComposeImages.length>1?`<span class="absolute bottom-1 left-1 bg-black/55 text-white text-[9px] font-black px-1.5 rounded-full">${i+1}</span>`:''}</div>`).join('')}<label class="h-24 w-24 shrink-0 rounded-xl border-2 border-dashed border-violet-200 text-violet-600 grid place-items-center cursor-pointer"><input type="file" accept="image/*" multiple class="hidden" onchange="uvImagePick(this)"/><i data-lucide="plus" class="w-5 h-5"></i></label></div>`:`<label class="w-full rounded-2xl border-2 border-dashed border-violet-200 text-violet-600 font-black py-3 flex items-center justify-center gap-2 cursor-pointer"><input type="file" accept="image/*" multiple class="hidden" onchange="uvImagePick(this)"/><i data-lucide="image-plus" class="w-4 h-4"></i>Add photos (select multiple for a carousel)</label>`)}
+      <button id="uvTextBtnWeb" type="button" onclick="toggleUvTextModeWeb()" class="w-full rounded-2xl border-2 border-dashed p-3 flex items-center justify-center gap-2 font-black text-sm text-emerald-700 border-emerald-200"><i data-lucide="type" class="w-4 h-4"></i>${uvTextMode?'Remove Text Card':'Add Text Card instead of a photo'}</button>
       <input id="uvComposePrice" type="number" min="0" step="1" value="${uvComposeDraft.price||''}" placeholder="Entry price USD (optional, info only)" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none"/>
       <label class="flex items-center justify-between rounded-2xl bg-amber-50 px-3 py-2.5"><span class="font-bold text-sm">⚡ Allow Boosts (coin gifts)</span><input id="uvComposeCoins" type="checkbox" ${uvComposeDraft.coins===false?'':'checked'} class="h-5 w-5"/></label>
       <div class="rounded-2xl border border-slate-200 p-3">
@@ -940,6 +951,46 @@ function composeUVibe(keep){
       <button onclick="saveUVibePost()" class="btn btn-primary w-full py-3">Post to U Vibe</button>
     </div>
   </div>`);
+  updateUvTextBtnWeb();renderUvTextCardWeb();
+}
+function updateUvTextBtnWeb(){
+  const btn=$('uvTextBtnWeb'); if(!btn)return;
+  btn.style.borderColor=uvTextMode?'var(--lk-blue)':'';
+  btn.style.background=uvTextMode?'#eff6ff':'';
+}
+function toggleUvTextModeWeb(){
+  uvSaveDraft();
+  uvTextMode=!uvTextMode;
+  if(uvTextMode)uvComposeImages=[];
+  composeUVibe(true);
+}
+function cycleUvBgWeb(i){uvBgIdx=i;renderUvTextCardWeb();}
+function cycleUvEffectWeb(){uvEffectIdx=(uvEffectIdx+1)%VIBE_TEXT_EFFECTS_WEB.length;renderUvTextCardWeb();}
+function renderUvTextCardWeb(){
+  const box=$('uvTextCardBoxWeb'); if(!box)return;
+  if(!uvTextMode){box.innerHTML='';return;}
+  const desc=($('uvComposeDesc')&&$('uvComposeDesc').value)||'';
+  const eff=VIBE_TEXT_EFFECTS_WEB[uvEffectIdx];
+  box.innerHTML=`<div class="rounded-2xl overflow-hidden aspect-square grid place-items-center p-6 text-center" style="background:${VIBE_BG_PRESETS_WEB[uvBgIdx]}"><p class="text-white text-xl leading-snug break-words" style="${eff[1]}">${(desc.replace(/</g,'&lt;'))||'Your text will appear here…'}</p></div>
+    <div class="flex items-center gap-2 overflow-x-auto hide-scroll py-2 mt-1">${VIBE_BG_PRESETS_WEB.map((g,i)=>`<button onclick="cycleUvBgWeb(${i})" class="h-8 w-8 rounded-full shrink-0 ${i===uvBgIdx?'ring-2 ring-offset-2 ring-lkblue':''}" style="background:${g}"></button>`).join('')}<button onclick="cycleUvEffectWeb()" class="h-8 px-3 rounded-full border-2 border-slate-200 text-xs font-black shrink-0 ml-1">Aa ${eff[0]}</button></div>`;
+  if(window.lucide)lucide.createIcons();
+}
+function toggleUvEmojiPickerWeb(){
+  const box=$('uvEmojiBoxWeb'); if(!box)return;
+  const open=box.classList.contains('hidden');
+  if(open){
+    box.innerHTML=`<div class="rounded-2xl border border-slate-200 p-2 grid grid-cols-8 gap-1 max-h-40 overflow-y-auto">${VIBE_EMOJIS_WEB.map(e=>`<button type="button" onclick="insertUvEmojiWeb('${e}')" class="text-xl rounded-lg hover:bg-slate-100 py-1">${e}</button>`).join('')}</div>`;
+    box.classList.remove('hidden');
+  }else{
+    box.classList.add('hidden'); box.innerHTML='';
+  }
+}
+function insertUvEmojiWeb(e){
+  const ta=$('uvComposeDesc'); if(!ta)return;
+  const start=ta.selectionStart||ta.value.length, end=ta.selectionEnd||ta.value.length;
+  ta.value=ta.value.slice(0,start)+e+ta.value.slice(end);
+  const pos=start+e.length; ta.focus(); ta.setSelectionRange(pos,pos);
+  renderUvTextCardWeb();
 }
 // Mirrors the general Vibes composer's vibeTagPicked(): the shared tag-picker hands back a
 // product/event tag object here, then reopens the U Vibe composer with it attached. This is
@@ -964,18 +1015,23 @@ function saveUVibePost(){
   const shopTag=uvShopTag;
   const crossPost=!!(($('uvComposeCrossPost')||{}).checked);
   if(!title){toast('Add a title');return;}
+  if(uvTextMode&&!desc){toast('Write something for your text card');return;}
   const catLabel=(UVIBE_CATS.find(c=>c[0]===category)||[,'Campus Life'])[1];
-  const imgs=uvComposeImages.slice();
+  const imgs=uvTextMode?[]:uvComposeImages.slice();
   const image=imgs[0]||null;
   const posts=DB.get('lk_uvibe_posts',UVIBE_POSTS_SEED);
-  posts.unshift({id:Date.now(),org:USER.name,verified:false,group:'You',campus,time:'Just now',category,tagLabel:catLabel,image,imgs,title,price,desc,likes:0,comments:0,onVibes:crossPost,allowCoins,shoppable:!!shopTag,tag:shopTag});
+  const post={id:Date.now(),org:USER.name,verified:false,group:'You',campus,time:'Just now',category,tagLabel:catLabel,image,imgs,title,price,desc,likes:0,comments:0,onVibes:crossPost,allowCoins,shoppable:!!shopTag,tag:shopTag};
+  if(uvTextMode){post.isText=true;post.bg=VIBE_BG_PRESETS_WEB[uvBgIdx];post.effect=VIBE_TEXT_EFFECTS_WEB[uvEffectIdx][1];}
+  posts.unshift(post);
   DB.set('lk_uvibe_posts',posts);
   if(crossPost){
     const vposts=DB.get('lk_vibes_posts',SEED.vibes_posts.slice());
-    vposts.unshift({id:Date.now()+1, handle:USER.handle, avatar:USER.avatar, org:'Campus', location:campus, kind:imgs.length>1?'carousel':'photo', media:image||PIC('uv'+Date.now(),900,700), imgs:imgs.length?imgs:undefined, caption:`🎓 ${title} — ${desc}`, likes:0, comments:0, bigup:0, shoppable:!!shopTag, tag:shopTag});
+    const vpost={id:Date.now()+1, handle:USER.handle, avatar:USER.avatar, org:'Campus', location:campus, kind:imgs.length>1?'carousel':'photo', media:image||PIC('uv'+Date.now(),900,700), imgs:imgs.length?imgs:undefined, caption:`🎓 ${title} — ${desc}`, likes:0, comments:0, bigup:0, shoppable:!!shopTag, tag:shopTag};
+    if(uvTextMode){vpost.kind='text';vpost.bg=post.bg;vpost.effect=post.effect;vpost.media=undefined;vpost.imgs=undefined;}
+    vposts.unshift(vpost);
     DB.set('lk_vibes_posts',vposts);
   }
-  uvComposeImages=[]; uvShopTag=null; uvComposeDraft={};
+  uvComposeImages=[]; uvShopTag=null; uvComposeDraft={}; uvTextMode=false; uvBgIdx=0; uvEffectIdx=0;
   closeModal(); render(); toast('🎓 Posted to U Vibe'+(crossPost?' & Vibes':''));
   // Real endpoint already exists (08-Backend/src/routes/uvibe.js POST /posts) — fire-and-forget.
   // universityKey is DEMO_UVIBE_UNIS-based free text today, not a real universities.key yet.
@@ -1013,9 +1069,11 @@ function vibeCard(p){
       <button onclick="openVibePostMenu(${p.id})" class="text-slate-400"><i data-lucide="more-horizontal" class="w-5 h-5"></i></button>
     </div>
     ${p.repostOf?`<p class="px-4 pb-2 -mt-1 text-xs font-bold text-slate-500 flex items-center gap-1.5"><i data-lucide="repeat-2" class="w-3.5 h-3.5 text-emerald-600"></i>${p.handle} reposted from ${p.repostOf.handle}</p>`:''}
-    <div class="relative bg-black${p.kind==='reel'?' cursor-pointer':''}"${p.kind==='reel'?` onclick="openReelsFromFeed(${p.id})"`:''}>${p.realVideo?`<video id="vph-${p.id}" src="${imgs[0]}" ${p.kind==='reel'?'':'controls'} muted loop playsinline class="w-full max-h-[560px] object-contain bg-black"></video>`:`<img id="vph-${p.id}" src="${imgs[0]}" class="w-full max-h-[560px] object-cover"/>`}
+    <div class="relative bg-black${p.kind==='reel'?' cursor-pointer':''}"${p.kind==='reel'?` onclick="openReelsFromFeed(${p.id})"`:''}>${p.kind==='text'?
+      `<div class="w-full aspect-square grid place-items-center p-8 text-center" style="background:${p.bg||VIBE_BG_PRESETS_WEB[0]}"><p class="text-white text-2xl leading-snug break-words" style="${p.effect||''}">${(p.caption||'').replace(/</g,'&lt;')}</p></div>`
+      :(p.realVideo?`<video id="vph-${p.id}" src="${imgs[0]}" ${p.kind==='reel'?'':'controls'} muted loop playsinline class="w-full max-h-[560px] object-contain bg-black"></video>`:`<img id="vph-${p.id}" src="${imgs[0]}" class="w-full max-h-[560px] object-cover"/>`)}
       ${p.kind==='reel'&&!p.realVideo?'<span class="absolute top-3 right-3 bg-black/50 text-white text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1"><i data-lucide="play" class="w-3 h-3"></i>Reel</span>':''}
-      ${imgs.length>1?`<button onclick="vibeImgNav(${p.id},-1)" class="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/50 text-white grid place-items-center"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
+      ${p.kind!=='text'&&imgs.length>1?`<button onclick="vibeImgNav(${p.id},-1)" class="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/50 text-white grid place-items-center"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
       <button onclick="vibeImgNav(${p.id},1)" class="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/50 text-white grid place-items-center"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
       <span class="absolute top-3 right-3 bg-black/55 text-white text-[10px] font-black px-2 py-0.5 rounded-full" id="vpc-${p.id}">1/${imgs.length}</span>
       <div id="vpd-${p.id}" class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">${imgs.map((x,k)=>`<span class="h-1.5 rounded-full ${k===0?'bg-white w-3':'bg-white/50 w-1.5'}"></span>`).join('')}</div>`:''}
@@ -1029,7 +1087,7 @@ function vibeCard(p){
         <button onclick="openBigUpMenu(${p.id})" class="ml-auto flex items-center gap-1.5 text-white bg-gradient-to-r from-orange-500 to-amber-500 px-3 py-1.5 rounded-full text-sm font-black"><i data-lucide="zap" class="w-4 h-4"></i>Big Up ${num(p.bigup||0)}</button>
         <button onclick="toast('🔖 Saved')" class="text-slate-500"><i data-lucide="bookmark" class="w-5 h-5"></i></button>
       </div>
-      <p class="text-sm"><span class="font-black">${p.handle}</span> ${p.caption}</p>
+      ${p.kind==='text'?`<p class="text-[11px] text-slate-400 font-bold">${p.handle}</p>`:`<p class="text-sm"><span class="font-black">${p.handle}</span> ${p.caption}</p>`}
       ${p.sound?`<p class="text-xs text-slate-500 mt-1 flex items-center gap-1"><i data-lucide="music" class="w-3 h-3"></i>${p.sound}</p>`:''}
       ${vibeTagCard(p)}
     </div>
@@ -1281,6 +1339,7 @@ function profilePostsGridWeb(handle){
     const tap=p.kind==='reel'
       ?`openReelsViewer(userReelsWeb('${handle}'),${reels.indexOf(p)})`
       :`openSinglePostModal(${p.id})`;
+    if(p.kind==='text')return `<button onclick="${tap}" class="relative aspect-square rounded-lg overflow-hidden grid place-items-center p-2 text-center" style="background:${p.bg||VIBE_BG_PRESETS_WEB[0]}"><span class="text-white text-[11px] leading-tight line-clamp-5" style="${p.effect||''}">${(p.caption||'').replace(/</g,'&lt;')}</span></button>`;
     return `<button onclick="${tap}" class="relative aspect-square bg-slate-100 rounded-lg overflow-hidden">
       <img src="${img}" class="w-full h-full object-cover"/>
       ${icon?`<i data-lucide="${icon}" class="w-3.5 h-3.5 absolute top-1.5 right-1.5 text-white drop-shadow"></i>`:''}
@@ -8609,6 +8668,12 @@ const ORG_EMOJI=['🏢','👥','🎭','⚽','🎶','🙏','🏝️'];
 function lkLoadOrgs(){return DB.get('lk_my_orgs',[]);}
 function lkSaveOrgs(list){DB.set('lk_my_orgs',list);}
 let vibeAs='me', vibeOrgId=null, vibeShoppable=false, vibeTag=null, vibeDraft={};
+// Text-only vibes — no photo/video required. vibeDraft.textMode exclusively replaces the
+// media dropzone with a colored card (background preset + text-style "effect") showing the
+// caption live as the user types. Posting creates a kind:'text' post with no imgs/media,
+// rendered as the same colored card in the feed/profile grid (see vibeCard()/profilePostsGridWeb()).
+const VIBE_BG_PRESETS_WEB=['linear-gradient(135deg,#6366f1,#ec4899)','linear-gradient(135deg,#f59e0b,#ef4444)','linear-gradient(135deg,#10b981,#06b6d4)','linear-gradient(135deg,#1e293b,#334155)','linear-gradient(135deg,#ec4899,#f43f5e)','linear-gradient(135deg,#8b5cf6,#6366f1)','linear-gradient(135deg,#f97316,#eab308)','linear-gradient(135deg,#0ea5e9,#2563eb)'];
+const VIBE_TEXT_EFFECTS_WEB=[['Classic','font-weight:900;'],['Elegant','font-weight:700;font-style:italic;font-family:Georgia,serif;'],['Typewriter','font-weight:700;font-family:\'Courier New\',monospace;'],['Neon','font-weight:900;text-shadow:0 0 10px rgba(255,255,255,.85),0 0 22px rgba(255,255,255,.55);']];
 function composeVibe(keep){
   if(!keep){vibeAs='me'; vibeOrgId=null; vibeShoppable=false; vibeTag=null; vibeDraft={};}
   openModal(`<div class="p-4 flex items-center justify-between border-b border-slate-100"><h3 class="text-lg font-black">New Vibe</h3><button onclick="closeModal()" class="text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button></div>
@@ -8620,7 +8685,7 @@ function composeVibe(keep){
       </div></div>
     <div id="vibeOrgPicker"></div>
     <div class="rounded-2xl border-2 border-dashed border-slate-200 p-4">
-      <div class="grid grid-cols-3 gap-2">
+      <div class="grid grid-cols-4 gap-2">
         <label class="rounded-xl bg-slate-50 hover:bg-slate-100 p-3 flex flex-col items-center gap-1 cursor-pointer text-center">
           <input type="file" accept="image/*" capture="environment" class="hidden" onchange="vibeMediaPick(this)"/>
           <i data-lucide="camera" class="w-5 h-5 text-lkblue2"></i><span class="text-[11px] font-bold text-slate-600">Take Photo</span>
@@ -8633,10 +8698,15 @@ function composeVibe(keep){
           <input type="file" accept="image/*,video/*" multiple class="hidden" onchange="vibeMediaPick(this)"/>
           <i data-lucide="image-plus" class="w-5 h-5 text-lkblue2"></i><span class="text-[11px] font-bold text-slate-600">Gallery</span>
         </label>
+        <button id="vibeTextBtnWeb" type="button" onclick="toggleVibeTextModeWeb()" class="rounded-xl bg-slate-50 hover:bg-slate-100 p-3 flex flex-col items-center gap-1 text-center border-2 border-transparent">
+          <i data-lucide="type" class="w-5 h-5 text-emerald-600"></i><span class="text-[11px] font-bold text-slate-600">Text</span>
+        </button>
       </div>
-      ${(vibeDraft.media&&vibeDraft.media.length)?`<div class="flex gap-2 overflow-x-auto hide-scroll mt-3">${vibeDraft.media.map((m,i)=>`<div class="relative shrink-0">${m.video?`<video src="${m.url}" class="h-20 w-20 rounded-xl object-cover"></video>`:`<img src="${m.url}" class="h-20 w-20 rounded-xl object-cover"/>`}<button onclick="vibeRemoveMediaAt(${i})" class="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-rose-500 text-white text-xs font-black grid place-items-center"><i data-lucide="x" class="w-3 h-3"></i></button>${vibeDraft.media.length>1?`<span class="absolute bottom-1 left-1 bg-black/55 text-white text-[9px] font-black px-1.5 rounded-full">${i+1}</span>`:''}</div>`).join('')}</div>`:'<p class="text-[11px] text-slate-400 text-center mt-2">Take photo · record video · gallery (select multiple for a carousel)</p>'}
+      ${(vibeDraft.media&&vibeDraft.media.length)?`<div class="flex gap-2 overflow-x-auto hide-scroll mt-3">${vibeDraft.media.map((m,i)=>`<div class="relative shrink-0">${m.video?`<video src="${m.url}" class="h-20 w-20 rounded-xl object-cover"></video>`:`<img src="${m.url}" class="h-20 w-20 rounded-xl object-cover"/>`}<button onclick="vibeRemoveMediaAt(${i})" class="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-rose-500 text-white text-xs font-black grid place-items-center"><i data-lucide="x" class="w-3 h-3"></i></button>${vibeDraft.media.length>1?`<span class="absolute bottom-1 left-1 bg-black/55 text-white text-[9px] font-black px-1.5 rounded-full">${i+1}</span>`:''}</div>`).join('')}</div>`:'<p class="text-[11px] text-slate-400 text-center mt-2">Take photo · record video · gallery (select multiple for a carousel), or share a text-only vibe</p>'}
     </div>
-    <textarea id="vibeText" rows="2" placeholder="Write a caption… #carnival #island" class="w-full border border-slate-200 rounded-2xl p-3 text-sm outline-none focus:border-lkblue">${vibeDraft.text||''}</textarea>
+    <div id="vibeTextCardBoxWeb"></div>
+    <div class="relative"><textarea id="vibeText" oninput="renderVibeTextCardWeb()" rows="2" placeholder="Write a caption… #carnival #island" class="w-full border border-slate-200 rounded-2xl p-3 pr-11 text-sm outline-none focus:border-lkblue">${vibeDraft.text||''}</textarea><button type="button" onclick="toggleVibeEmojiPickerWeb()" class="absolute right-2 top-2 h-7 w-7 rounded-full bg-slate-100 hover:bg-slate-200 grid place-items-center text-base" title="Add emoji">😊</button></div>
+    <div id="vibeEmojiBoxWeb" class="hidden"></div>
     <input id="vibeLoc" value="${vibeDraft.loc||(USER.city+', '+USER.country)}" placeholder="📍 Add location" class="w-full border border-slate-200 rounded-2xl p-3 text-sm outline-none focus:border-lkblue"/>
     <label class="flex items-center justify-between rounded-2xl bg-amber-50 px-3 py-2.5"><span class="font-bold text-sm">🪙 Allow Big Up coin gifts</span><input id="vibeCoins" type="checkbox" checked class="h-5 w-5"/></label>
     <div class="rounded-2xl border border-slate-200 p-3">
@@ -8646,6 +8716,49 @@ function composeVibe(keep){
     <button onclick="postVibe()" class="btn btn-primary w-full py-3">Share Vibe</button>
   </div>`);
   renderVibeAs();
+  updateVibeTextBtnWeb();renderVibeTextCardWeb();
+}
+function updateVibeTextBtnWeb(){
+  const btn=$('vibeTextBtnWeb'); if(!btn)return;
+  btn.style.borderColor=vibeDraft.textMode?'var(--lk-blue)':'transparent';
+  btn.style.background=vibeDraft.textMode?'#eff6ff':'';
+}
+function toggleVibeTextModeWeb(){
+  vibeSaveDraft();
+  vibeDraft.textMode=!vibeDraft.textMode;
+  if(vibeDraft.textMode)vibeDraft.media=[];
+  composeVibe(true);
+}
+function cycleVibeBgWeb(i){vibeDraft.bgIdx=i;renderVibeTextCardWeb();}
+function cycleVibeEffectWeb(){vibeDraft.effectIdx=((vibeDraft.effectIdx||0)+1)%VIBE_TEXT_EFFECTS_WEB.length;renderVibeTextCardWeb();}
+function renderVibeTextCardWeb(){
+  const box=$('vibeTextCardBoxWeb'); if(!box)return;
+  if(!vibeDraft.textMode){box.innerHTML='';return;}
+  const cap=($('vibeText')&&$('vibeText').value)||'';
+  const bgIdx=vibeDraft.bgIdx||0, effIdx=vibeDraft.effectIdx||0, eff=VIBE_TEXT_EFFECTS_WEB[effIdx];
+  box.innerHTML=`<div class="rounded-2xl overflow-hidden aspect-square grid place-items-center p-6 text-center" style="background:${VIBE_BG_PRESETS_WEB[bgIdx]}"><p class="text-white text-xl leading-snug break-words" style="${eff[1]}">${(cap.replace(/</g,'&lt;'))||'Your text will appear here…'}</p></div>
+    <div class="flex items-center gap-2 overflow-x-auto hide-scroll py-2 mt-1">${VIBE_BG_PRESETS_WEB.map((g,i)=>`<button onclick="cycleVibeBgWeb(${i})" class="h-8 w-8 rounded-full shrink-0 ${i===bgIdx?'ring-2 ring-offset-2 ring-lkblue':''}" style="background:${g}"></button>`).join('')}<button onclick="cycleVibeEffectWeb()" class="h-8 px-3 rounded-full border-2 border-slate-200 text-xs font-black shrink-0 ml-1">Aa ${eff[0]}</button></div>`;
+  if(window.lucide)lucide.createIcons();
+}
+// Emoji picker for the caption field — inserts at the cursor position (not just appended),
+// so it works the same whether composing a caption for a photo/reel or the big Text-mode card.
+const VIBE_EMOJIS_WEB=['😀','😂','🥰','😍','😎','🤩','😭','😅','🙏','👏','🙌','💪','🔥','✨','💯','🎉','🎊','🥳','❤️','💕','💖','💛','💜','🧡','💙','💚','🖤','😘','😜','🤔','👀','💃','🕺','🎶','🎵','🌴','🌞','🏝️','🌊','🍹','🍗','🥘','🥭','🇯🇲','🇹🇹','🇧🇸','🇧🇧','🇧🇷','🇩🇴','🥁','⚡'];
+function toggleVibeEmojiPickerWeb(){
+  const box=$('vibeEmojiBoxWeb'); if(!box)return;
+  const open=box.classList.contains('hidden');
+  if(open){
+    box.innerHTML=`<div class="rounded-2xl border border-slate-200 p-2 grid grid-cols-8 gap-1 max-h-40 overflow-y-auto">${VIBE_EMOJIS_WEB.map(e=>`<button type="button" onclick="insertVibeEmojiWeb('${e}')" class="text-xl rounded-lg hover:bg-slate-100 py-1">${e}</button>`).join('')}</div>`;
+    box.classList.remove('hidden');
+  }else{
+    box.classList.add('hidden'); box.innerHTML='';
+  }
+}
+function insertVibeEmojiWeb(e){
+  const ta=$('vibeText'); if(!ta)return;
+  const start=ta.selectionStart||ta.value.length, end=ta.selectionEnd||ta.value.length;
+  ta.value=ta.value.slice(0,start)+e+ta.value.slice(end);
+  const pos=start+e.length; ta.focus(); ta.setSelectionRange(pos,pos);
+  renderVibeTextCardWeb();
 }
 function vibeSaveDraft(){vibeDraft.text=($('vibeText')||{}).value||'';vibeDraft.loc=($('vibeLoc')||{}).value||'';}
 // Accumulates into vibeDraft.media[] (array of {url,video}) instead of a single mediaUrl —
@@ -8655,6 +8768,7 @@ function vibeSaveDraft(){vibeDraft.text=($('vibeText')||{}).value||'';vibeDraft.
 function vibeMediaPick(inp){
   if(!inp.files||!inp.files.length)return;
   vibeSaveDraft();
+  vibeDraft.textMode=false;
   vibeDraft.media=vibeDraft.media||[];
   const files=Array.from(inp.files);
   if(files.length>1){
@@ -8691,17 +8805,25 @@ function renderVibeAs(){
 }
 function addVibeOrg(){const n=(($('newOrgName')||{}).value||'').trim();if(!n)return;const type=($('newOrgType')||{}).value||'Organization';const orgs=lkLoadOrgs();const o={id:'org'+Date.now(),name:n,type,emoji:ORG_EMOJI[orgs.length%ORG_EMOJI.length]};orgs.push(o);lkSaveOrgs(orgs);vibeOrgId=o.id;renderVibeAs();toast('✅ '+type+' "'+n+'" created');}
 function postVibe(){
-  const txt = ($('vibeText')&&$('vibeText').value.trim())||'New vibe ✨';
+  const txtRaw = ($('vibeText')&&$('vibeText').value.trim())||'';
+  if(vibeDraft.textMode&&!txtRaw){toast('Write something to post');return;}
+  const txt = txtRaw||'New vibe ✨';
   const loc = ($('vibeLoc')&&$('vibeLoc').value)||(USER.city+', '+USER.country);
   const org = (vibeAs==='org'&&vibeOrgId)?lkLoadOrgs().find(o=>o.id===vibeOrgId):null;
   const posts = DB.get('lk_vibes_posts', SEED.vibes_posts.slice());
-  const mediaArr = vibeDraft.media||[];
-  const hasRealMedia = mediaArr.length>0;
-  const firstIsVideo = hasRealMedia && !!mediaArr[0].video;
-  const kind = firstIsVideo?'reel':(mediaArr.length>1?'carousel':'photo');
-  const imgs = hasRealMedia?mediaArr.map(m=>m.url):[PIC('new'+Date.now(),900,700)];
-  const media = imgs[0];
-  posts.unshift({id:Date.now(), handle: org?(org.emoji+' '+org.name):USER.handle, avatar:USER.avatar, org: org?org.type:null, location:loc, kind, imgs, media, realVideo:firstIsVideo, caption:txt, likes:0, comments:0, bigup:0, shoppable:!!vibeTag, tag:vibeTag});
+  const handle = org?(org.emoji+' '+org.name):USER.handle;
+  if(vibeDraft.textMode){
+    const bgIdx=vibeDraft.bgIdx||0, effIdx=vibeDraft.effectIdx||0;
+    posts.unshift({id:Date.now(), handle, avatar:USER.avatar, org: org?org.type:null, location:loc, kind:'text', bg:VIBE_BG_PRESETS_WEB[bgIdx], effect:VIBE_TEXT_EFFECTS_WEB[effIdx][1], caption:txt, likes:0, comments:0, bigup:0, shoppable:!!vibeTag, tag:vibeTag});
+  }else{
+    const mediaArr = vibeDraft.media||[];
+    const hasRealMedia = mediaArr.length>0;
+    const firstIsVideo = hasRealMedia && !!mediaArr[0].video;
+    const kind = firstIsVideo?'reel':(mediaArr.length>1?'carousel':'photo');
+    const imgs = hasRealMedia?mediaArr.map(m=>m.url):[PIC('new'+Date.now(),900,700)];
+    const media = imgs[0];
+    posts.unshift({id:Date.now(), handle, avatar:USER.avatar, org: org?org.type:null, location:loc, kind, imgs, media, realVideo:firstIsVideo, caption:txt, likes:0, comments:0, bigup:0, shoppable:!!vibeTag, tag:vibeTag});
+  }
   DB.set('lk_vibes_posts',posts); vibeTag=null; vibeDraft={}; closeModal(); current='vibes'; render();
   toast(org?('✅ Vibe posted as '+org.name+' ('+org.type+')'):'✅ Vibe posted!');
   // Real endpoint (08-Backend/src/routes/vibes.js) — fire-and-forget, same pattern as signup/reports.
@@ -9086,6 +9208,7 @@ function liveShellHTML(){const s=liveState;
       <div class="absolute inset-x-0 bottom-0 h-64" style="background:linear-gradient(to top,rgba(0,0,0,.85),transparent)"></div>
       <div class="absolute top-4 left-3 right-3 flex items-center gap-2">
         <span class="bg-red-600 text-white text-xs font-black px-3 py-1 rounded-full flex items-center gap-1"><span class="w-1.5 h-1.5 bg-white rounded-full"></span>LIVE · <span id="lvTimer">00:00</span></span>
+        <span id="lvRecBadge" class="bg-rose-700 text-white text-xs font-black px-3 py-1 rounded-full items-center gap-1" style="display:${s.recording?'flex':'none'}"><i data-lucide="circle" class="w-2.5 h-2.5" style="fill:currentColor"></i>REC</span>
         <span class="bg-black/50 text-white text-sm font-black rounded-full px-3 py-1 flex items-center gap-1"><i data-lucide="users" class="w-3.5 h-3.5"></i><span id="lvViewers">0</span></span>
         <button onclick="endBroadcast()" class="ml-auto rounded-full bg-white text-rose-600 font-black px-4 py-1.5 text-sm">End Live</button>
       </div>
@@ -9099,6 +9222,8 @@ function liveShellHTML(){const s=liveState;
       <div class="absolute bottom-4 left-3 right-3 flex items-center gap-2">
         <input id="lvInput" onkeydown="if(event.key==='Enter')liveSend()" placeholder="Chat with your viewers…" class="flex-1 rounded-full bg-white/15 border border-white/20 px-4 py-3 text-white text-sm placeholder-white/70 outline-none"/>
         <button onclick="liveTagFromStudio()" class="h-12 w-12 rounded-full bg-white/15 grid place-items-center shrink-0" title="Tag a product"><i data-lucide="shopping-bag" class="w-5 h-5 text-white"></i></button>
+        <button id="lvRecBtn" onclick="toggleRecordingWeb()" class="h-12 w-12 rounded-full grid place-items-center shrink-0 ${s.recording?'bg-rose-600':'bg-white/15'}" title="${s.recording?'Stop recording':'Record this live'}"><i data-lucide="circle" class="w-5 h-5 text-white" ${s.recording?'style="fill:currentColor"':''}></i></button>
+        <button onclick="captureLiveSnapshotWeb()" class="h-12 w-12 rounded-full grid place-items-center shrink-0 relative ${s.recording?'bg-white/15':'bg-white/5 opacity-40 pointer-events-none'}" title="${s.recording?'Capture a photo from this recording':'Start recording to capture photos'}"><i data-lucide="aperture" class="w-5 h-5 text-white"></i>${(s.snapshots&&s.snapshots.length)?`<span class="absolute -top-1 -right-1 bg-amber-400 text-black text-[9px] font-black rounded-full px-1 min-w-[16px] text-center">${s.snapshots.length}</span>`:''}</button>
         <button onclick="endBroadcast()" class="rounded-full bg-rose-600 text-white font-black px-5 py-3 shrink-0">End</button>
       </div></div>`;
   }
@@ -9299,24 +9424,49 @@ function liveTagPicked(item){
   else {bcForm.products=bcForm.products||[];if(!bcForm.products.some(x=>x.id===item.id&&x.kind===item.kind))bcForm.products.push(item);openGoLive();}}
 function startBroadcast(){bcSaveForm();const title=bcForm.title||'My Live';const cat=bcForm.cat||'Just Chatting';const products=(bcForm.products||[]).slice();
   closeModal();
-  liveState={mode:'host', title, cat, host:USER.handle, viewers:1, hearts:0, gifts:0, coins:0, secs:0, following:false, featured:0, products, commissionEarned:0, chat:[{who:'LinkUp',msg:'You are live! Say hi 👋'}]};
+  liveState={mode:'host', title, cat, host:USER.handle, viewers:1, hearts:0, gifts:0, coins:0, secs:0, following:false, featured:0, products, commissionEarned:0, chat:[{who:'LinkUp',msg:'You are live! Say hi 👋'}], recording:false, hasRecording:false, recordStartSecs:0, recordedSecs:0, snapshots:[]};
   showLiveOverlay(); startLiveTick(); toast('🔴 You are live!');
   bcForm={title:'',cat:'',loc:'',base:'1920x1080',out:'1280x720',filter:BC_FILTER[0],products:[]};
 }
 function startBroadcastForSession(id){
   const list=DB.get('lk_live_sessions',[]); const idx=list.findIndex(l=>l.id===id); if(idx<0)return;
   const l=list[idx]; closeModal();
-  liveState={mode:'host', title:l.title, cat:l.category, host:USER.handle, viewers:1, hearts:0, gifts:0, coins:0, secs:0, following:false, featured:0, products:[], commissionEarned:0, chat:[{who:'LinkUp',msg:'You are live! Say hi 👋'}], sessionId:id};
+  liveState={mode:'host', title:l.title, cat:l.category, host:USER.handle, viewers:1, hearts:0, gifts:0, coins:0, secs:0, following:false, featured:0, products:[], commissionEarned:0, chat:[{who:'LinkUp',msg:'You are live! Say hi 👋'}], sessionId:id, recording:false, hasRecording:false, recordStartSecs:0, recordedSecs:0, snapshots:[]};
   list[idx]=Object.assign({},l,{status:'live', viewers:1}); DB.set('lk_live_sessions',list);
   showLiveOverlay(); startLiveTick(); toast('🔴 You are live!');
+}
+// Record toggle — independent of the stream itself; a host can go live without ever
+// recording, or start/stop recording mid-stream. hasRecording latches true the first time
+// it's toggled on, so endBroadcast() knows to offer the post-to-Vibes prompt even if the
+// host stopped recording (but didn't discard it) before ending.
+function toggleRecordingWeb(){
+  if(!liveState)return;
+  liveState.recording=!liveState.recording;
+  if(liveState.recording){liveState.hasRecording=true;liveState.recordStartSecs=liveState.secs;toast('⏺️ Recording started');}
+  else{liveState.recordedSecs=(liveState.recordedSecs||0)+Math.max(0,liveState.secs-liveState.recordStartSecs);toast('⏹️ Recording stopped · '+hms(liveState.recordedSecs));}
+  showLiveOverlay();
+}
+// Take a photo off the current recording — only live (pun intended) while liveState.recording
+// is on, matching the ask ("whilst it's being recorded... take a picture of that frame"). Since
+// there's no real camera feed to grab a frame from, this simulates a still using the
+// broadcast's cover image, timestamped to when it was taken.
+function captureLiveSnapshotWeb(){
+  if(!liveState||!liveState.recording){toast('Start recording first to capture a photo');return;}
+  liveState.snapshots=liveState.snapshots||[];
+  liveState.snapshots.push({t:liveState.secs, img:liveState.cover||PIC('vibe'+(1+liveState.snapshots.length%4),900,700)});
+  toast('📸 Photo captured at '+hms(liveState.secs));
+  showLiveOverlay();
 }
 function endBroadcast(){if(!liveState)return;clearInterval(liveState.timer);
   const coins=liveState.coins, gross=+(coins*0.01).toFixed(2), share=+(gross*0.5).toFixed(2);
   const soldItems=liveProducts(liveState).reduce((a,p)=>a+(p.sold||0),0), commission=+(liveState.commissionEarned||0).toFixed(2);
   const e=DB.get('lk_live_earnings',{collected:224.00,transferred:0});e.collected=+(e.collected+gross).toFixed(2);DB.set('lk_live_earnings',e);
   const secs=liveState.secs, viewers=liveState.viewers, hearts=liveState.hearts, gifts=liveState.gifts;
+  const hasRecording=liveState.hasRecording, recordedSecs=(liveState.recordedSecs||0)+(liveState.recording?Math.max(0,liveState.secs-liveState.recordStartSecs):0);
+  const title=liveState.title, cover=liveState.cover, snapshots=(liveState.snapshots||[]).slice();
   if(liveState.sessionId){const list=DB.get('lk_live_sessions',[]);const idx=list.findIndex(l=>l.id===liveState.sessionId);if(idx>-1){list.splice(idx,1);DB.set('lk_live_sessions',list);}}
   liveState=null;const el=document.getElementById('liveOverlay');if(el)el.style.display='none';
+  if(hasRecording){openPostRecordingPromptWeb(secs,viewers,coins,recordedSecs,title,cover,snapshots);return;}
   openModal(`<div class="p-6 text-center">
     <div class="w-16 h-16 rounded-2xl bg-rose-500 text-white grid place-items-center mx-auto mb-3"><i data-lucide="radio" class="w-8 h-8"></i></div>
     <h3 class="text-2xl font-black">Stream ended</h3><p class="text-slate-500 font-semibold">${hms(secs)} · ${num(viewers)} peak viewers</p>
@@ -9325,6 +9475,56 @@ function endBroadcast(){if(!liveState)return;clearInterval(liveState.timer);
     ${commission>0?`<p class="text-[11px] text-slate-400 mt-2">Commission is paid to your Wallet after buyers receive their orders (escrow).</p>`:''}
     <button onclick="closeModal();openLiveAnalytics()" class="btn btn-primary w-full mt-3 py-3">View earnings & transfer</button>
     <button onclick="closeModal()" class="btn btn-ghost w-full mt-2 py-3">Done</button></div>`);
+}
+// After a recorded live ends, offer to post the recording straight to Vibes as a Reel —
+// reuses the same lk_vibes_posts.unshift() shape as every other post-creation path. Pending
+// state (snapshots still to post, the modal's own meta) lives in module-level vars since
+// postSnapshotToVibesWeb() needs to mutate the list and re-render this same prompt afterward.
+let pendingLiveSnapshots=[], pendingLiveTitle='', pendingLiveMeta=null;
+function openPostRecordingPromptWeb(secs,viewers,coins,recordedSecs,title,cover,snapshots){
+  pendingLiveSnapshots=snapshots||[];
+  pendingLiveTitle=title||'Live Stream';
+  pendingLiveMeta={secs,viewers,coins,recordedSecs,cover};
+  renderPostRecordingPromptWeb();
+}
+function renderPostRecordingPromptWeb(){
+  const m=pendingLiveMeta; if(!m)return;
+  const defaultCap='🔴 Live replay: '+pendingLiveTitle+' #linkuplive';
+  const snapsHtml=pendingLiveSnapshots.length?`<div class="pt-1"><p class="text-xs font-black text-slate-400 uppercase mb-2">📸 Captured Photos (${pendingLiveSnapshots.length})</p><div class="grid grid-cols-3 gap-2">${pendingLiveSnapshots.map((s,i)=>`<div class="relative"><img src="${s.img}" class="w-full aspect-square object-cover rounded-xl"/><button onclick="postSnapshotToVibesWeb(${i})" class="absolute bottom-1 inset-x-1 rounded-full bg-black/70 text-white text-[10px] font-black py-1">Post</button><span class="absolute top-1 left-1 bg-black/60 text-white text-[9px] font-black px-1 rounded">${hms(s.t)}</span></div>`).join('')}</div></div>`:'';
+  openModal(`<div class="p-6 text-center text-white" style="background:linear-gradient(135deg,#6366f1,#2f9bef 55%,#ec4899)">
+      <div class="w-14 h-14 rounded-2xl bg-white/20 grid place-items-center mx-auto mb-2 text-2xl">🎬</div>
+      <h3 class="text-2xl font-black">Stream ended</h3><p class="text-white/85 text-sm">${hms(m.secs)} · ${num(m.viewers)} peak viewers · 🪙 ${num(m.coins)}</p>
+    </div>
+    <div class="p-5 space-y-3">
+      <div class="rounded-2xl bg-slate-50 p-3 text-center"><p class="font-black text-sm">You recorded ${hms(m.recordedSecs)} of this live</p><p class="text-[11px] text-slate-500 mt-0.5">Post the recording to your Vibes feed as a Reel?</p></div>
+      <textarea id="recordCapWeb" rows="2" class="w-full rounded-2xl border border-slate-200 p-3 text-sm outline-none">${defaultCap}</textarea>
+      <button onclick="postRecordingToVibesWeb('${(m.cover||'').replace(/'/g,"")}',${m.coins})" class="btn btn-primary w-full py-3 flex items-center justify-center gap-2"><i data-lucide="upload" class="w-4 h-4"></i>Post Recording to Vibes</button>
+      ${snapsHtml}
+      <button onclick="closeModal();toast('Recording not posted')" class="btn btn-ghost w-full py-3">Discard</button>
+    </div>`);
+}
+// Post a single captured still as its own Photo post to Vibes, independent of the recording
+// itself — re-renders the same prompt afterward so the recording/remaining snapshots stay put.
+function postSnapshotToVibesWeb(i){
+  const s=pendingLiveSnapshots[i]; if(!s)return;
+  const posts=DB.get('lk_vibes_posts',SEED.vibes_posts);
+  posts.unshift({id:Date.now(), handle:USER.handle, avatar:USER.avatar, location:(USER.city||''), kind:'photo',
+    media:s.img, caption:'📸 Live moment: '+pendingLiveTitle+' · '+hms(s.t)+' #linkuplive', likes:0, comments:0, bigup:0});
+  DB.set('lk_vibes_posts',posts);
+  pendingLiveSnapshots.splice(i,1);
+  toast('✅ Photo posted to Vibes!');
+  renderPostRecordingPromptWeb();
+}
+function postRecordingToVibesWeb(cover,coins){
+  const i=$('recordCapWeb'); const cap=(i&&i.value||'').trim()||'🔴 Live replay';
+  const posts=DB.get('lk_vibes_posts',SEED.vibes_posts);
+  posts.unshift({id:Date.now(), handle:USER.handle, avatar:USER.avatar, location:(USER.city||''), kind:'reel',
+    media:cover||PIC('vibe1',900,700), realVideo:false, caption:cap, likes:0, comments:0, bigup:coins||0});
+  DB.set('lk_vibes_posts',posts);
+  closeModal();
+  toast('✅ Live recording posted to Vibes!');
+  pushNotif('system','🎬 Recording posted','Your live recording is now on your Vibes feed.',USER.handle);
+  render();
 }
 function openLiveAnalytics(){const e=DB.get('lk_live_earnings',{collected:224.00,transferred:0});const share=+(e.collected*0.5).toFixed(2);const eligible=+Math.max(0,share-e.transferred).toFixed(2);const fee=+(e.collected*0.5).toFixed(2);
   openModal(`<div class="p-5 border-b border-slate-100 flex items-center justify-between"><h3 class="text-xl font-black">LinkUp Live Earnings</h3><button onclick="closeModal()"><i data-lucide="x" class="w-5 h-5"></i></button></div>

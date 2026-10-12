@@ -41,6 +41,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('vibes/activity', [DashboardController::class, 'activityApi'])->name('vibes.activity');
             Route::post('vibes/thank-sender', [DashboardController::class, 'thankSender'])->name('vibes.thank-sender');
             Route::post('creators/{user}/toggle-follow', [VibeController::class, 'toggleFollowCreator'])->name('creators.toggle-follow');
+            Route::get('vibes/earnings', [VibeInteractionController::class, 'earningsSummary'])->name('vibes.earnings.summary');
+            Route::post('vibes/earnings/release', [VibeInteractionController::class, 'releasePendingEarnings'])->name('vibes.earnings.release');
+            Route::post('vibes/earnings/transfer', [VibeInteractionController::class, 'transferToWallet'])->name('vibes.earnings.transfer');
             Route::post('vibes/store', [VibeController::class, 'store'])->name('vibes.store');
             Route::delete('vibes/{vibe}', [VibeController::class, 'destroy'])->name('vibes.destroy');
             Route::put('vibes/{vibe}', [VibeController::class, 'update'])->name('vibes.update');

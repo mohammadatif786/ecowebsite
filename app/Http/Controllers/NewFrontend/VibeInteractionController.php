@@ -407,4 +407,45 @@ class VibeInteractionController extends Controller
             ]
         ]);
     }
+
+    public function earningsSummary(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $affEarnings = \App\Models\MarketplaceAffiliateEarning::where('affiliate_user_id', $user->id)
+            ->latest()
+            ->get();
+
+        $pendingAff = (float) $affEarnings->where('status', 'pending')->sum('commission_amount');
+        $availableAff = (float) $affEarnings->where('status', 'released')->sum('commission_amount');
+        $paidAff = (float) $affEarnings->where('status', 'paid')->sum('commission_amount');
+
+        $earningsStats = [
+            'sales_driven' => $affEarnings->count(),
+            'total_commission' => (float) $affEarnings->sum('commission_amount'),
+            'pending' => $pendingAff,
+            'available' => $availableAff,
+            'paid' => $paidAff,
+            'recent' => $affEarnings->take(20)->map(function($e) {
+                $product = $e->product_id ? \App\Models\MarketplaceProduct::find($e->product_id) : null;
+                $rate = $product ? (float) $product->commission : 10;
+                $commission = (float) $e->commission_amount;
+                $saleAmount = $product && $product->price ? (float) $product->price : (($rate > 0) ? ($commission / ($rate / 100)) : $commission);
+
+                return [
+                    'title' => $product?->name ?? 'Affiliate Sale',
+                    'amount' => round($saleAmount, 2),
+                    'commission' => $commission,
+                    'rate' => $rate,
+                    'status' => $e->status,
+                    'source' => $e->order_id ? 'marketplace' : 'vibe'
+                ];
+            })
+        ];
+
+        return response()->json([
+            'success' => true,
+            'earnings' => $earningsStats,
+        ]);
+    }
 }
