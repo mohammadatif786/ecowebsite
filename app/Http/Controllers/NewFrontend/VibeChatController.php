@@ -12,6 +12,46 @@ use Illuminate\Support\Facades\Auth;
 
 class VibeChatController extends Controller
 {
+    public function getConversations(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+
+        $messages = VibeMessage::where('from_user_id', $user->id)
+            ->orWhere('to_user_id', $user->id)
+            ->latest()
+            ->get();
+
+        $partnerIds = [];
+        foreach ($messages as $msg) {
+            $partnerId = $msg->from_user_id === $user->id ? $msg->to_user_id : $msg->from_user_id;
+            if (!in_array($partnerId, $partnerIds, true)) {
+                $partnerIds[] = $partnerId;
+            }
+        }
+
+        $partners = User::whereIn('id', $partnerIds)
+            ->get(['id', 'name', 'linkup_id', 'avatar'])
+            ->map(function ($p) use ($messages, $user) {
+                $lastMsg = $messages->first(function ($m) use ($user, $p) {
+                    return ($m->from_user_id === $user->id && $m->to_user_id === $p->id) ||
+                           ($m->from_user_id === $p->id && $m->to_user_id === $user->id);
+                });
+
+                return [
+                    'user_id' => $p->id,
+                    'name' => $p->name,
+                    'handle' => '@' . ($p->linkup_id ?? $p->name),
+                    'avatar' => $p->avatar,
+                    'last_message' => $lastMsg?->content,
+                    'last_message_at' => $lastMsg?->created_at?->toISOString(),
+                ];
+            });
+
+        return response()->json([
+            'conversations' => $partners,
+        ]);
+    }
+
     public function getMessages(Request $request, User $recipient): JsonResponse
     {
         $user = Auth::user();

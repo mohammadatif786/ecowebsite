@@ -5,6 +5,8 @@ use App\Http\Controllers\Frontend\LiveStreamGumletController;
 use App\Http\Controllers\NewFrontend\NightLifeController;
 use App\Http\Controllers\NewFrontend\VibeController;
 use App\Http\Controllers\NewFrontend\VibeInteractionController;
+use App\Http\Controllers\NewFrontend\VibeChatController;
+use App\Http\Controllers\NewFrontend\DashboardController;
 use App\Http\Controllers\NewFrontend\ReelController;
 use App\Http\Controllers\NewFrontend\ReelInteractionController;
 use App\Http\Controllers\V1\AppWalletController;
@@ -35,6 +37,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
             Route::get('vibes/posts', [VibeController::class, 'index'])->name('vibes.posts');
             Route::get('vibes/suggested-creators', [VibeController::class, 'suggestedCreators'])->name('vibes.suggested-creators');
+            Route::get('vibes/gifts-received', [DashboardController::class, 'giftsReceivedApi'])->name('vibes.gifts-received');
+            Route::get('vibes/activity', [DashboardController::class, 'activityApi'])->name('vibes.activity');
+            Route::post('vibes/thank-sender', [DashboardController::class, 'thankSender'])->name('vibes.thank-sender');
             Route::post('creators/{user}/toggle-follow', [VibeController::class, 'toggleFollowCreator'])->name('creators.toggle-follow');
             Route::post('vibes/store', [VibeController::class, 'store'])->name('vibes.store');
             Route::delete('vibes/{vibe}', [VibeController::class, 'destroy'])->name('vibes.destroy');
@@ -49,6 +54,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('vibes/{vibe}/repost', [VibeInteractionController::class, 'repost'])->name('vibes.repost');
             Route::post('vibes/{vibe}/bigup', [VibeInteractionController::class, 'sendBigUp'])->name('vibes.bigup');
             Route::post('vibe-comments/{comment}/like', [VibeInteractionController::class, 'toggleCommentLike'])->name('vibes.comments.like');
+
+            // Vibe Chat routes
+            Route::get('vibes/chats/conversations', [VibeChatController::class, 'getConversations'])->name('vibes.chats.conversations');
+            Route::get('vibes/chats/{recipient}/messages', [VibeChatController::class, 'getMessages'])->name('vibes.chats.messages');
+            Route::post('vibes/chats/{recipient}/messages', [VibeChatController::class, 'storeMessage'])->middleware('throttle:30,1')->name('vibes.chats.messages.store');
 
             // Reels routes
             Route::get('reels', [ReelController::class, 'index'])->name('reels.index');

@@ -1160,6 +1160,71 @@ class DashboardController extends Controller
                 ] : null,
             ]);
     }
+
+    public function giftsReceivedApi(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+
+        return response()->json([
+            'gifts_received' => $this->getGiftsReceived($user),
+        ]);
+    }
+
+    public function activityApi(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $notifications = Notification::where('user_id', $user->id)
+            ->with('sender')
+            ->latest()
+            ->take(50)
+            ->get();
+
+        $followingUserIds = \App\Models\Frontend\FriendRequest::where(function ($q) use ($user) {
+            $q->where('user_id', $user->id)->orWhere('receiver_id', $user->id);
+        })->where('status', 1)
+        ->get()
+        ->map(fn($r) => $r->user_id === $user->id ? $r->receiver_id : $r->user_id)
+        ->toArray();
+
+        $activities = $notifications->map(function ($n) use ($followingUserIds) {
+            $sender = $n->sender;
+            $isFollowing = $sender ? in_array($sender->id, $followingUserIds, true) : false;
+
+            $type = match (true) {
+                str_contains(strtolower($n->title), 'like') || $n->type === 'like' => 'like',
+                str_contains(strtolower($n->title), 'comment') || $n->type === 'comment' => 'comment',
+                str_contains(strtolower($n->message), 'started following') || $n->type === 'friend_request' => 'follow',
+                default => 'mention',
+            };
+
+            $metadata = is_array($n->metadata) ? $n->metadata : json_decode($n->metadata ?? '{}', true);
+
+            return [
+                'id' => $n->id,
+                'type' => $type,
+                'user' => [
+                    'id' => $sender?->id,
+                    'name' => $sender?->name ?? 'User',
+                    'handle' => $sender?->linkup_id ?? $sender?->name ?? 'user',
+                    'avatar' => $sender?->avatar ?: ($n->avatar ?? 'https://i.pravatar.cc/150'),
+                    'is_following' => $isFollowing,
+                ],
+                'message' => $n->message,
+                'title' => $n->title,
+                'time_group' => $n->created_at?->isToday() ? 'Today' : ($n->created_at?->isYesterday() ? 'Yesterday' : $n->created_at?->format('M d, Y')),
+                'time_ago' => $n->created_at?->diffForHumans(null, true),
+                'media_thumbnail' => $metadata['thumbnail'] ?? $metadata['image'] ?? null,
+                'is_following' => $isFollowing,
+                'created_at' => $n->created_at?->toISOString(),
+            ];
+        });
+
+        return response()->json([
+            'activity' => $activities,
+        ]);
+    }
+
     protected function walletSubscriptions(?User $user)
     {
         if (! $user) {

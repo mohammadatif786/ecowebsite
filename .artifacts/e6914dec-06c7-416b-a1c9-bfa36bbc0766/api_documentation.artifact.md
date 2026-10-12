@@ -1,4 +1,4 @@
-# LinkUp Vibe, Reel & Creator Mobile API Documentation
+# LinkUp Vibe, Reel, Chat, Activity & Creator Mobile API Documentation
 
 Base URL: `https://your-domain.com/api/regular-user/`
 
@@ -6,126 +6,37 @@ Base URL: `https://your-domain.com/api/regular-user/`
 All requests require Sanctum bearer token authentication:
 - `Authorization: Bearer <sanctum_token>`
 - `Accept: application/json`
-- `Content-Type: multipart/form-data` (for file uploads or form-data submissions)
 
 ---
 
-## 1. VIBES MANAGEMENT APIS
+## 1. VIBES ACTIVITY API
 
-### Create Vibe (`POST /vibes/store`)
-* **Content-Type:** `multipart/form-data`
-* **Form Data Fields:**
-  * `publisher_type` (string, required): `'user'`, `'organization'`, or `'group'`
-  * `publisher_id` (integer, required): User or Entity ID
-  * `caption` (string, required if no media): Text caption or message
-  * `text_bg` (string, optional): Gradient or color string for Text Vibe (e.g. `"linear-gradient(135deg, #a855f7, #ec4899)"`)
-  * `text_font` (string, optional): Font family name (`"Aa Classic"`, `"Aa Modern"`, `"Aa Mono"`, `"Aa Script"`, `"Aa Heavy"`, `"Aa Italic"`, `"Aa Impact"`, `"Aa Typewriter"`, `"Aa Elegant"`)
-  * `media[]` (file(s), optional): Array of images/videos
-  * `media_sources[]` (string(s), optional): `'camera'`, `'video_recording'`, or `'gallery'`
-  * `location_name` (string, optional): Location text
-  * `allow_coin_gifts` (integer/boolean, optional): `1` or `0`
-  * `product_ids[]` (integer(s), optional): Array of tagged marketplace product IDs
-  * `event_ids[]` (integer(s), optional): Array of tagged event IDs
-* **JSON Response (`201 Created`):**
-```json
-{
-    "data": {
-        "id": 108,
-        "created_by": 2,
-        "caption": "Enjoying carnival vibes!",
-        "text_bg": "linear-gradient(135deg, #a855f7, #ec4899)",
-        "text_font": "Aa Classic",
-        "likes_count": 0,
-        "comments_count": 0
-    }
-}
-```
-
-### Edit / Update Vibe Post (`PUT /vibes/{vibe_id}` or `POST /vibes/{vibe_id}/update`)
-* **Description:** Updates an existing vibe post. **Only the post owner** can update their post.
-* **Fields (JSON or Form Data):**
-  * `caption` (string, optional): Updated text
-  * `location_name` (string, optional): Updated location
-  * `text_bg` (string, optional)
-  * `text_font` (string, optional)
+### Get User Activity / Notifications (`GET /vibes/activity`)
+* **Description:** Retrieves the user's recent activity (likes, comments, mentions, follows) grouped by time (`Today`, `Yesterday`, etc.), matching the Instagram-style Activity panel.
+* **Headers:**
+  - `Authorization: Bearer <token>`
+  - `Accept: application/json`
 * **JSON Response (`200 OK`):**
 ```json
 {
-    "success": true,
-    "message": "Post updated successfully",
-    "vibe": {
-        "id": 108,
-        "caption": "Updated caption text",
-        "location_name": "The Valley, Anguilla",
-        "text_bg": "linear-gradient(135deg, #a855f7, #ec4899)",
-        "text_font": "Aa Classic"
-    }
-}
-```
-
-### Delete Vibe Post (`DELETE /vibes/{vibe_id}`)
-* **Description:** Deletes a vibe post. **Only the post owner** can delete their post.
-* **JSON Response (`200 OK`):**
-```json
-{
-    "success": true
-}
-```
-
-### Copy Link Vibe (`GET /vibes/{vibe_id}/copy-link`)
-* **Description:** Returns the shareable link for a vibe post.
-* **JSON Response (`200 OK`):**
-```json
-{
-    "success": true,
-    "share_url": "https://your-domain.com/new_frontend/vibes?id=108"
-}
-```
-
-### Repost Vibe (`POST /vibes/{vibe_id}/repost`)
-* **Description:** Creates an exact duplicate post under the authenticated user's feed and increments the original post's `reposts_count`.
-* **JSON Response (`200 OK`):**
-```json
-{
-    "is_reposed": true,
-    "reposts_count": 1,
-    "new_vibe": {
-        "id": 109,
-        "created_by": 2,
-        "handle": "CurrentUser",
-        "caption": "Carnival flashback 📸",
-        "text_bg": null,
-        "text_font": null,
-        "likes_count": 0,
-        "reposts_count": 0
-    }
-}
-```
-
-### List Vibes Feed (`GET /vibes/posts`)
-* **JSON Response (`200 OK`):**
-```json
-{
-    "posts": [
+    "activity": [
         {
-            "id": 108,
-            "created_by": 5,
-            "handle": "Nadia",
-            "publisher_type": "user",
-            "avatar": "https://...",
-            "location": "The Valley",
-            "media": [],
-            "kind": "text",
-            "caption": "Beautiful sunset",
-            "text_bg": "linear-gradient(135deg, #a855f7, #ec4899)",
-            "text_font": "Aa Classic",
-            "likes_count": 14,
-            "comments_count": 3,
-            "shares_count": 2,
-            "reposts_count": 1,
-            "bigups_count": 5,
-            "is_liked": false,
-            "allow_coin_gifts": true
+            "id": 14,
+            "type": "like",
+            "user": {
+                "id": 5,
+                "name": "Kristian R",
+                "handle": "kristian_r",
+                "avatar": "https://...",
+                "is_following": true
+            },
+            "message": "kristian_r and 6 others liked your photo",
+            "title": "New Like",
+            "time_group": "Today",
+            "time_ago": "5m",
+            "media_thumbnail": "https://...",
+            "is_following": true,
+            "created_at": "2026-10-06T15:00:00.000000Z"
         }
     ]
 }
@@ -133,70 +44,40 @@ All requests require Sanctum bearer token authentication:
 
 ---
 
-## 2. SUGGESTED CREATORS & FOLLOW APIS
-
-### Get Suggested Creators (`GET /vibes/suggested-creators`)
-* **Description:** Retrieves creators. Only users who have created **at least 1 vibe or reel** are returned.
-* **JSON Response (`200 OK`):**
-```json
-{
-    "suggested_creators": [
-        {
-            "user_id": 8,
-            "handle": "marcus",
-            "name": "Marcus",
-            "avatar": "https://your-domain.com/storage/avatars/marcus.jpg",
-            "is_following": false
-        }
-    ]
-}
-```
-
-### Toggle Follow / Unfollow Creator (`POST /creators/{user_id}/toggle-follow`)
-* **Description:** Toggles following or unfollowing a creator.
-* **JSON Response (`200 OK`):**
-```json
-{
-    "is_following": true,
-    "message": "Creator followed",
-    "reels": [...]
-}
-```
+## 2. VIBES MANAGEMENT & THANK YOU APIS
+* **Create Vibe:** `POST /vibes/store` (`multipart/form-data`)
+* **Edit Vibe:** `PUT /vibes/{vibe_id}` (Owner only)
+* **Delete Vibe:** `DELETE /vibes/{vibe_id}` (Owner only)
+* **Copy Link Vibe:** `GET /vibes/{vibe_id}/copy-link`
+* **Repost Vibe:** `POST /vibes/{vibe_id}/repost`
+* **Get Gifts Received:** `GET /vibes/gifts-received`
+* **Thank Sender:** `POST /vibes/thank-sender` (Params: `user_id`, `message`, `gift_coins_id`)
 
 ---
 
-## 3. VIBE INTERACTIONS APIS
-
-### Toggle Like Vibe (`POST /vibes/{vibe_id}/like`)
-* **JSON Response (`200 OK`):** `{"is_liked": true, "likes_count": 15}`
-
-### Get Vibe Comments (`GET /vibes/{vibe_id}/comments`)
-* **JSON Response (`200 OK`):** Paginated array of comments and nested replies.
-
-### Post Vibe Comment / Reply (`POST /vibes/{vibe_id}/comments`)
-* **Parameters:** `comment` (string), `parent_id` (optional for reply)
-* **JSON Response (`201 Created`):** Created comment object.
-
-### Like / Unlike Comment (`POST /vibe-comments/{comment_id}/like`)
-* **JSON Response (`200 OK`):** `{"is_liked": true, "likes_count": 4}`
-
-### Share Vibe (`POST /vibes/{vibe_id}/share`)
-* **JSON Response (`200 OK`):** `{"shares_count": 3}`
-
-### Send Big Up / Gift (`POST /vibes/{vibe_id}/bigup`)
-* **Parameters:** `coins` (integer), `gift_name` (optional), `emoji` (optional)
-* **JSON Response (`200 OK`):** `{"bigups_count": 6, "user_coins": 450}`
+## 3. VIBE CHAT & MESSAGES APIS
+* **Get Conversations List:** `GET /vibes/chats/conversations`
+* **Get Messages:** `GET /vibes/chats/{recipient_id}/messages`
+* **Send Message:** `POST /vibes/chats/{recipient_id}/messages` (Params: `content`)
 
 ---
 
-## 4. REELS APIS
+## 4. SUGGESTED CREATORS & FOLLOW APIS
+* **Get Suggested Creators:** `GET /vibes/suggested-creators` (Users who have created at least 1 vibe or reel)
+* **Toggle Follow / Unfollow:** `POST /creators/{user_id}/toggle-follow`
 
-### Create / Store Reel (`POST /reels/store`)
-* **Content-Type:** `multipart/form-data`
-* **Parameters:** `type` (`'video'`, `'image'`, `'gallery'`), `file` (file max 50MB), `caption`, `location`
+---
 
-### Get All Reels (`GET /reels`)
-### Get Followed Users' Reels (`GET /reels/followed`)
-### Get User's Reels (`GET /reels/user/{user_id}`)
-### Show Single Reel (`GET /reels/{reel_id}`)
-### Reel Interactions (`/reels/{reel}/like`, `/reels/{reel}/comments`, `/reels/{reel}/share`, `/reels/{reel}/save`, `/reels/{reel}/bigup`, `/reels/{reel}/gift`)
+## 5. VIBE INTERACTIONS APIS
+* **Like Vibe:** `POST /vibes/{vibe_id}/like`
+* **Get Comments:** `GET /vibes/{vibe_id}/comments`
+* **Post Comment/Reply:** `POST /vibes/{vibe_id}/comments` (Params: `comment`, `parent_id`)
+* **Like Comment:** `POST /vibe-comments/{comment_id}/like`
+* **Share Vibe:** `POST /vibes/{vibe_id}/share`
+* **Send Big Up:** `POST /vibes/{vibe_id}/bigup` (Params: `coins`)
+
+---
+
+## 6. REELS APIS
+* **Create Reel:** `POST /reels/store`
+* **List Reels:** `GET /reels`, `GET /reels/followed`, `GET /reels/user/{user_id}`, `GET /reels/{reel_id}`

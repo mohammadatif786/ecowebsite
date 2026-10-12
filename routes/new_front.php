@@ -39,7 +39,10 @@ Route::prefix('new_frontend')->name('new_frontend.')->group(function () {
         Route::post('/vibes/{vibe}/repost', [VibeInteractionController::class, 'repost'])->name('vibes.repost');
         Route::post('/vibes/{vibe}/bigup', [VibeInteractionController::class, 'sendBigUp'])->name('vibes.bigup');
         Route::post('/vibes/bigup', [VibeInteractionController::class, 'sendBigUp'])->name('vibes.send-vibe');
+        Route::get('/vibes/activity', [DashboardController::class, 'activityApi'])->name('vibes.activity');
+        Route::get('/vibes/gifts-received', [DashboardController::class, 'giftsReceivedApi'])->name('vibes.gifts-received');
         Route::post('/vibes/thank-sender', [DashboardController::class, 'thankSender'])->name('vibes.thank-sender');
+        Route::get('/vibes/chats/conversations', [VibeChatController::class, 'getConversations'])->name('vibes.chats.conversations');
         Route::get('/vibes/chats/{recipient}/messages', [VibeChatController::class, 'getMessages'])->name('vibes.chats.messages');
         Route::post('/vibes/chats/{recipient}/messages', [VibeChatController::class, 'storeMessage'])->middleware('throttle:30,1')->name('vibes.chats.messages.store');
 
