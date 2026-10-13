@@ -743,7 +743,7 @@ const handleMoneyRequested = ({ recipient, amount }) => {
 const removeQuickPayContact = async (contact) => {
   if (!contact?.contactId) return;
   try {
-    const { data } = await axios.delete(`/new_frontend/wallet/contact/${contact.contactId}`);
+    const { data } = await axios.delete(`/api/regular-user/wallet/contact/${contact.contactId}`);
     if (data.success) {
       cs.value = cs.value.filter((item) => Number(item.contactId) !== Number(contact.contactId));
     } else {

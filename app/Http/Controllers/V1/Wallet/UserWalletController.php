@@ -160,6 +160,20 @@ class UserWalletController extends Controller
         return response()->json(['success' => true, 'contact' => $contact], 201);
     }
 
+    public function removeContact(UserContact $contact)
+    {
+        if ((int) $contact->user_id !== (int) Auth::id()) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+        }
+
+        $contact->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Contact removed successfully.',
+        ]);
+    }
+
     public function sendMoney(Request $request, InitiateWalletRechargeAction $action, WalletEmailService $emailService)
     {
         $validated = $request->validate([
