@@ -157,6 +157,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::prefix('wallet')->group(function () {
                 Route::post('contact', [UserWalletController::class, 'addContact'])->name('wallet.contact');
                 Route::delete('contact/{contact}', [UserWalletController::class, 'removeContact'])->name('wallet.contact.remove');
+                Route::post('transaction-pin', [UserWalletController::class, 'updateTransactionPin'])->name('wallet.transaction_pin');
                 Route::post('send-money', [UserWalletController::class, 'sendMoney'])->name('wallet.send_money');
                 Route::post('request-money', [UserWalletController::class, 'requestMoney'])->name('wallet.request_money');
                 Route::post('requested-money/{id}/pay', [UserWalletController::class, 'payMoneyRequest'])->name('wallet.requested_money.pay');

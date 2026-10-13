@@ -23,6 +23,7 @@ use App\Services\WalletEmailService;
 use App\Helpers\UserBankAccountHelper;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Hash;
 
 
 class UserWalletController extends Controller
@@ -171,6 +172,39 @@ class UserWalletController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Contact removed successfully.',
+        ]);
+    }
+
+    public function updateTransactionPin(Request $request)
+    {
+        $user = Auth::user();
+
+        $rules = [
+            'pin' => ['required', 'string', 'digits:4'],
+            'pin_confirmation' => ['required', 'same:pin'],
+        ];
+
+        if (!empty($user->transaction_pin)) {
+            $rules['current_pin'] = [
+                'required',
+                'string',
+                function ($attribute, $value, $fail) use ($user) {
+                    if (!Hash::check($value, $user->transaction_pin)) {
+                        $fail('The provided current PIN is incorrect.');
+                    }
+                },
+            ];
+        }
+
+        $validated = $request->validate($rules);
+
+        $user->forceFill([
+            'transaction_pin' => Hash::make($validated['pin']),
+        ])->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Transaction PIN updated successfully.',
         ]);
     }
 
