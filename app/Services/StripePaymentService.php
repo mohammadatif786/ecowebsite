@@ -55,6 +55,16 @@ class StripePaymentService
     }
 
     /**
+     * Retrieve a payment intent
+     * @param string $paymentIntentId
+     * @return \Stripe\PaymentIntent
+     */
+    public function retrievePaymentIntent(string $paymentIntentId): \Stripe\PaymentIntent
+    {
+        return $this->stripe->paymentIntents->retrieve($paymentIntentId);
+    }
+
+    /**
      * Create a checkout session for coin purchase
      * @param CoinRechargeDTO $data
      * @return \Stripe\Checkout\Session

@@ -17,6 +17,45 @@ class CompleteCoinRechargeAction
 
     public function execute(CoinPaymentSuccessDTO $dto): void
     {
+        $id = $dto->sessionId;
+
+        // Support direct PaymentIntent IDs (pi_...) from mobile app PaymentSheet
+        if (str_starts_with($id, 'pi_')) {
+            $paymentIntent = $this->stripeService->retrievePaymentIntent($id);
+
+            if ($paymentIntent->status !== 'succeeded') {
+                throw new \Exception('Payment not completed.');
+            }
+
+            $secureCoinCount = (int) ($paymentIntent->metadata->coin_count ?? request('coinCount') ?? request('coin_count') ?? request('coins') ?? 0);
+
+            if ($secureCoinCount <= 0) {
+                throw new \Exception('Invalid coin amount.');
+            }
+
+            if ($this->transactionRepository->isPaymentProcessed($paymentIntent->id)) {
+                return;
+            }
+
+            DB::transaction(function () use ($dto, $paymentIntent, $secureCoinCount) {
+                $this->transactionRepository->createSubscription([
+                    'user_id'       => $dto->userId,
+                    'type'          => 'coin',
+                    'quantity'      => $secureCoinCount,
+                    'stripe_id'     => $paymentIntent->id,
+                    'stripe_price'  => $paymentIntent->amount / 100,
+                    'stripe_status' => $paymentIntent->status,
+                    'ends_at'       => now(),
+                ]);
+
+                $user = User::lockForUpdate()->findOrFail($dto->userId);
+                $user->increment('coins', $secureCoinCount);
+            });
+
+            return;
+        }
+
+        // Standard Stripe Checkout Session (cs_...)
         $session = $this->stripeService->retrieveSession($dto->sessionId);
 
         if ($session->payment_status !== 'paid') {
