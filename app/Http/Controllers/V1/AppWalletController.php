@@ -199,7 +199,7 @@ class AppWalletController extends Controller
             (int) $request->selectedCoin,
             (int) $request->coinCount,
             null,
-            'frontend.wallet.coin_payment_success'
+            'new_frontend.wallet.coin_payment_success'
         );
 
         $url = $action->execute($dto);
