@@ -179,11 +179,11 @@ class AppWalletController extends Controller
         ], 200);
     }
 
-    public function submitCoinToWallet(Request $request, InitiateCoinRechargeAction $action)
+    public function submitCoinToWallet(Request $request)
     {
         $request->validate([
-            'selectedCoin' => 'required|integer|min:1|max:10000',
-            'coinCount' => 'required|integer|min:1|max:10000',
+            'selectedCoin' => 'required|numeric|min:1|max:10000',
+            'coinCount' => 'required|integer|min:1|max:1000000',
         ]);
 
         $user = auth()->user();
@@ -194,19 +194,49 @@ class AppWalletController extends Controller
             ], 401);
         }
 
-        $dto = new CoinRechargeDTO(
-            $user->id,
-            (int) $request->selectedCoin,
-            (int) $request->coinCount,
-            null,
-            'new_frontend.wallet.coin_payment_success'
-        );
+        $stripe = new \Stripe\StripeClient(config('services.stripe.secret'));
+        $amount = (int) ($request->selectedCoin * 100);
 
-        $url = $action->execute($dto);
+        $customer = $stripe->customers->create([
+            'name' => $user->name,
+            'email' => $user->email,
+            'address' => [
+                'city' => $user->city,
+                'state' => $user->state,
+                'country' => $user->country,
+            ],
+        ]);
+
+        $ephemeralKey = $stripe->ephemeralKeys->create([
+            'customer' => $customer->id,
+        ], [
+            'stripe_version' => '2025-05-28.basil',
+        ]);
+
+        $paymentIntent = $stripe->paymentIntents->create([
+            'amount' => $amount,
+            'currency' => 'usd',
+            'customer' => $customer->id,
+            'automatic_payment_methods' => [
+                'enabled' => true,
+            ],
+            'metadata' => [
+                'type' => 'coin_purchase',
+                'user_id' => $user->id,
+                'coin_count' => (int) $request->coinCount,
+            ],
+        ]);
 
         return response()->json([
             'status' => true,
-            'url' => $url,
+            'customer_id' => $customer->id,
+            'payment_intent_id' => $paymentIntent->id,
+            'client_secret' => $paymentIntent->client_secret,
+            'amount' => $paymentIntent->amount,
+            'currency' => $paymentIntent->currency,
+            'ephemeralKey' => $ephemeralKey->secret,
+            'created_at' => $paymentIntent->created,
+            'publishableKey' => config('services.stripe.key'),
         ], 200);
     }
 
