@@ -1133,10 +1133,11 @@ class DashboardController extends Controller
         return match ($type) {
             'live_earnings_transfer' => 'Transferred from Live Dashboard',
             'vibe_commission_transfer' => 'Transferred from Vibes Commission',
-            'recharge', 'deposit' => 'Top Up - Card',
+            'recharge', 'deposit', 'cash_deposit' => 'Cash Deposit',
+            'coin', 'coin_deposit', 'coin_purchase' => 'Coin Deposit',
             'p2p_transfer', 'transfer', 'send', 'p2p' => $isPositive ? 'Received from ' . $counterpartyName : 'Sent to ' . $counterpartyName,
             'money_request_payment', 'request' => $isPositive ? 'Request paid by ' . $counterpartyName : 'Paid request to ' . $counterpartyName,
-            default => $isPositive ? 'Received wallet funds' : ($counterpartyName && $counterpartyName !== 'System' ? 'Sent to ' . $counterpartyName : 'Wallet payment'),
+            default => $isPositive ? 'Cash Deposit' : ($counterpartyName && $counterpartyName !== 'System' ? 'Sent to ' . $counterpartyName : 'Wallet payment'),
         };
     }
 
