@@ -76,7 +76,7 @@ const allActivities = computed(() => {
   }));
   const ledger = props.subscriptions.map((subscription, index) => normalize(subscription, index, {
     kind: 'wallet-coins',
-    title: subscription.type === 'coin' ? 'Coin Pack Purchase' : (subscription.type === 'wallet' ? 'Wallet Top Up' : String(subscription.type || 'Wallet').replace(/_/g, ' ')),
+    title: subscription.type === 'coin' ? 'Coin Deposit' : (subscription.type === 'wallet' ? 'Cash Deposit' : String(subscription.type || 'Cash Deposit').replace(/_/g, ' ')),
     isPositive: true,
     counterparty: 'Stripe Payment',
   }));

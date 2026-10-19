@@ -503,7 +503,7 @@ const allActivities = computed(() => {
     isPositive: request.direction === 'incoming', counterparty: request.person?.tag || request.person?.name || '', type: 'money_request'
   }));
   const ledger = (props.subscriptions || []).map((subscription, index) => normalizeActivity(subscription, index, {
-    title: subscription.type === 'coin' ? 'Coin Pack Purchase' : (subscription.type === 'wallet' ? 'Wallet Top Up' : String(subscription.type || 'Wallet').replace(/_/g, ' ')),
+    title: subscription.type === 'coin' ? 'Coin Deposit' : (subscription.type === 'wallet' ? 'Cash Deposit' : String(subscription.type || 'Cash Deposit').replace(/_/g, ' ')),
     isPositive: true,
     counterparty: 'Stripe Payment',
     type: 'ledger'
