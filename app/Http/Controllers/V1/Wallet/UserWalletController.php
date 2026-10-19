@@ -67,7 +67,7 @@ class UserWalletController extends Controller
         $users = User::contactForWallet()->get();
         $contacts = UserContact::where('user_id', $user->id)->with('contactUser')->get();
         $sentRequests = UserMoneyRequest::with('recipient', 'requester')->where('requester_id', $user->id)->orWhere('recipient_id', $user->id)->latest()->get();
-        $subscriptions = $user->subscribed()->where('stripe_status', 'complete')->latest()->get();
+        $subscriptions = $user->subscribed()->whereIn('stripe_status', ['complete', 'succeeded', 'paid', 'active'])->latest()->get();
 
         $activeAsue = Asue::whereIn('status', ['active', 'ACTIVE', 'inviting', 'INVITING'])
             ->whereNotNull('asue_unique_code')

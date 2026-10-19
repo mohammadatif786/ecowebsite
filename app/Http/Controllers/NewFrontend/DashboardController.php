@@ -1111,7 +1111,7 @@ class DashboardController extends Controller
                 }
 
                 return [
-                    'id' => $transaction->uuid ?? $transaction->id,
+                    'id' => (string) ($transaction->uuid ?? $transaction->id),
                     'title' => $this->walletActivityTitle((string) $type, $isPositive, $counterpartyName),
                     'amount' => $amount,
                     'isPositive' => $isPositive,
@@ -1123,7 +1123,31 @@ class DashboardController extends Controller
                     'date' => optional($transaction->created_at)->toISOString(),
                     'dateLabel' => optional($transaction->created_at)->diffForHumans(null, true) . ' ago',
                 ];
-            })
+            });
+
+        $subscriptions = $user->subscribed()
+            ->latest()
+            ->take(50)
+            ->get()
+            ->map(function ($sub) {
+                $isCoin = $sub->type === 'coin';
+                return [
+                    'id' => 'sub-' . $sub->id,
+                    'title' => $isCoin ? 'Coin Deposit' : 'Cash Deposit',
+                    'amount' => (float) $sub->stripe_price,
+                    'isPositive' => true,
+                    'status' => strtolower((string) ($sub->stripe_status ?? 'success')),
+                    'type' => $isCoin ? 'coin_deposit' : 'cash_deposit',
+                    'counterparty' => 'Stripe Payment',
+                    'note' => $isCoin ? "{$sub->quantity} Coins Purchased" : 'Cash Top Up',
+                    'runningBalance' => null,
+                    'date' => optional($sub->created_at)->toISOString(),
+                    'dateLabel' => optional($sub->created_at)->diffForHumans(null, true) . ' ago',
+                ];
+            });
+
+        return $activities->concat($subscriptions)
+            ->sortByDesc(fn($item) => $item['date'] ?? '')
             ->values();
     }
 
