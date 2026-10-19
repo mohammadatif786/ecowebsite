@@ -268,6 +268,53 @@ class UserWalletController extends Controller
         }
     }
 
+    public function getMoneyRequests()
+    {
+        $user = Auth::user();
+
+        if (! $user) {
+            return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+
+        $moneyRequests = UserMoneyRequest::with([
+            'requester:id,name,linkup_id,avatar',
+            'recipient:id,name,linkup_id,avatar',
+        ])
+            ->where(function ($q) use ($user) {
+                $q->where('recipient_id', $user->id)
+                    ->orWhere('requester_id', $user->id);
+            })
+            ->latest()
+            ->get()
+            ->map(function ($request) use ($user) {
+                $isIncoming = (int) $request->recipient_id === (int) $user->id;
+                $person = $isIncoming ? $request->requester : $request->recipient;
+
+                return [
+                    'id' => $request->id,
+                    'requester_id' => $request->requester_id,
+                    'recipient_id' => $request->recipient_id,
+                    'amount' => (float) $request->amount,
+                    'note' => $request->note,
+                    'status' => strtolower((string) ($request->status ?? 'pending')),
+                    'direction' => $isIncoming ? 'incoming' : 'outgoing',
+                    'created_at' => optional($request->created_at)->toISOString(),
+                    'dateLabel' => optional($request->created_at)->diffForHumans(null, true) . ' ago',
+                    'person' => [
+                        'id' => $person?->id,
+                        'name' => $person?->name ?? 'LinkUp User',
+                        'tag' => $person?->linkup_id ? $person->linkup_id : '',
+                        'img' => $person?->avatar,
+                    ],
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'moneyRequests' => $moneyRequests,
+        ], 200);
+    }
+
     public function requestMoney(Request $request, InitiateWalletRechargeAction $action, WalletEmailService $emailService)
     {
         $validated = $request->validate([

@@ -160,6 +160,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::post('transaction-pin', [UserWalletController::class, 'updateTransactionPin'])->name('wallet.transaction_pin');
                 Route::post('verify-transaction-pin', [UserWalletController::class, 'verifyTransactionPin'])->name('wallet.verify_transaction_pin');
                 Route::post('send-money', [UserWalletController::class, 'sendMoney'])->name('wallet.send_money');
+                Route::get('requested-money', [UserWalletController::class, 'getMoneyRequests'])->name('wallet.requested_money_list');
                 Route::post('request-money', [UserWalletController::class, 'requestMoney'])->name('wallet.request_money');
                 Route::post('requested-money/{id}/pay', [UserWalletController::class, 'payMoneyRequest'])->name('wallet.requested_money.pay');
                 Route::post('requested-money/{id}/reject', [UserWalletController::class, 'rejectMoneyRequest'])->name('wallet.requested_money.reject');
