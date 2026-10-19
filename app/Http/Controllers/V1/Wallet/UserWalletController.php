@@ -208,6 +208,37 @@ class UserWalletController extends Controller
         ]);
     }
 
+    public function verifyTransactionPin(Request $request)
+    {
+        $request->validate([
+            'pin' => ['required', 'string', 'digits:4'],
+        ]);
+
+        $user = Auth::user();
+
+        if (empty($user->transaction_pin)) {
+            return response()->json([
+                'success' => false,
+                'has_pin' => false,
+                'message' => 'Transaction PIN is not set on your account.',
+            ], 400);
+        }
+
+        if (!Hash::check($request->pin, $user->transaction_pin)) {
+            return response()->json([
+                'success' => false,
+                'has_pin' => true,
+                'message' => 'The provided transaction PIN is incorrect.',
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'has_pin' => true,
+            'message' => 'Transaction PIN verified successfully.',
+        ]);
+    }
+
     public function sendMoney(Request $request, InitiateWalletRechargeAction $action, WalletEmailService $emailService)
     {
         $validated = $request->validate([
