@@ -1125,16 +1125,16 @@ class DashboardController extends Controller
                 ];
             });
 
-        $subscriptions = $user->subscribed()
+        $subscriptions = \Laravel\Cashier\Subscription::where('user_id', $user->id)
             ->latest()
             ->take(50)
             ->get()
             ->map(function ($sub) {
-                $isCoin = $sub->type === 'coin';
+                $isCoin = $sub->type === 'coin' || $sub->name === 'coin';
                 return [
                     'id' => 'sub-' . $sub->id,
                     'title' => $isCoin ? 'Coin Deposit' : 'Cash Deposit',
-                    'amount' => (float) $sub->stripe_price,
+                    'amount' => (float) ($sub->stripe_price ?? 0),
                     'isPositive' => true,
                     'status' => strtolower((string) ($sub->stripe_status ?? 'success')),
                     'type' => $isCoin ? 'coin_deposit' : 'cash_deposit',
