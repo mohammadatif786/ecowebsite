@@ -506,6 +506,7 @@ const allActivities = computed(() => {
     title: subscription.type === 'coin' ? 'Coin Deposit' : (subscription.type === 'wallet' ? 'Cash Deposit' : String(subscription.type || 'Cash Deposit').replace(/_/g, ' ')),
     isPositive: true,
     counterparty: 'Stripe Payment',
+    note: subscription.type === 'coin' ? `${subscription.quantity || 0} Coins Purchased` : 'Cash Top Up',
     type: 'ledger'
   }));
   const withdrawals = (props.bankWithdrawals || []).map((withdrawal, index) => normalizeActivity(withdrawal, index, {
