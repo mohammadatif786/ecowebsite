@@ -48,7 +48,7 @@ class AppWalletController extends Controller
         ], 200);
     }
 
-    public function walletActivity()
+    public function walletActivity(Request $request)
     {
         $user = auth()->user();
 
@@ -62,6 +62,7 @@ class AppWalletController extends Controller
         $balance = (float) ($user->balance('USD')->value->get() ?? 0);
         $runningBalance = $balance;
 
+        // 1. Transactions (Laravel Wallet)
         $activities = $user->transactions()
             ->with(['to', 'from'])
             ->latest()
@@ -90,6 +91,10 @@ class AppWalletController extends Controller
                     : ($meta['recipient_linkup_id'] ?? $transaction->to?->linkup_id ?? '');
 
                 $type = $meta['type'] ?? $transaction->type ?? 'wallet';
+                $kind = $isPositive ? 'received' : 'sent';
+                if (in_array($type, ['recharge', 'cash_deposit', 'deposit'])) {
+                    $kind = 'deposits';
+                }
 
                 return [
                     'id' => (string) ($transaction->uuid ?? $transaction->id),
@@ -98,6 +103,7 @@ class AppWalletController extends Controller
                     'isPositive' => $isPositive,
                     'status' => strtolower((string) ($transaction->status ?? 'success')),
                     'type' => $type,
+                    'kind' => $kind,
                     'counterparty' => trim($counterpartyName . ($counterpartyTag ? ' @' . ltrim($counterpartyTag, '@') : '')),
                     'note' => $meta['note'] ?? null,
                     'runningBalance' => $currentRunningBalance,
@@ -106,6 +112,7 @@ class AppWalletController extends Controller
                 ];
             });
 
+        // 2. Subscriptions (Cash & Coin Deposits)
         $subscriptions = \Laravel\Cashier\Subscription::where('user_id', $user->id)
             ->latest()
             ->take(50)
@@ -119,6 +126,7 @@ class AppWalletController extends Controller
                     'isPositive' => true,
                     'status' => strtolower((string) ($sub->stripe_status ?? 'success')),
                     'type' => $isCoin ? 'coin_deposit' : 'cash_deposit',
+                    'kind' => 'wallet-coins',
                     'counterparty' => 'Stripe Payment',
                     'note' => $isCoin ? "{$sub->quantity} Coins Purchased" : 'Cash Top Up',
                     'runningBalance' => null,
@@ -127,9 +135,95 @@ class AppWalletController extends Controller
                 ];
             });
 
-        $all = $activities->concat($subscriptions)
+        // 3. Money Requests
+        $moneyRequests = \App\Models\UserMoneyRequest::with(['requester:id,name,linkup_id', 'recipient:id,name,linkup_id'])
+            ->where(function ($q) use ($user) {
+                $q->where('recipient_id', $user->id)
+                    ->orWhere('requester_id', $user->id);
+            })
+            ->latest()
+            ->take(50)
+            ->get()
+            ->map(function ($req) use ($user) {
+                $isIncoming = (int) $req->recipient_id === (int) $user->id;
+                $person = $isIncoming ? $req->requester : $req->recipient;
+                return [
+                    'id' => 'req-' . $req->id,
+                    'title' => $isIncoming ? 'Request from ' . ($person->name ?? 'LinkUp User') : 'Request to ' . ($person->name ?? 'LinkUp User'),
+                    'amount' => (float) $req->amount,
+                    'isPositive' => $isIncoming,
+                    'status' => strtolower((string) ($req->status ?? 'pending')),
+                    'type' => 'money_request',
+                    'kind' => 'requested',
+                    'counterparty' => $person->name ?? '',
+                    'note' => $req->note ?? null,
+                    'runningBalance' => null,
+                    'date' => optional($req->created_at)->toISOString(),
+                    'dateLabel' => optional($req->created_at)->diffForHumans(null, true) . ' ago',
+                ];
+            });
+
+        // 4. Bank Withdrawals
+        $withdrawals = \App\Models\BankWithdrawal::where('user_id', $user->id)
+            ->latest()
+            ->take(50)
+            ->get()
+            ->map(function ($w) {
+                return [
+                    'id' => 'wd-' . $w->id,
+                    'title' => 'Bank Withdrawal',
+                    'amount' => (float) $w->amount,
+                    'isPositive' => false,
+                    'status' => strtolower((string) ($w->status ?? 'processing')),
+                    'type' => 'withdrawal',
+                    'kind' => 'withdrawals',
+                    'counterparty' => $w->bank_name ?? 'Bank',
+                    'note' => $w->failure_reason ?? null,
+                    'runningBalance' => null,
+                    'date' => optional($w->created_at)->toISOString(),
+                    'dateLabel' => optional($w->created_at)->diffForHumans(null, true) . ' ago',
+                ];
+            });
+
+        // Merge all sources & sort by date
+        $all = $activities
+            ->concat($subscriptions)
+            ->concat($moneyRequests)
+            ->concat($withdrawals)
             ->sortByDesc(fn($item) => $item['date'] ?? '')
             ->values();
+
+        // Optional Server-side Filtering & Search
+        $filter = strtolower(trim($request->get('filter') ?? $request->get('type') ?? $request->get('tab') ?? 'all'));
+        $search = strtolower(trim($request->get('search') ?? ''));
+
+        if ($filter !== 'all') {
+            $all = $all->filter(function ($item) use ($filter) {
+                if ($filter === 'deposits') {
+                    return $item['kind'] === 'deposits' || $item['kind'] === 'wallet-coins' || ($item['isPositive'] && in_array($item['type'], ['coin_deposit', 'cash_deposit', 'recharge', 'deposit']));
+                }
+                if ($filter === 'received') {
+                    return $item['isPositive'] && $item['kind'] !== 'requested';
+                }
+                if ($filter === 'sent') {
+                    return ! $item['isPositive'] && $item['kind'] !== 'requested';
+                }
+                return $item['kind'] === $filter || $item['type'] === $filter;
+            })->values();
+        }
+
+        if ($search !== '') {
+            $all = $all->filter(function ($item) use ($search) {
+                $haystack = strtolower(implode(' ', [
+                    $item['title'],
+                    $item['counterparty'],
+                    $item['note'] ?? '',
+                    $item['status'],
+                    $item['amount'],
+                ]));
+                return str_contains($haystack, $search);
+            })->values();
+        }
 
         return response()->json([
             'status' => true,
