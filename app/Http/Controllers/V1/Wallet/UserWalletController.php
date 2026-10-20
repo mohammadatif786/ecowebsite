@@ -130,6 +130,42 @@ class UserWalletController extends Controller
         ]);
     }
 
+    public function getContacts()
+    {
+        $userId = (int) Auth::id();
+
+        if ($userId <= 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+
+        $contacts = UserContact::where('user_id', $userId)
+            ->with(['contactUser:id,name,email,avatar,linkup_id'])
+            ->latest()
+            ->get()
+            ->map(function ($contact) {
+                $cUser = $contact->contactUser;
+                return [
+                    'id' => $contact->id,
+                    'contact_user_id' => $contact->contact_user_id,
+                    'name' => $contact->name ?? $cUser?->name ?? 'LinkUp User',
+                    'tag' => $cUser?->linkup_id ? '@' . ltrim($cUser->linkup_id, '@') : '',
+                    'img' => $cUser?->avatar ?? ('https://i.pravatar.cc/150?u=' . $contact->contact_user_id),
+                    'user' => [
+                        'id' => $cUser?->id,
+                        'name' => $cUser?->name,
+                        'email' => $cUser?->email,
+                        'tag' => $cUser?->linkup_id ? '@' . ltrim($cUser->linkup_id, '@') : '',
+                        'img' => $cUser?->avatar,
+                    ],
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'contacts' => $contacts,
+        ], 200);
+    }
+
     public function addContact(Request $request)
     {
         $validated = $request->validate([

@@ -155,6 +155,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('user/wallet', [UserWalletController::class, 'index']);
 
             Route::prefix('wallet')->group(function () {
+                Route::get('contact', [UserWalletController::class, 'getContacts'])->name('wallet.contact.list');
                 Route::post('contact', [UserWalletController::class, 'addContact'])->name('wallet.contact');
                 Route::delete('contact/{contact}', [UserWalletController::class, 'removeContact'])->name('wallet.contact.remove');
                 Route::post('transaction-pin', [UserWalletController::class, 'updateTransactionPin'])->name('wallet.transaction_pin');
