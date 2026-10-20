@@ -405,6 +405,28 @@ class UserWalletController extends Controller
         }
     }
 
+    public function getActiveAsue()
+    {
+        $user = Auth::user();
+
+        if (! $user) {
+            return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+
+        $activeAsue = Asue::whereIn('status', ['active', 'ACTIVE', 'inviting', 'INVITING'])
+            ->whereNotNull('asue_unique_code')
+            ->whereHas('invitedUsers', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })->with(['invitedUsers' => function ($q) {
+                $q->orderBy('asue_invites.position', 'asc');
+            }])->latest()->first();
+
+        return response()->json([
+            'success' => true,
+            'activeAsue' => $activeAsue,
+        ], 200);
+    }
+
     public function storeAsue(AsueStoreRequest $request, AsueAction $asueAction)
     {
         try {

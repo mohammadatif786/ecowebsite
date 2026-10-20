@@ -166,6 +166,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::post('requested-money/{id}/reject', [UserWalletController::class, 'rejectMoneyRequest'])->name('wallet.requested_money.reject');
                 Route::post('requested-money/{id}/cancel', [UserWalletController::class, 'cancelMoneyRequest'])->name('wallet.requested_money.cancel');
 
+                Route::get('asues/active', [UserWalletController::class, 'getActiveAsue'])->name('wallet.asues.active');
                 Route::post('asues/store', [UserWalletController::class, 'storeAsue'])->name('wallet.asues.store');
                 Route::post('asues/{asue}/accept-participation', [UserWalletController::class, 'acceptAsueParticipation'])->name('wallet.asues.accept_participation');
                 Route::post('asues/{asue}/simulate-cycle', [UserWalletController::class, 'simulateAsueCycle'])->name('wallet.asues.simulate_cycle');
