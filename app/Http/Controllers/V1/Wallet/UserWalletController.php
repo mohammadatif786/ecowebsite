@@ -197,10 +197,22 @@ class UserWalletController extends Controller
         return response()->json(['success' => true, 'contact' => $contact], 201);
     }
 
-    public function removeContact(UserContact $contact)
+    public function removeContact($id)
     {
-        if ((int) $contact->user_id !== (int) Auth::id()) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+        $userId = (int) Auth::id();
+
+        $contact = UserContact::where('user_id', $userId)
+            ->where(function ($q) use ($id) {
+                $q->where('id', $id)
+                  ->orWhere('contact_user_id', $id);
+            })
+            ->first();
+
+        if (! $contact) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Contact not found.',
+            ], 404);
         }
 
         $contact->delete();
