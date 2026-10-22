@@ -682,21 +682,28 @@ class EventController extends Controller
     {
         $data = $action->handle($event);
 
+        $goingCount = \App\Models\TicketSale::where('link_up_event_id', $event->id)
+            ->whereIn('ticket_status', ['confirmed', 'Confirmed', 'checked_in'])
+            ->sum('no_of_tickets');
+
+        if ($goingCount <= 0) {
+            $goingCount = \App\Models\TicketSale::where('link_up_event_id', $event->id)
+                ->whereNotIn('ticket_status', ['cancelled', 'canceled', 'Cancelled', 'Canceled'])
+                ->sum('no_of_tickets');
+        }
+
         return response()->json([
             'status' => true,
             'data' => [
                 'event' => new EventResource($data['event']),
-                'tickets' => TicketResource::collection($data['tickets']),
-                'other_events' => EventListResource::collection($data['otherEvents']),
                 'sponsor' => $data['sponsor'],
                 'organizer_stats' => $data['organizerStats'],
                 'attendees' => $data['attendees'],
+                'going_count' => (int) $goingCount,
                 'show_map' => $data['show_map'],
                 'latitude' => $data['event']->latitude,
                 'longitude' => $data['event']->longtitude,
                 'appurl' => $data['appurl'],
-                'tax_rules' => $data['taxRules'] ?? null,
-                'event_fee_settings' => $data['eventFeeSettings'],
                 'currency' => $data['currency'],
                 'is_wellness_event' => $data['isWellnessEvent'],
                 'is_cookout_event' => $data['isCookoutEvent'],
