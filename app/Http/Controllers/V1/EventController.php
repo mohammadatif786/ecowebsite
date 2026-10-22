@@ -716,10 +716,16 @@ class EventController extends Controller
     {
         $event->loadMissing(['category', 'authUserFavorite']);
 
-        $tickets = $event->tickets()->with(['extraSetting', 'wellnessSlotBlocks'])->get();
-        $otherEvents = LinkUpEvent::where('organizer_id', $event->organizer_id)
-            ->where('id', '!=', $event->id)
-            ->take(8)
+        $tickets = $event->tickets()
+            ->with(['extraSetting', 'wellnessSlotBlocks', 'drinkPackage'])
+            ->get();
+
+        $eventDrinks = \App\Models\EventTicketDrink::where('created_by', $event->organizer_id)
+            ->orWhere('created_by', $event->user_id)
+            ->get()
+            ->groupBy('type');
+
+        $drinkPackages = \App\Models\DrinkPackage::where('organizer_id', $event->organizer_id)
             ->get();
 
         $taxService = new TaxRateService();
@@ -741,14 +747,12 @@ class EventController extends Controller
             'status' => true,
             'data' => [
                 'tickets' => TicketResource::collection($tickets),
+                'event_drinks' => $eventDrinks,
+                'drink_packages' => $drinkPackages,
                 'coupons' => $event->coupons()->active()->get(),
                 'fee' => floatval(Settings::where('key', 'eventFee')->first()?->value),
                 'tax' => $taxRate,
                 'tax_config' => $taxConfig,
-                // the actual fee breakdown Show.vue's order summary is built
-                // from (service/processing/vip/mobile pct+fixed fees) —
-                // 'fee'/'tax_config' above are only the flat values the
-                // standalone Tickets.vue page uses.
                 'event_fee_settings' => $settings->getFeeSettingsForEvent($event),
             ],
         ], 200);
