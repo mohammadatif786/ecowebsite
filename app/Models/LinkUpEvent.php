@@ -53,6 +53,17 @@ class LinkUpEvent extends Model
         'gallery_urls',
     ];
 
+    public function resolveRouteBinding($value, $field = null)
+    {
+        if ($field) {
+            return parent::resolveRouteBinding($value, $field);
+        }
+
+        return $this->where('id', $value)
+            ->orWhere('slug', $value)
+            ->firstOrFail();
+    }
+
     public function getGalleryUrlsAttribute()
     {
         $gallery = $this->eventDetails?->image_gallery;

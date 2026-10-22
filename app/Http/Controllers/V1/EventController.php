@@ -712,8 +712,14 @@ class EventController extends Controller
     }
 
     // mirrors Frontend\EventController::eventTickets
-    public function eventTickets(LinkUpEvent $event, SettingsRepository $settings)
+    public function eventTickets($event, SettingsRepository $settings)
     {
+        if (! $event instanceof LinkUpEvent) {
+            $event = LinkUpEvent::where('id', $event)
+                ->orWhere('slug', $event)
+                ->firstOrFail();
+        }
+
         $event->loadMissing(['category', 'authUserFavorite']);
 
         $tickets = $event->tickets()
