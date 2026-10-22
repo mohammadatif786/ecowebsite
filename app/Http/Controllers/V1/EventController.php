@@ -116,14 +116,28 @@ class EventController extends Controller
             ], 403);
         }
 
-        $status = strtolower((string) $ticketSale->ticket_status);
-        if (! in_array($status, ['cancelled', 'canceled'], true)) {
-            $ticketSale->update(['ticket_status' => 'cancelled']);
+        $ticketSale->load('checkins');
+
+        if ($ticketSale->checkins->isNotEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot cancel a ticket that has already been scanned or checked-in.',
+            ], 400);
         }
+
+        $status = strtolower((string) $ticketSale->ticket_status);
+        if (in_array($status, ['cancelled', 'canceled'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This ticket is already cancelled.',
+            ], 400);
+        }
+
+        $ticketSale->update(['ticket_status' => 'cancelled']);
 
         return response()->json([
             'success' => true,
-            'message' => 'Booking cancelled.',
+            'message' => 'Booking cancelled successfully.',
             'data' => [
                 'id' => $ticketSale->id,
                 'ticket_status' => $ticketSale->fresh()->ticket_status,
