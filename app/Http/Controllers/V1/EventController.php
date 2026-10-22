@@ -284,6 +284,14 @@ class EventController extends Controller
             'fee_breakdown' => $ticketSale->fee_breakdown ?: [],
             'ticket_status' => $ticketSale->ticket_status,
             'checkin' => $ticketSale->checkins->isNotEmpty(),
+            'checkin_details' => $ticketSale->checkins->map(function ($c) {
+                return [
+                    'id' => $c->id,
+                    'scanned_at' => optional($c->created_at)->toISOString(),
+                    'scanner_name' => $c->scanner?->name ?? 'Event Staff',
+                ];
+            })->values(),
+            'can_cancel' => $ticketSale->checkins->isEmpty() && ! in_array(strtolower((string) $ticketSale->ticket_status), ['cancelled', 'canceled'], true),
             'ticket_name' => $ticketSale->ticket_name ?: $ticketSale->ticket?->name ?: 'Ticket',
             'ticket_type' => $ticketSale->ticket_type ?: $ticketSale->ticket?->ticket_type ?: $ticketSale->ticket?->type ?: 'Ticket',
             'event' => [
