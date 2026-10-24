@@ -231,6 +231,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::get('/{event}/tickets', [EventController::class, 'eventTickets']);
                 Route::post('/{event}/tickets/buy-wallet', [EventController::class, 'buyTicketWallet']);
                 Route::post('/{event}/tickets/buy-stripe', [EventController::class, 'buyTicketStripeInitiate']);
+                Route::post('/tickets/buy-stripe/confirm', [EventController::class, 'confirmTicketStripe']);
                 Route::post('/{event}/toggle-favorite', [EventController::class, 'toggleFavoriteByEvent']);
 
                 Route::get('/{event}/reviews', [EventController::class, 'reviewsIndex']);
