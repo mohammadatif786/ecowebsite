@@ -726,14 +726,6 @@ class EventController extends Controller
             ->with(['extraSetting', 'wellnessSlotBlocks', 'drinkPackage'])
             ->get();
 
-        $eventDrinks = \App\Models\EventTicketDrink::where('created_by', $event->organizer_id)
-            ->orWhere('created_by', $event->user_id)
-            ->get()
-            ->groupBy('type');
-
-        $drinkPackages = \App\Models\DrinkPackage::where('organizer_id', $event->organizer_id)
-            ->get();
-
         $taxService = new TaxRateService();
         $taxRules = $taxService->getStateTaxRules(
             strtoupper($event->state ?? ''),
@@ -753,8 +745,6 @@ class EventController extends Controller
             'status' => true,
             'data' => [
                 'tickets' => TicketResource::collection($tickets),
-                'event_drinks' => $eventDrinks,
-                'drink_packages' => $drinkPackages,
                 'coupons' => $event->coupons()->active()->get(),
                 'fee' => floatval(Settings::where('key', 'eventFee')->first()?->value),
                 'tax' => $taxRate,
