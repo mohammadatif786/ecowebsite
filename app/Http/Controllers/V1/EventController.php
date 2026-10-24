@@ -828,51 +828,113 @@ class EventController extends Controller
             return response()->json(['status' => false, 'message' => 'Cart tickets do not belong to this event'], 422);
         }
 
-        $stripeKey = config('services.stripe.secret');
-        if (!$stripeKey) {
+        $stripeSecret = config('services.stripe.secret');
+        if (!$stripeSecret) {
             return response()->json(['status' => false, 'message' => 'Payment configuration error'], 500);
         }
 
-        $lineItems = $this->buildStripeLineItems($cart);
-        if (empty($lineItems) && $cart['total'] > 0) {
-            return response()->json(['status' => false, 'message' => 'No valid items found for payment. Please check your cart.'], 422);
-        }
-
-        Stripe::setApiKey($stripeKey);
-        $cartToken = (string) Str::uuid();
+        $user = Auth::user();
+        $stripe = new \Stripe\StripeClient($stripeSecret);
+        $amountCents = (int) round($cart['total'] * 100);
 
         try {
-            $checkoutSession = \Stripe\Checkout\Session::create([
-                'payment_method_types' => ['card'],
-                'line_items' => $lineItems,
-                'mode' => 'payment',
-                'success_url' => route('api.stripe.ticket.buy.success') . '?checkout_session_id={CHECKOUT_SESSION_ID}&cart_token=' . $cartToken,
-                'cancel_url' => config('app.url'),
-                'client_reference_id' => $cartToken,
+            $customer = $stripe->customers->create([
+                'name' => $user->name,
+                'email' => $user->email,
+            ]);
+
+            $ephemeralKey = $stripe->ephemeralKeys->create([
+                'customer' => $customer->id,
+            ], [
+                'stripe_version' => '2025-05-28.basil',
+            ]);
+
+            $cartToken = (string) Str::uuid();
+
+            $paymentIntent = $stripe->paymentIntents->create([
+                'amount' => max(50, $amountCents),
+                'currency' => 'usd',
+                'customer' => $customer->id,
+                'automatic_payment_methods' => [
+                    'enabled' => true,
+                ],
                 'metadata' => [
-                    'user_id' => Auth::id(),
+                    'user_id' => $user->id,
                     'event_id' => $cart['event']->id,
+                    'cart_token' => $cartToken,
                 ],
             ]);
-        } catch (\Stripe\Exception\ApiErrorException $e) {
+
+            Cache::put(
+                "api_ticket_cart:{$cartToken}",
+                [
+                    'cart' => $this->serializeCartForCache($cart),
+                    'user_id' => $user->id,
+                    'payment_intent_id' => $paymentIntent->id,
+                ],
+                now()->addHours(2)
+            );
+
+            return response()->json([
+                'status' => true,
+                'data' => [
+                    'customer_id' => $customer->id,
+                    'payment_intent_id' => $paymentIntent->id,
+                    'client_secret' => $paymentIntent->client_secret,
+                    'ephemeralKey' => $ephemeralKey->secret,
+                    'publishableKey' => config('services.stripe.key'),
+                    'cart_token' => $cartToken,
+                ],
+            ], 200);
+        } catch (\Exception $e) {
             return response()->json(['status' => false, 'message' => 'Failed to initiate payment: ' . $e->getMessage()], 422);
         }
+    }
 
-        Cache::put(
-            "api_ticket_cart:{$cartToken}",
-            [
-                'cart' => $this->serializeCartForCache($cart),
-                'user_id' => Auth::id(),
-                'checkout_session_id' => $checkoutSession->id,
-            ],
-            now()->addHours(2)
-        );
+    public function confirmTicketStripe(Request $request, FinalizeTicketSaleAction $finalize)
+    {
+        $validated = $request->validate([
+            'cart_token' => 'required|string',
+            'payment_intent_id' => 'required|string',
+        ]);
+
+        $token = $validated['cart_token'];
+        $paymentIntentId = $validated['payment_intent_id'];
+
+        $cacheKey = "api_ticket_cart:{$token}";
+        $cached = Cache::get($cacheKey);
+        if (!$cached) {
+            return response()->json(['status' => false, 'message' => 'This ticket checkout has expired or was already processed'], 410);
+        }
+
+        $stripeSecret = config('services.stripe.secret');
+        $stripe = new \Stripe\StripeClient($stripeSecret);
+
+        try {
+            $paymentIntent = $stripe->paymentIntents->retrieve($paymentIntentId);
+        } catch (\Exception $e) {
+            return response()->json(['status' => false, 'message' => 'Payment verification failed: ' . $e->getMessage()], 422);
+        }
+
+        if ($paymentIntent->status !== 'succeeded') {
+            return response()->json(['status' => false, 'message' => 'Payment not completed on Stripe'], 422);
+        }
+
+        Cache::forget($cacheKey);
+
+        $cart = $this->deserializeCartFromCache($cached['cart']);
+        $user = User::find($cached['user_id']);
+
+        $result = DB::transaction(fn () => $finalize->handle($cart, $user->id, $paymentIntentId, 'card', 'Stripe'));
+
+        $this->sendTicketPurchaseEmails($result['ticket_sales'], $result['event'], $user);
 
         return response()->json([
             'status' => true,
             'data' => [
-                'checkout_url' => $checkoutSession->url,
-                'cart_token' => $cartToken,
+                'order_id' => $paymentIntentId,
+                'fees_summary' => $result['fees_summary'],
+                'ticket_sales' => $result['ticket_sales'],
             ],
         ], 200);
     }
