@@ -32,14 +32,27 @@ class BuildTicketCartAction
 
     public function handle(array $cart): array
     {
-        $ticketIds = array_column($cart['items'], 'ticketId');
-        $tickets = Ticket::whereIn('id', $ticketIds)->with(['drinkPackage', 'extraSetting'])->get();
-
-        if ($tickets->count() !== count($ticketIds)) {
-            throw new TicketCartValidationException('cart', 'One or more tickets are invalid');
+        if (empty($cart['items']) || !is_array($cart['items'])) {
+            throw new TicketCartValidationException('items', 'Cart items cannot be empty');
         }
 
-        $eventId = $tickets->first()->event_id;
+        $ticketIds = array_filter(array_column($cart['items'], 'ticketId'));
+        if (empty($ticketIds)) {
+            throw new TicketCartValidationException('items', 'One or more ticket items are missing a valid ticketId');
+        }
+
+        $tickets = Ticket::whereIn('id', $ticketIds)->with(['drinkPackage', 'extraSetting'])->get();
+
+        if ($tickets->isEmpty() || $tickets->count() !== count(array_unique($ticketIds))) {
+            throw new TicketCartValidationException('cart', 'One or more selected tickets are invalid or do not exist');
+        }
+
+        $firstTicket = $tickets->first();
+        $eventId = $firstTicket->event_id ?? $firstTicket->link_up_event_id;
+
+        if (!$eventId) {
+            throw new TicketCartValidationException('cart', 'Could not determine event for selected ticket');
+        }
 
         $eventFeeSettings = null;
         if (Schema::hasColumn('event_fee_settings', 'link_up_event_id')) {
