@@ -36,14 +36,30 @@ class BuildTicketCartAction
             throw new TicketCartValidationException('items', 'Cart items cannot be empty');
         }
 
-        $ticketIds = array_filter(array_column($cart['items'], 'ticketId'));
-        if (empty($ticketIds)) {
+        $normalizedItems = [];
+        foreach ($cart['items'] as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $tId = $item['ticketId'] ?? $item['ticket_id'] ?? $item['id'] ?? null;
+            if ($tId !== null && (int) $tId > 0) {
+                $item['ticketId'] = (int) $tId;
+                $item['qty'] = max(1, (int) ($item['qty'] ?? $item['quantity'] ?? 1));
+                $normalizedItems[] = $item;
+            }
+        }
+
+        if (empty($normalizedItems)) {
             throw new TicketCartValidationException('items', 'One or more ticket items are missing a valid ticketId');
         }
 
+        $cart['items'] = $normalizedItems;
+        $ticketIds = array_unique(array_column($cart['items'], 'ticketId'));
+
         $tickets = Ticket::whereIn('id', $ticketIds)->with(['drinkPackage', 'extraSetting'])->get();
 
-        if ($tickets->isEmpty() || $tickets->count() !== count(array_unique($ticketIds))) {
+        if ($tickets->isEmpty() || $tickets->count() !== count($ticketIds)) {
             throw new TicketCartValidationException('cart', 'One or more selected tickets are invalid or do not exist');
         }
 
@@ -84,11 +100,13 @@ class BuildTicketCartAction
         $newCartItems = [];
 
         foreach ($cart['items'] as $item) {
+            $item['qty'] = max(1, (int) ($item['qty'] ?? $item['quantity'] ?? 1));
+
             $ticket = $tickets->firstWhere('id', $item['ticketId']);
             if (!$ticket) {
                 throw new TicketCartValidationException((string) $item['ticketId'], 'Ticket not found');
             }
-            if (($item['qty'] ?? 0) > 0 && $ticket->quantity < $item['qty']) {
+            if ($ticket->quantity < $item['qty']) {
                 throw new TicketCartValidationException($ticket->name, 'Ticket is sold out or insufficient quantity');
             }
 
