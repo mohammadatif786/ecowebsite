@@ -194,11 +194,14 @@
 
     <!-- Affiliate Hub Modal -->
     <AffiliateHubModal ref="affiliateHubModalRef" :items="props.affiliateItems" :stats="props.stats" />
+
+    <!-- Keep Vibes Clean Modal -->
+    <KeepVibesCleanModal ref="keepVibesCleanModalRef" />
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { usePage, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import MainLayout from '../../../layouts/new_front_layout/MainLayout.vue';
@@ -207,6 +210,7 @@ import SayThankYouModal from '../../../components/new_frontend/modals/SayThankYo
 import VibesMessagesModal from '../../../components/new_frontend/modals/VibesMessagesModal.vue';
 import VibesChatModal from '../../../components/new_frontend/modals/VibesChatModal.vue';
 import AffiliateHubModal from '../../../components/new_frontend/modals/AffiliateHubModal.vue';
+import KeepVibesCleanModal from '../../../components/new_frontend/modals/KeepVibesCleanModal.vue';
 import { getUVibes, UVIBE_CAMPUSES, UVIBE_CATS, SEED, getUser } from '../../../components/new_frontend/MockDataStore';
 
 defineOptions({ layout: MainLayout });
@@ -231,6 +235,13 @@ const sayThankYouModalRef = ref(null);
 const vibesMessagesModalRef = ref(null);
 const vibesChatModalRef = ref(null);
 const affiliateHubModalRef = ref(null);
+const keepVibesCleanModalRef = ref(null);
+
+onMounted(() => {
+  if (keepVibesCleanModalRef.value) {
+    keepVibesCleanModalRef.value.open();
+  }
+});
 
 const openCompose = () => {
   if (composeModalRef.value) {

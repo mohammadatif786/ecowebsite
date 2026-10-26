@@ -767,7 +767,12 @@ class EventController extends Controller
         try {
             $cart = $buildCart->handle($validated);
         } catch (TicketCartValidationException $e) {
-            return response()->json(['status' => false, 'errors' => $e->errors], 422);
+            $firstMessage = collect($e->errors)->flatten()->first() ?? $e->getMessage();
+            return response()->json([
+                'status' => false,
+                'message' => $firstMessage ?: 'Validation failed for cart items',
+                'errors' => $e->errors,
+            ], 422);
         }
 
         if ($cart['event']->id !== $event->id) {
