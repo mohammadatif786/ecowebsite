@@ -235,6 +235,25 @@ class TicketAddonResolver
         if (!$addon && isset($addonData['name'])) {
             $addon = $this->findLegacyAddonByName($ticket, $addonData['name']);
         }
+        if (!$addon && isset($addonData['name'])) {
+            $drink = \App\Models\EventTicketDrink::where('name', trim($addonData['name']))->first();
+            if ($drink) {
+                $addon = [
+                    'id' => $drink->id,
+                    'name' => $drink->name,
+                    'category' => $drink->type ?? $addonData['category'] ?? 'mixDrinks',
+                    'cost' => floatval($drink->price ?? $addonData['price'] ?? $addonData['unit_price'] ?? 0),
+                ];
+            }
+        }
+        if (!$addon && !empty($addonData['name'])) {
+            $addon = [
+                'id' => $addonData['addon_id'] ?? null,
+                'name' => $addonData['name'],
+                'category' => $addonData['category'] ?? 'mixDrinks',
+                'cost' => floatval($addonData['cost'] ?? $addonData['price'] ?? $addonData['unit_price'] ?? 0),
+            ];
+        }
 
         return $addon;
     }
