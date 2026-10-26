@@ -190,7 +190,7 @@
     </div>
 
     <!-- Compose Modal -->
-    <ComposeUVibeModal ref="composeModalRef" :affiliateItems="props.affiliateItems" @postCreated="onPostCreated" />
+    <ComposeUVibeModal ref="composeModalRef" :affiliateItems="props.affiliateItems" :publishers="props.publishers" :userEvents="props.userEvents" @postCreated="onPostCreated" @openUniversityModal="openMyUniversities" />
 
     <!-- Say Thank You Modal -->
     <SayThankYouModal ref="sayThankYouModalRef" />
@@ -234,7 +234,10 @@ defineOptions({ layout: MainLayout });
 
 const props = defineProps({
   affiliateItems: { type: Array, default: () => [] },
-  stats: { type: Object, default: () => ({}) }
+  stats: { type: Object, default: () => ({}) },
+  uvibes: { type: Array, default: () => [] },
+  publishers: { type: Object, default: () => ({ organizations: [], custom: [] }) },
+  userEvents: { type: Array, default: () => [] }
 });
 
 const page = usePage();
@@ -242,7 +245,7 @@ const user = computed(() => page.props.auth?.user || getUser());
 
 const activeCampus = ref('All Campuses');
 const activeCategory = ref('all');
-const posts = ref(getUVibes());
+const posts = ref(props.uvibes && props.uvibes.length ? props.uvibes : getUVibes());
 
 const setCampus = (c) => activeCampus.value = c;
 const setCategory = (c) => activeCategory.value = c;
@@ -285,6 +288,19 @@ onMounted(() => {
 });
 
 const openCompose = () => {
+  try {
+    const saved = localStorage.getItem('lk_my_universities');
+    const parsed = saved ? JSON.parse(saved) : [];
+    if (!parsed.length) {
+      showToast('Please set your university first');
+      openMyUniversities();
+      return;
+    }
+  } catch (e) {
+    openMyUniversities();
+    return;
+  }
+
   if (composeModalRef.value) {
     composeModalRef.value.open();
   }

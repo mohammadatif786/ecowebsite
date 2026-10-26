@@ -858,7 +858,7 @@ class EventController extends Controller
 
             $paymentIntent = $stripe->paymentIntents->create([
                 'amount' => max(50, $amountCents),
-                'currency' => 'usd',
+                'currency' => strtolower($cart['currency'] ?? 'usd'),
                 'customer' => $customer->id,
                 'automatic_payment_methods' => [
                     'enabled' => true,

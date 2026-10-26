@@ -784,9 +784,125 @@ class DashboardController extends Controller
         $affiliateItems = $this->getAffiliateItems($user);
         $earningsStats = $this->getEarningsStats($user);
 
+        $vibes = Vibe::with(['creator', 'publisher', 'media', 'products.user', 'events.user', 'events.tickets'])
+            ->where('is_uvibe', true)
+            ->where('status', VibeStatus::Published)
+            ->latest()
+            ->get();
+
+        $formattedVibes = $vibes->map(function ($vibe) use ($user) {
+            $tag = null;
+            if ($vibe->products->isNotEmpty()) {
+                $p = $vibe->products->first();
+                $tag = [
+                    'kind' => 'product',
+                    'vibe_id' => $vibe->id,
+                    'affiliate_user_id' => $vibe->created_by,
+                    'id' => $p->id,
+                    'title' => $p->name,
+                    'price' => $p->price,
+                    'seller' => $p->user?->name ?? $p->seller?->name,
+                    'image' => $p->image_url,
+                ];
+            } elseif ($vibe->events->isNotEmpty()) {
+                $e = $vibe->events->first();
+                $tag = [
+                    'kind' => 'event',
+                    'vibe_id' => $vibe->id,
+                    'affiliate_user_id' => $vibe->created_by,
+                    'id' => $e->id,
+                    'title' => $e->title,
+                    'price' => $e->tickets->min('price') ?? 0,
+                    'date' => $e->start_date?->format('Y-m-d'),
+                    'location' => $e->venue,
+                    'seller' => $e->user?->name,
+                    'image' => $e->image_url,
+                ];
+            }
+
+            $mediaItems = $vibe->media->map(function ($m) {
+                return [
+                    'id' => $m->id,
+                    'type' => $m->media_type->value,
+                    'url' => $m->disk === 'public' ? asset('storage/' . $m->path) : Storage::disk($m->disk)->url($m->path),
+                    'thumbnail' => $m->thumbnail_path ? ($m->disk === 'public' ? asset('storage/' . $m->thumbnail_path) : Storage::disk($m->thumbnail_path)) : null,
+                ];
+            });
+
+            $publisher = $vibe->publisher;
+            $publisherName = $user->name;
+
+            if ($publisher instanceof User) {
+                $publisherName = $publisher->name;
+            } elseif ($publisher instanceof \App\Models\OrganizerProfile) {
+                $publisherName = $publisher->organizer_name;
+            } elseif ($publisher instanceof \App\Models\ClubFete) {
+                $publisherName = $publisher->name;
+            } elseif ($publisher instanceof UserCustomPublisher) {
+                $publisherName = $publisher->name;
+            }
+
+            $catLabels = [
+                'events' => 'Events',
+                'parties' => 'Parties',
+                'campus-life' => 'Campus Life',
+                'clubs' => 'Clubs',
+                'food' => 'Food',
+                'opportunity' => 'Gigs',
+            ];
+
+            return [
+                'id' => $vibe->id,
+                'org' => $publisherName,
+                'verified' => true,
+                'group' => $publisherName,
+                'campus' => $vibe->campus ?? 'All Campuses',
+                'time' => $vibe->created_at?->diffForHumans() ?? 'Just now',
+                'category' => $vibe->category ?? 'campus-life',
+                'tagLabel' => $catLabels[$vibe->category ?? 'campus-life'] ?? 'Campus Life',
+                'image' => $mediaItems->first()['url'] ?? null,
+                'images' => $mediaItems->pluck('url')->toArray(),
+                'title' => $vibe->title ?? $vibe->caption,
+                'price' => (float) ($vibe->price ?? 0),
+                'desc' => $vibe->caption,
+                'likes' => $vibe->likes_count ?? 0,
+                'comments' => $vibe->comments_count ?? 0,
+                'onVibes' => true,
+                'allow_coin_gifts' => (bool) $vibe->allow_coin_gifts,
+                'tag' => $tag,
+            ];
+        });
+
+        $customPublishers = UserCustomPublisher::where('user_id', $user->id)->get()->map(fn($p) => [
+            'id' => $p->id,
+            'name' => $p->name,
+            'type' => $p->type,
+        ]);
+
+        $organizerProfiles = \App\Models\OrganizerProfile::where('user_id', $user->id)->get()->map(fn($o) => [
+            'id' => $o->id,
+            'name' => $o->organizer_name,
+            'type' => 'organization',
+        ]);
+
+        $userEvents = \App\Models\LinkUpEvent::where('user_id', $user->id)->get()->map(fn($e) => [
+            'id' => $e->id,
+            'title' => $e->title,
+            'price' => $e->tickets->min('price') ?? 0,
+            'date' => $e->start_date?->format('Y-m-d'),
+            'venue' => $e->venue,
+            'image' => $e->image_url,
+        ]);
+
         return Inertia::render('new_front/u_vibe/Index', [
             'affiliateItems' => $affiliateItems,
             'earningsStats' => $earningsStats,
+            'uvibes' => $formattedVibes,
+            'publishers' => [
+                'organizations' => $organizerProfiles,
+                'custom' => $customPublishers,
+            ],
+            'userEvents' => $userEvents,
         ]);
     }
 
