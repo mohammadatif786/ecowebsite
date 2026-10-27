@@ -34,7 +34,7 @@
         <div class="flex gap-2 overflow-x-auto hide-scroll pt-1 pb-1">
           <button @click="openMyUniversities"
                   class="rounded-full px-4 py-2 text-xs sm:text-sm font-black shrink-0 transition bg-white/20 hover:bg-white/30 text-white flex items-center gap-1.5 border border-white/30 active:scale-95">
-            + Set your university
+            {{ selectedUniversityName ? `🎓 ${selectedUniversityName}` : '+ Set your university' }}
           </button>
           <button @click="openCampusExplorer"
                   class="rounded-full px-4 py-2 text-xs sm:text-sm font-black shrink-0 transition bg-white text-violet-700 shadow-sm flex items-center gap-1.5 active:scale-95">
@@ -71,13 +71,6 @@
               </span>
               <span class="text-xs font-bold text-slate-500">Add</span>
             </button>
-            <button v-for="s in SEED.stories" :key="s.handle" @click="showToast('Story · ' + s.handle)"
-                    class="flex flex-col items-center gap-1 shrink-0">
-              <span class="w-16 h-16 rounded-full p-[3px] bg-gradient-to-tr from-violet-500 via-fuchsia-500 to-purple-600 shadow-sm">
-                <img :src="s.avatar" class="w-full h-full rounded-full object-cover border-2 border-white"/>
-              </span>
-              <span class="text-xs font-semibold text-slate-600 max-w-[64px] truncate">{{ s.handle }}</span>
-            </button>
           </div>
         </div>
 
@@ -111,14 +104,62 @@
                     {{ typeof p.org === 'string' ? p.org : p.org?.name || 'University' }}
                     <i v-if="p.verified" data-lucide="badge-check" class="w-3.5 h-3.5 text-lkblue shrink-0"></i>
                   </p>
-                  <p class="text-[11px] text-slate-400 truncate">{{ p.group }} · 1.2k followers · {{ p.time }}</p>
+                  <p class="text-[11px] text-slate-400 truncate">{{ p.group }} · {{ p.time }}</p>
                 </div>
               </div>
               <button @click="showToast('🌹 Vibe sent to ' + p.org)" title="Send a Vibe" class="text-lg shrink-0 hover:scale-110 transition">🌹</button>
               <span class="chip shrink-0" style="background:#7c3aed14;color:#7c3aed;border-color:#7c3aed22">{{ p.tagLabel }}</span>
             </div>
 
-            <img v-if="p.image" :src="p.image" class="w-full h-56 object-cover" />
+            <!-- Media Display -->
+            <div v-if="p.media && p.media.length > 0" class="relative">
+              <!-- Single Image -->
+              <img v-if="p.media.length === 1 && p.media[0].type === 'image'"
+                   :src="p.media[0].url"
+                   class="w-full h-56 object-cover" />
+
+              <!-- Single Video -->
+              <video v-else-if="p.media.length === 1 && p.media[0].type === 'video'"
+                     :src="p.media[0].url"
+                     class="w-full h-56 object-cover"
+                     controls />
+
+              <!-- Multiple Images Carousel -->
+              <div v-else-if="p.media.length > 1" class="relative">
+                <div class="carousel-container w-full h-56 overflow-hidden">
+                  <div class="carousel-track flex transition-transform duration-300"
+                       :style="{ transform: `translateX(-${currentSlide[p.id] * 100}%)` }">
+                    <div v-for="(m, idx) in p.media" :key="m.id || idx"
+                         class="carousel-slide w-full h-56 flex-shrink-0">
+                      <img v-if="m.type === 'image'"
+                           :src="m.url"
+                           class="w-full h-56 object-cover" />
+                      <video v-else-if="m.type === 'video'"
+                             :src="m.url"
+                             class="w-full h-56 object-cover"
+                             controls />
+                    </div>
+                  </div>
+                </div>
+                <!-- Carousel Navigation -->
+                <button v-if="p.media.length > 1"
+                        @click="prevSlide(p.id)"
+                        class="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/50 text-white grid place-items-center hover:bg-black/70 transition">
+                  <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                </button>
+                <button v-if="p.media.length > 1"
+                        @click="nextSlide(p.id, p.media.length)"
+                        class="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/50 text-white grid place-items-center hover:bg-black/70 transition">
+                  <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </button>
+                <!-- Carousel Dots -->
+                <div v-if="p.media.length > 1" class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+                  <span v-for="(m, idx) in p.media" :key="idx"
+                        :class="['w-2 h-2 rounded-full transition', currentSlide[p.id] === idx ? 'bg-white' : 'bg-white/50']">
+                  </span>
+                </div>
+              </div>
+            </div>
 
             <div class="p-4">
               <div class="flex items-center justify-between gap-2 mb-1">
@@ -208,10 +249,10 @@
     <KeepVibesCleanModal ref="keepVibesCleanModalRef" />
 
     <!-- My Universities Modal -->
-    <MyUniversitiesModal ref="myUniversitiesModalRef" @addUniversity="openCampusExplorer" />
+    <MyUniversitiesModal ref="myUniversitiesModalRef" @addUniversity="openCampusExplorer" @universitySelected="onUniversitySelected" />
 
     <!-- Campus Explorer Modal -->
-    <CampusExplorerModal ref="campusExplorerModalRef" @manageUniversities="openMyUniversities" />
+    <CampusExplorerModal ref="campusExplorerModalRef" @manageUniversities="openMyUniversities" @universitySelected="onUniversitySelected" />
   </div>
 </template>
 
@@ -228,7 +269,7 @@ import AffiliateHubModal from '../../../components/new_frontend/modals/Affiliate
 import KeepVibesCleanModal from '../../../components/new_frontend/modals/KeepVibesCleanModal.vue';
 import MyUniversitiesModal from '../../../components/new_frontend/modals/MyUniversitiesModal.vue';
 import CampusExplorerModal from '../../../components/new_frontend/modals/CampusExplorerModal.vue';
-import { getUVibes, UVIBE_CAMPUSES, UVIBE_CATS, SEED, getUser } from '../../../components/new_frontend/MockDataStore';
+import { UVIBE_CATS, getUser } from '../../../components/new_frontend/MockDataStore';
 
 defineOptions({ layout: MainLayout });
 
@@ -245,7 +286,9 @@ const user = computed(() => page.props.auth?.user || getUser());
 
 const activeCampus = ref('All Campuses');
 const activeCategory = ref('all');
-const posts = ref(props.uvibes && props.uvibes.length ? props.uvibes : getUVibes());
+const posts = ref(props.uvibes || []);
+const selectedUniversityName = ref('');
+const currentSlide = ref({});
 
 const setCampus = (c) => activeCampus.value = c;
 const setCategory = (c) => activeCategory.value = c;
@@ -269,9 +312,28 @@ const categoryList = [
   { id: 'opportunity', label: 'Gigs', icon: '🧳' },
 ];
 
-const openMyUniversities = () => {
-  if (myUniversitiesModalRef.value) {
-    myUniversitiesModalRef.value.open();
+const openMyUniversities = (openComposeAfter = false) => {
+  try {
+    const saved = localStorage.getItem('lk_my_universities');
+    const parsed = saved ? JSON.parse(saved) : [];
+
+    if (parsed.length > 0) {
+      // If university is already set, update the display name
+      selectedUniversityName.value = parsed[0].name;
+      if (openComposeAfter) {
+        openCompose();
+      } else {
+        // Just open the modal to show current universities
+        if (myUniversitiesModalRef.value) {
+          myUniversitiesModalRef.value.open();
+        }
+      }
+    } else {
+      // If no university set, open CampusExplorer to add one
+      openCampusExplorer();
+    }
+  } catch (e) {
+    openCampusExplorer();
   }
 };
 
@@ -285,6 +347,22 @@ onMounted(() => {
   if (keepVibesCleanModalRef.value) {
     keepVibesCleanModalRef.value.open();
   }
+
+  // Load selected university name
+  try {
+    const saved = localStorage.getItem('lk_my_universities');
+    const parsed = saved ? JSON.parse(saved) : [];
+    if (parsed.length > 0) {
+      selectedUniversityName.value = parsed[0].name;
+    }
+  } catch (e) {}
+
+  // Initialize carousel slides for posts with multiple media
+  posts.value.forEach(p => {
+    if (p.media && p.media.length > 1) {
+      currentSlide.value[p.id] = 0;
+    }
+  });
 });
 
 const openCompose = () => {
@@ -293,11 +371,13 @@ const openCompose = () => {
     const parsed = saved ? JSON.parse(saved) : [];
     if (!parsed.length) {
       showToast('Please set your university first');
-      openMyUniversities();
+      openCampusExplorer();
       return;
     }
+    // Update the selected university name display
+    selectedUniversityName.value = parsed[0].name;
   } catch (e) {
-    openMyUniversities();
+    openCampusExplorer();
     return;
   }
 
@@ -354,6 +434,30 @@ const onPostCreated = (newPost) => {
   posts.value.unshift(newPost);
 };
 
+const onUniversitySelected = (campus, openComposeAfter = false) => {
+  if (campus && campus.name) {
+    selectedUniversityName.value = campus.name;
+    // Open compose modal if requested (from CampusExplorer)
+    if (openComposeAfter && composeModalRef.value) {
+      composeModalRef.value.open(true);
+    }
+  }
+};
+
+const prevSlide = (postId) => {
+  if (!currentSlide.value[postId]) currentSlide.value[postId] = 0;
+  if (currentSlide.value[postId] > 0) {
+    currentSlide.value[postId]--;
+  }
+};
+
+const nextSlide = (postId, totalSlides) => {
+  if (!currentSlide.value[postId]) currentSlide.value[postId] = 0;
+  if (currentSlide.value[postId] < totalSlides - 1) {
+    currentSlide.value[postId]++;
+  }
+};
+
 const filteredPosts = computed(() => {
   let filtered = posts.value;
   if (activeCampus.value !== 'All Campuses') {
@@ -368,3 +472,19 @@ const filteredPosts = computed(() => {
 const num = (n) => Number(n).toLocaleString();
 const money = (n) => '$' + Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 </script>
+
+<style scoped>
+.carousel-container {
+  position: relative;
+}
+
+.carousel-track {
+  display: flex;
+  width: 100%;
+}
+
+.carousel-slide {
+  width: 100%;
+  flex-shrink: 0;
+}
+</style>

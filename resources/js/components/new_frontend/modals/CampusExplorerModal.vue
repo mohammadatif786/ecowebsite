@@ -109,7 +109,7 @@ const isOpen = ref(false);
 const searchQuery = ref('');
 const selectedRegion = ref('all');
 
-const emit = defineEmits(['manageUniversities']);
+const emit = defineEmits(['manageUniversities', 'universitySelected']);
 
 const regions = ref([
   { id: 'all', name: 'All', flag: '🌏', count: 57 },
@@ -159,6 +159,15 @@ const toggleFollow = (campus) => {
         saved.push({ name: campus.name, flag: campus.code });
         localStorage.setItem('lk_my_universities', JSON.stringify(saved));
       }
+      emit('universitySelected', campus, true);
+      close();
+    } catch (e) {}
+  } else {
+    // When unfollowing, remove from localStorage
+    try {
+      const saved = JSON.parse(localStorage.getItem('lk_my_universities') || '[]');
+      const updated = saved.filter(u => u.name !== campus.name);
+      localStorage.setItem('lk_my_universities', JSON.stringify(updated));
     } catch (e) {}
   }
 };

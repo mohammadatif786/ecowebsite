@@ -862,6 +862,7 @@ class DashboardController extends Controller
                 'tagLabel' => $catLabels[$vibe->category ?? 'campus-life'] ?? 'Campus Life',
                 'image' => $mediaItems->first()['url'] ?? null,
                 'images' => $mediaItems->pluck('url')->toArray(),
+                'media' => $mediaItems->toArray(),
                 'title' => $vibe->title ?? $vibe->caption,
                 'price' => (float) ($vibe->price ?? 0),
                 'desc' => $vibe->caption,

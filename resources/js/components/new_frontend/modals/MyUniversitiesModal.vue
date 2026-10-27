@@ -33,7 +33,8 @@
 
         <div v-else class="space-y-2.5 max-h-60 overflow-y-auto hide-scroll pr-1">
           <div v-for="(uni, index) in myUniversities" :key="uni.name"
-               class="flex items-center justify-between p-3.5 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-slate-100/60 transition">
+               @click="selectUniversity(uni)"
+               class="flex items-center justify-between p-3.5 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-slate-100/60 transition cursor-pointer">
             <div class="flex items-center gap-3 min-w-0">
               <span class="w-9 h-9 rounded-xl bg-violet-100 text-violet-700 font-black text-xs grid place-items-center shrink-0">
                 {{ uni.flag || '🎓' }}
@@ -43,7 +44,7 @@
                 <p class="text-[11px] font-bold text-slate-400">{{ index === 0 ? 'Main University' : 'Secondary' }}</p>
               </div>
             </div>
-            <button @click="removeUniversity(uni)" class="text-slate-400 hover:text-rose-500 transition p-1.5 rounded-lg hover:bg-rose-50" title="Remove">
+            <button @click.stop="removeUniversity(uni)" class="text-slate-400 hover:text-rose-500 transition p-1.5 rounded-lg hover:bg-rose-50" title="Remove">
               <i data-lucide="trash-2" class="w-4 h-4"></i>
             </button>
           </div>
@@ -64,7 +65,7 @@ import { ref } from 'vue';
 const isOpen = ref(false);
 const myUniversities = ref([]);
 
-const emit = defineEmits(['addUniversity']);
+const emit = defineEmits(['addUniversity', 'universitySelected', 'openCompose']);
 
 const open = (unis = []) => {
   isOpen.value = true;
@@ -87,6 +88,11 @@ const close = () => {
 const handleAddUniversity = () => {
   close();
   emit('addUniversity');
+};
+
+const selectUniversity = (uni) => {
+  emit('universitySelected', uni);
+  close();
 };
 
 const removeUniversity = (uni) => {
