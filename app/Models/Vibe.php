@@ -13,12 +13,14 @@ class Vibe extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ['created_by', 'publisher_type', 'publisher_id', 'caption', 'text_bg', 'text_font', 'location_name', 'location_place_id', 'latitude', 'longitude', 'allow_coin_gifts', 'visibility', 'status', 'published_at', 'archived_at'];
+    protected $fillable = ['created_by', 'publisher_type', 'publisher_id', 'caption', 'title', 'category', 'campus', 'price', 'is_uvibe', 'text_bg', 'text_font', 'location_name', 'location_place_id', 'latitude', 'longitude', 'allow_coin_gifts', 'visibility', 'status', 'published_at', 'archived_at'];
 
     protected function casts(): array
     {
         return [
             'allow_coin_gifts' => 'boolean',
+            'is_uvibe' => 'boolean',
+            'price' => 'decimal:2',
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
             'visibility' => VibeVisibility::class,

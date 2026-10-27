@@ -116,14 +116,28 @@ class EventController extends Controller
             ], 403);
         }
 
-        $status = strtolower((string) $ticketSale->ticket_status);
-        if (! in_array($status, ['cancelled', 'canceled'], true)) {
-            $ticketSale->update(['ticket_status' => 'cancelled']);
+        $ticketSale->load('checkins');
+
+        if ($ticketSale->checkins->isNotEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot cancel a ticket that has already been scanned or checked-in.',
+            ], 400);
         }
+
+        $status = strtolower((string) $ticketSale->ticket_status);
+        if (in_array($status, ['cancelled', 'canceled'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This ticket is already cancelled.',
+            ], 400);
+        }
+
+        $ticketSale->update(['ticket_status' => 'cancelled']);
 
         return response()->json([
             'success' => true,
-            'message' => 'Booking cancelled.',
+            'message' => 'Booking cancelled successfully.',
             'data' => [
                 'id' => $ticketSale->id,
                 'ticket_status' => $ticketSale->fresh()->ticket_status,
@@ -249,8 +263,35 @@ class EventController extends Controller
             'quantity' => max(1, (int) ($ticketSale->no_of_tickets ?? 1)),
             'no_of_tickets' => max(1, (int) ($ticketSale->no_of_tickets ?? 1)),
             'paid' => $paid,
+            'sub_total' => (float) ($ticketSale->sub_total ?? 0),
+            'total' => (float) ($ticketSale->total ?? $ticketSale->stripe_price ?? 0),
+            'fee' => (float) ($ticketSale->fee ?? 0),
+            'tax' => (float) ($ticketSale->tax ?? 0),
+            'event_tax' => (float) ($ticketSale->event_tax ?? 0),
+            'discount' => (float) ($ticketSale->discount ?? 0),
+            'coupan_amount' => (float) ($ticketSale->coupan_amount ?? 0),
+            'tables_total' => (float) ($ticketSale->tables_total ?? 0),
+            'drinks_total' => (float) ($ticketSale->drinks_total ?? 0),
+            'wellness_total' => (float) ($ticketSale->wellness_total ?? 0),
+            'cookout_total' => (float) ($ticketSale->cookout_total ?? 0),
+            'drink_addons' => $ticketSale->drink_addons ?: [],
+            'table_addons' => $ticketSale->table_addons ?: [],
+            'wellness_addons' => $ticketSale->wellness_addons ?: [],
+            'cookout_included_protein' => $ticketSale->cookout_included_protein,
+            'cookout_included_sides' => $ticketSale->cookout_included_sides ?: [],
+            'cookout_addons' => $ticketSale->cookout_addons ?: [],
+            'package_data' => $ticketSale->package_data,
+            'fee_breakdown' => $ticketSale->fee_breakdown ?: [],
             'ticket_status' => $ticketSale->ticket_status,
             'checkin' => $ticketSale->checkins->isNotEmpty(),
+            'checkin_details' => $ticketSale->checkins->map(function ($c) {
+                return [
+                    'id' => $c->id,
+                    'scanned_at' => optional($c->created_at)->toISOString(),
+                    'scanner_name' => $c->scanner?->name ?? 'Event Staff',
+                ];
+            })->values(),
+            'can_cancel' => $ticketSale->checkins->isEmpty() && ! in_array(strtolower((string) $ticketSale->ticket_status), ['cancelled', 'canceled'], true),
             'ticket_name' => $ticketSale->ticket_name ?: $ticketSale->ticket?->name ?: 'Ticket',
             'ticket_type' => $ticketSale->ticket_type ?: $ticketSale->ticket?->ticket_type ?: $ticketSale->ticket?->type ?: 'Ticket',
             'event' => [
@@ -641,17 +682,28 @@ class EventController extends Controller
     {
         $data = $action->handle($event);
 
+        $goingCount = \App\Models\TicketSale::where('link_up_event_id', $event->id)
+            ->whereIn('ticket_status', ['confirmed', 'Confirmed', 'checked_in'])
+            ->sum('no_of_tickets');
+
+        if ($goingCount <= 0) {
+            $goingCount = \App\Models\TicketSale::where('link_up_event_id', $event->id)
+                ->whereNotIn('ticket_status', ['cancelled', 'canceled', 'Cancelled', 'Canceled'])
+                ->sum('no_of_tickets');
+        }
+
         return response()->json([
             'status' => true,
             'data' => [
                 'event' => new EventResource($data['event']),
-                'tickets' => TicketResource::collection($data['tickets']),
-                'other_events' => EventListResource::collection($data['otherEvents']),
                 'sponsor' => $data['sponsor'],
                 'organizer_stats' => $data['organizerStats'],
                 'attendees' => $data['attendees'],
+                'going_count' => (int) $goingCount,
                 'show_map' => $data['show_map'],
-                'event_fee_settings' => $data['eventFeeSettings'],
+                'latitude' => $data['event']->latitude,
+                'longitude' => $data['event']->longtitude,
+                'appurl' => $data['appurl'],
                 'currency' => $data['currency'],
                 'is_wellness_event' => $data['isWellnessEvent'],
                 'is_cookout_event' => $data['isCookoutEvent'],
@@ -660,14 +712,18 @@ class EventController extends Controller
     }
 
     // mirrors Frontend\EventController::eventTickets
-    public function eventTickets(LinkUpEvent $event, SettingsRepository $settings)
+    public function eventTickets($event, SettingsRepository $settings)
     {
+        if (! $event instanceof LinkUpEvent) {
+            $event = LinkUpEvent::where('id', $event)
+                ->orWhere('slug', $event)
+                ->firstOrFail();
+        }
+
         $event->loadMissing(['category', 'authUserFavorite']);
 
-        $tickets = $event->tickets()->with(['extraSetting', 'wellnessSlotBlocks'])->get();
-        $otherEvents = LinkUpEvent::where('organizer_id', $event->organizer_id)
-            ->where('id', '!=', $event->id)
-            ->take(8)
+        $tickets = $event->tickets()
+            ->with(['extraSetting', 'wellnessSlotBlocks', 'drinkPackage'])
             ->get();
 
         $taxService = new TaxRateService();
@@ -693,10 +749,6 @@ class EventController extends Controller
                 'fee' => floatval(Settings::where('key', 'eventFee')->first()?->value),
                 'tax' => $taxRate,
                 'tax_config' => $taxConfig,
-                // the actual fee breakdown Show.vue's order summary is built
-                // from (service/processing/vip/mobile pct+fixed fees) —
-                // 'fee'/'tax_config' above are only the flat values the
-                // standalone Tickets.vue page uses.
                 'event_fee_settings' => $settings->getFeeSettingsForEvent($event),
             ],
         ], 200);
@@ -715,7 +767,12 @@ class EventController extends Controller
         try {
             $cart = $buildCart->handle($validated);
         } catch (TicketCartValidationException $e) {
-            return response()->json(['status' => false, 'errors' => $e->errors], 422);
+            $firstMessage = collect($e->errors)->flatten()->first() ?? $e->getMessage();
+            return response()->json([
+                'status' => false,
+                'message' => $firstMessage ?: 'Validation failed for cart items',
+                'errors' => $e->errors,
+            ], 422);
         }
 
         if ($cart['event']->id !== $event->id) {
@@ -776,51 +833,113 @@ class EventController extends Controller
             return response()->json(['status' => false, 'message' => 'Cart tickets do not belong to this event'], 422);
         }
 
-        $stripeKey = config('services.stripe.secret');
-        if (!$stripeKey) {
+        $stripeSecret = config('services.stripe.secret');
+        if (!$stripeSecret) {
             return response()->json(['status' => false, 'message' => 'Payment configuration error'], 500);
         }
 
-        $lineItems = $this->buildStripeLineItems($cart);
-        if (empty($lineItems) && $cart['total'] > 0) {
-            return response()->json(['status' => false, 'message' => 'No valid items found for payment. Please check your cart.'], 422);
-        }
-
-        Stripe::setApiKey($stripeKey);
-        $cartToken = (string) Str::uuid();
+        $user = Auth::user();
+        $stripe = new \Stripe\StripeClient($stripeSecret);
+        $amountCents = (int) round($cart['total'] * 100);
 
         try {
-            $checkoutSession = \Stripe\Checkout\Session::create([
-                'payment_method_types' => ['card'],
-                'line_items' => $lineItems,
-                'mode' => 'payment',
-                'success_url' => route('api.stripe.ticket.buy.success') . '?checkout_session_id={CHECKOUT_SESSION_ID}&cart_token=' . $cartToken,
-                'cancel_url' => config('app.url'),
-                'client_reference_id' => $cartToken,
+            $customer = $stripe->customers->create([
+                'name' => $user->name,
+                'email' => $user->email,
+            ]);
+
+            $ephemeralKey = $stripe->ephemeralKeys->create([
+                'customer' => $customer->id,
+            ], [
+                'stripe_version' => '2025-05-28.basil',
+            ]);
+
+            $cartToken = (string) Str::uuid();
+
+            $paymentIntent = $stripe->paymentIntents->create([
+                'amount' => max(50, $amountCents),
+                'currency' => strtolower($cart['currency'] ?? 'usd'),
+                'customer' => $customer->id,
+                'automatic_payment_methods' => [
+                    'enabled' => true,
+                ],
                 'metadata' => [
-                    'user_id' => Auth::id(),
+                    'user_id' => $user->id,
                     'event_id' => $cart['event']->id,
+                    'cart_token' => $cartToken,
                 ],
             ]);
-        } catch (\Stripe\Exception\ApiErrorException $e) {
+
+            Cache::put(
+                "api_ticket_cart:{$cartToken}",
+                [
+                    'cart' => $this->serializeCartForCache($cart),
+                    'user_id' => $user->id,
+                    'payment_intent_id' => $paymentIntent->id,
+                ],
+                now()->addHours(2)
+            );
+
+            return response()->json([
+                'status' => true,
+                'data' => [
+                    'customer_id' => $customer->id,
+                    'payment_intent_id' => $paymentIntent->id,
+                    'client_secret' => $paymentIntent->client_secret,
+                    'ephemeralKey' => $ephemeralKey->secret,
+                    'publishableKey' => config('services.stripe.key'),
+                    'cart_token' => $cartToken,
+                ],
+            ], 200);
+        } catch (\Exception $e) {
             return response()->json(['status' => false, 'message' => 'Failed to initiate payment: ' . $e->getMessage()], 422);
         }
+    }
 
-        Cache::put(
-            "api_ticket_cart:{$cartToken}",
-            [
-                'cart' => $this->serializeCartForCache($cart),
-                'user_id' => Auth::id(),
-                'checkout_session_id' => $checkoutSession->id,
-            ],
-            now()->addHours(2)
-        );
+    public function confirmTicketStripe(Request $request, FinalizeTicketSaleAction $finalize)
+    {
+        $validated = $request->validate([
+            'cart_token' => 'required|string',
+            'payment_intent_id' => 'required|string',
+        ]);
+
+        $token = $validated['cart_token'];
+        $paymentIntentId = $validated['payment_intent_id'];
+
+        $cacheKey = "api_ticket_cart:{$token}";
+        $cached = Cache::get($cacheKey);
+        if (!$cached) {
+            return response()->json(['status' => false, 'message' => 'This ticket checkout has expired or was already processed'], 410);
+        }
+
+        $stripeSecret = config('services.stripe.secret');
+        $stripe = new \Stripe\StripeClient($stripeSecret);
+
+        try {
+            $paymentIntent = $stripe->paymentIntents->retrieve($paymentIntentId);
+        } catch (\Exception $e) {
+            return response()->json(['status' => false, 'message' => 'Payment verification failed: ' . $e->getMessage()], 422);
+        }
+
+        if ($paymentIntent->status !== 'succeeded') {
+            return response()->json(['status' => false, 'message' => 'Payment not completed on Stripe'], 422);
+        }
+
+        Cache::forget($cacheKey);
+
+        $cart = $this->deserializeCartFromCache($cached['cart']);
+        $user = User::find($cached['user_id']);
+
+        $result = DB::transaction(fn () => $finalize->handle($cart, $user->id, $paymentIntentId, 'card', 'Stripe'));
+
+        $this->sendTicketPurchaseEmails($result['ticket_sales'], $result['event'], $user);
 
         return response()->json([
             'status' => true,
             'data' => [
-                'checkout_url' => $checkoutSession->url,
-                'cart_token' => $cartToken,
+                'order_id' => $paymentIntentId,
+                'fees_summary' => $result['fees_summary'],
+                'ticket_sales' => $result['ticket_sales'],
             ],
         ], 200);
     }

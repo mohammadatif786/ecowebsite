@@ -79,6 +79,7 @@ const allActivities = computed(() => {
     title: subscription.type === 'coin' ? 'Coin Deposit' : (subscription.type === 'wallet' ? 'Cash Deposit' : String(subscription.type || 'Cash Deposit').replace(/_/g, ' ')),
     isPositive: true,
     counterparty: 'Stripe Payment',
+    note: subscription.type === 'coin' ? `${subscription.quantity || 0} Coins Purchased` : 'Cash Top Up',
   }));
   const withdrawals = props.bankWithdrawals.map((withdrawal, index) => normalize(withdrawal, index, {
     kind: 'withdrawals', title: 'Bank withdrawal', isPositive: false, counterparty: withdrawal.bank_name || 'Bank', note: withdrawal.failure_reason || '',
@@ -87,7 +88,9 @@ const allActivities = computed(() => {
 });
 
 const filteredActivities = computed(() => allActivities.value.filter((item) => {
-  const matchesTab = activeTab.value === 'all' || (activeTab.value === 'deposits' && item.kind === 'received') || item.kind === activeTab.value;
+  const matchesTab = activeTab.value === 'all'
+    || (activeTab.value === 'deposits' && (item.kind === 'received' || item.kind === 'wallet-coins' || item.isPositive))
+    || item.kind === activeTab.value;
   const query = search.value.toLowerCase();
   const matchesSearch = !query || [item.title, item.counterparty, item.note, item.status, item.amount].join(' ').toLowerCase().includes(query);
   return matchesTab && matchesSearch;

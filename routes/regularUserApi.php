@@ -155,15 +155,19 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('user/wallet', [UserWalletController::class, 'index']);
 
             Route::prefix('wallet')->group(function () {
+                Route::get('contact', [UserWalletController::class, 'getContacts'])->name('wallet.contact.list');
                 Route::post('contact', [UserWalletController::class, 'addContact'])->name('wallet.contact');
                 Route::delete('contact/{contact}', [UserWalletController::class, 'removeContact'])->name('wallet.contact.remove');
                 Route::post('transaction-pin', [UserWalletController::class, 'updateTransactionPin'])->name('wallet.transaction_pin');
+                Route::post('verify-transaction-pin', [UserWalletController::class, 'verifyTransactionPin'])->name('wallet.verify_transaction_pin');
                 Route::post('send-money', [UserWalletController::class, 'sendMoney'])->name('wallet.send_money');
+                Route::get('requested-money', [UserWalletController::class, 'getMoneyRequests'])->name('wallet.requested_money_list');
                 Route::post('request-money', [UserWalletController::class, 'requestMoney'])->name('wallet.request_money');
                 Route::post('requested-money/{id}/pay', [UserWalletController::class, 'payMoneyRequest'])->name('wallet.requested_money.pay');
                 Route::post('requested-money/{id}/reject', [UserWalletController::class, 'rejectMoneyRequest'])->name('wallet.requested_money.reject');
                 Route::post('requested-money/{id}/cancel', [UserWalletController::class, 'cancelMoneyRequest'])->name('wallet.requested_money.cancel');
 
+                Route::get('asues/active', [UserWalletController::class, 'getActiveAsue'])->name('wallet.asues.active');
                 Route::post('asues/store', [UserWalletController::class, 'storeAsue'])->name('wallet.asues.store');
                 Route::post('asues/{asue}/accept-participation', [UserWalletController::class, 'acceptAsueParticipation'])->name('wallet.asues.accept_participation');
                 Route::post('asues/{asue}/simulate-cycle', [UserWalletController::class, 'simulateAsueCycle'])->name('wallet.asues.simulate_cycle');
@@ -227,6 +231,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::get('/{event}/tickets', [EventController::class, 'eventTickets']);
                 Route::post('/{event}/tickets/buy-wallet', [EventController::class, 'buyTicketWallet']);
                 Route::post('/{event}/tickets/buy-stripe', [EventController::class, 'buyTicketStripeInitiate']);
+                Route::post('/tickets/buy-stripe/confirm', [EventController::class, 'confirmTicketStripe']);
                 Route::post('/{event}/toggle-favorite', [EventController::class, 'toggleFavoriteByEvent']);
 
                 Route::get('/{event}/reviews', [EventController::class, 'reviewsIndex']);

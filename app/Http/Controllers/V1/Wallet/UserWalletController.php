@@ -67,7 +67,7 @@ class UserWalletController extends Controller
         $users = User::contactForWallet()->get();
         $contacts = UserContact::where('user_id', $user->id)->with('contactUser')->get();
         $sentRequests = UserMoneyRequest::with('recipient', 'requester')->where('requester_id', $user->id)->orWhere('recipient_id', $user->id)->latest()->get();
-        $subscriptions = $user->subscribed()->where('stripe_status', 'complete')->latest()->get();
+        $subscriptions = $user->subscribed()->whereIn('stripe_status', ['complete', 'succeeded', 'paid', 'active'])->latest()->get();
 
         $activeAsue = Asue::whereIn('status', ['active', 'ACTIVE', 'inviting', 'INVITING'])
             ->whereNotNull('asue_unique_code')
@@ -130,6 +130,42 @@ class UserWalletController extends Controller
         ]);
     }
 
+    public function getContacts()
+    {
+        $userId = (int) Auth::id();
+
+        if ($userId <= 0) {
+            return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+
+        $contacts = UserContact::where('user_id', $userId)
+            ->with(['contactUser:id,name,email,avatar,linkup_id'])
+            ->latest()
+            ->get()
+            ->map(function ($contact) {
+                $cUser = $contact->contactUser;
+                return [
+                    'id' => $contact->id,
+                    'contact_user_id' => $contact->contact_user_id,
+                    'name' => $contact->name ?? $cUser?->name ?? 'LinkUp User',
+                    'tag' => $cUser?->linkup_id ? '@' . ltrim($cUser->linkup_id, '@') : '',
+                    'img' => $cUser?->avatar ?? ('https://i.pravatar.cc/150?u=' . $contact->contact_user_id),
+                    'user' => [
+                        'id' => $cUser?->id,
+                        'name' => $cUser?->name,
+                        'email' => $cUser?->email,
+                        'tag' => $cUser?->linkup_id ? '@' . ltrim($cUser->linkup_id, '@') : '',
+                        'img' => $cUser?->avatar,
+                    ],
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'contacts' => $contacts,
+        ], 200);
+    }
+
     public function addContact(Request $request)
     {
         $validated = $request->validate([
@@ -161,10 +197,22 @@ class UserWalletController extends Controller
         return response()->json(['success' => true, 'contact' => $contact], 201);
     }
 
-    public function removeContact(UserContact $contact)
+    public function removeContact($id)
     {
-        if ((int) $contact->user_id !== (int) Auth::id()) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+        $userId = (int) Auth::id();
+
+        $contact = UserContact::where('user_id', $userId)
+            ->where(function ($q) use ($id) {
+                $q->where('id', $id)
+                  ->orWhere('contact_user_id', $id);
+            })
+            ->first();
+
+        if (! $contact) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Contact not found.',
+            ], 404);
         }
 
         $contact->delete();
@@ -208,6 +256,37 @@ class UserWalletController extends Controller
         ]);
     }
 
+    public function verifyTransactionPin(Request $request)
+    {
+        $request->validate([
+            'pin' => ['required', 'string', 'digits:4'],
+        ]);
+
+        $user = Auth::user();
+
+        if (empty($user->transaction_pin)) {
+            return response()->json([
+                'success' => false,
+                'has_pin' => false,
+                'message' => 'Transaction PIN is not set on your account.',
+            ], 400);
+        }
+
+        if (!Hash::check($request->pin, $user->transaction_pin)) {
+            return response()->json([
+                'success' => false,
+                'has_pin' => true,
+                'message' => 'The provided transaction PIN is incorrect.',
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'has_pin' => true,
+            'message' => 'Transaction PIN verified successfully.',
+        ]);
+    }
+
     public function sendMoney(Request $request, InitiateWalletRechargeAction $action, WalletEmailService $emailService)
     {
         $validated = $request->validate([
@@ -235,6 +314,53 @@ class UserWalletController extends Controller
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
         }
+    }
+
+    public function getMoneyRequests()
+    {
+        $user = Auth::user();
+
+        if (! $user) {
+            return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+
+        $moneyRequests = UserMoneyRequest::with([
+            'requester:id,name,linkup_id,avatar',
+            'recipient:id,name,linkup_id,avatar',
+        ])
+            ->where(function ($q) use ($user) {
+                $q->where('recipient_id', $user->id)
+                    ->orWhere('requester_id', $user->id);
+            })
+            ->latest()
+            ->get()
+            ->map(function ($request) use ($user) {
+                $isIncoming = (int) $request->recipient_id === (int) $user->id;
+                $person = $isIncoming ? $request->requester : $request->recipient;
+
+                return [
+                    'id' => $request->id,
+                    'requester_id' => $request->requester_id,
+                    'recipient_id' => $request->recipient_id,
+                    'amount' => (float) $request->amount,
+                    'note' => $request->note,
+                    'status' => strtolower((string) ($request->status ?? 'pending')),
+                    'direction' => $isIncoming ? 'incoming' : 'outgoing',
+                    'created_at' => optional($request->created_at)->toISOString(),
+                    'dateLabel' => optional($request->created_at)->diffForHumans(null, true) . ' ago',
+                    'person' => [
+                        'id' => $person?->id,
+                        'name' => $person?->name ?? 'LinkUp User',
+                        'tag' => $person?->linkup_id ? $person->linkup_id : '',
+                        'img' => $person?->avatar,
+                    ],
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'moneyRequests' => $moneyRequests,
+        ], 200);
     }
 
     public function requestMoney(Request $request, InitiateWalletRechargeAction $action, WalletEmailService $emailService)
@@ -325,6 +451,28 @@ class UserWalletController extends Controller
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
         }
+    }
+
+    public function getActiveAsue()
+    {
+        $user = Auth::user();
+
+        if (! $user) {
+            return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+
+        $activeAsue = Asue::whereIn('status', ['active', 'ACTIVE', 'inviting', 'INVITING'])
+            ->whereNotNull('asue_unique_code')
+            ->whereHas('invitedUsers', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })->with(['invitedUsers' => function ($q) {
+                $q->orderBy('asue_invites.position', 'asc');
+            }])->latest()->first();
+
+        return response()->json([
+            'success' => true,
+            'activeAsue' => $activeAsue,
+        ], 200);
     }
 
     public function storeAsue(AsueStoreRequest $request, AsueAction $asueAction)

@@ -170,6 +170,9 @@
 
         <!-- Say Thank You Modal -->
         <SayThankYouModal ref="sayThankYouModalRef" :giftsReceived="props.gifts_received" />
+
+        <!-- Keep Vibes Clean Modal -->
+        <KeepVibesCleanModal ref="keepVibesCleanModalRef" />
     </div>
 </template>
 
@@ -188,6 +191,7 @@ import UserProfileModal from '../../../components/new_frontend/modals/UserProfil
 import VibesMessagesModal from '../../../components/new_frontend/modals/VibesMessagesModal.vue';
 import VibesChatModal from '../../../components/new_frontend/modals/VibesChatModal.vue';
 import SayThankYouModal from '../../../components/new_frontend/modals/SayThankYouModal.vue';
+import KeepVibesCleanModal from '../../../components/new_frontend/modals/KeepVibesCleanModal.vue';
 
 defineOptions({ layout: MainLayout });
 
@@ -286,6 +290,7 @@ const userProfileModalRef = ref(null);
 const vibesMessagesModalRef = ref(null);
 const vibesChatModalRef = ref(null);
 const sayThankYouModalRef = ref(null);
+const keepVibesCleanModalRef = ref(null);
 
 const openSayThankYouModal = async () => {
     try {
@@ -502,6 +507,9 @@ const showToast = (msg) => {
 };
 
 onMounted(() => {
+    if (keepVibesCleanModalRef.value) {
+        keepVibesCleanModalRef.value.open();
+    }
     nextTick(() => {
         if (window.lucide) window.lucide.createIcons();
     });

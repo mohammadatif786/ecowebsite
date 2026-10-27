@@ -2,47 +2,56 @@
   <div class="fade">
     <!-- Header Section -->
     <div class="rounded-3xl overflow-hidden mb-6" style="background:linear-gradient(120deg,#7c3aed,#a855f7)">
-      <div class="p-6 text-white">
-        <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
+      <div class="p-5 sm:p-6 text-white space-y-4">
+        <!-- Top Title Row -->
+        <div class="flex items-center justify-between gap-3 flex-wrap">
           <div class="flex items-center gap-3">
-            <span class="h-14 w-14 rounded-2xl bg-white/20 grid place-items-center shrink-0">
-              <i data-lucide="graduation-cap" class="w-7 h-7"></i>
+            <span class="h-12 w-12 rounded-2xl bg-white/20 grid place-items-center shrink-0">
+              <i data-lucide="graduation-cap" class="w-6 h-6"></i>
             </span>
             <div>
-              <h1 class="text-2xl font-black">U Vibe</h1>
-              <p class="text-white/75 text-sm font-bold">University Vibes · cross-campus network</p>
+              <h1 class="text-2xl font-black tracking-tight">U Vibe</h1>
+              <p class="text-white/80 text-xs sm:text-sm font-bold">University Vibes · cross-campus network</p>
             </div>
           </div>
           <div class="flex items-center gap-2 shrink-0">
-            <button @click="openMessages" class="h-11 w-11 rounded-xl bg-white/20 grid place-items-center hover:bg-white/30 transition active:scale-95" title="Messages">
+            <button @click="openCampusExplorer" class="h-10 w-10 rounded-xl bg-white/20 hover:bg-white/30 grid place-items-center text-white transition active:scale-95" title="Search">
+              <i data-lucide="search" class="w-4 h-4"></i>
+            </button>
+            <button @click="openMessages" class="h-10 w-10 rounded-xl bg-white/20 hover:bg-white/30 grid place-items-center text-white transition active:scale-95" title="Messages">
               <i data-lucide="message-circle" class="w-4 h-4"></i>
             </button>
-            <button @click="openThankYou" class="h-11 w-11 rounded-xl bg-white/20 grid place-items-center text-lg hover:bg-white/30 transition active:scale-95" title="Say Thank You">
+            <button @click="openThankYou" class="h-10 w-10 rounded-xl bg-white/20 hover:bg-white/30 grid place-items-center text-lg text-white transition active:scale-95" title="Say Thank You">
               🙏
             </button>
-            <button @click="openCompose" class="btn bg-white text-violet-700 px-4 py-2.5 font-black flex items-center gap-1.5 shadow-md active:scale-95">
+            <button @click="openCompose" class="btn bg-white text-violet-700 hover:bg-violet-50 px-4 py-2 rounded-xl font-black text-sm flex items-center gap-1.5 shadow-md active:scale-95">
               <i data-lucide="plus" class="w-4 h-4"></i>Post
             </button>
           </div>
         </div>
 
-        <!-- Campus Filters -->
-        <div class="flex gap-2 overflow-x-auto hide-scroll pb-2">
-          <button @click="setCampus('All Campuses')"
-                  :class="['rounded-full px-4 py-2 text-sm font-black shrink-0 transition', activeCampus === 'All Campuses' ? 'bg-white text-violet-700 shadow-sm' : 'bg-white/15 text-white hover:bg-white/25']">
+        <!-- Campus Action Filter Pills -->
+        <div class="flex gap-2 overflow-x-auto hide-scroll pt-1 pb-1">
+          <button @click="openMyUniversities"
+                  class="rounded-full px-4 py-2 text-xs sm:text-sm font-black shrink-0 transition bg-white/20 hover:bg-white/30 text-white flex items-center gap-1.5 border border-white/30 active:scale-95">
+            + Set your university
+          </button>
+          <button @click="openCampusExplorer"
+                  class="rounded-full px-4 py-2 text-xs sm:text-sm font-black shrink-0 transition bg-white text-violet-700 shadow-sm flex items-center gap-1.5 active:scale-95">
             🎓 All Campuses
           </button>
-          <button v-for="[name, flag] in UVIBE_CAMPUSES" :key="name" @click="setCampus(name)"
-                  :class="['rounded-full px-4 py-2 text-sm font-black shrink-0 transition', activeCampus === name ? 'bg-white text-violet-700 shadow-sm' : 'bg-white/15 text-white hover:bg-white/25']">
-            {{ flag }} {{ name }}
+          <button @click="openCampusExplorer"
+                  class="rounded-full px-4 py-2 text-xs sm:text-sm font-black shrink-0 transition bg-white/20 hover:bg-white/30 text-white flex items-center gap-1.5 border border-white/30 active:scale-95">
+            🧭 Explore · 57
           </button>
         </div>
 
         <!-- Category Filters -->
-        <div class="flex gap-2 overflow-x-auto hide-scroll mt-2">
-          <button v-for="[id, label, icon] in UVIBE_CATS" :key="id" @click="setCategory(id)"
-                  :class="['rounded-full px-4 py-2 text-sm font-black shrink-0 flex items-center gap-1.5 transition', activeCategory === id ? 'bg-white text-violet-700 shadow-sm' : 'bg-white/15 text-white hover:bg-white/25']">
-            <i :data-lucide="icon" class="w-3.5 h-3.5"></i>{{ label }}
+        <div class="flex gap-2 overflow-x-auto hide-scroll pt-1">
+          <button v-for="cat in categoryList" :key="cat.id" @click="setCategory(cat.id)"
+                  :class="['rounded-full px-4 py-2 text-xs sm:text-sm font-black shrink-0 flex items-center gap-1.5 transition',
+                           activeCategory === cat.id ? 'bg-white text-violet-700 shadow-sm' : 'bg-white/20 text-white hover:bg-white/30']">
+            <span>{{ cat.icon }}</span> {{ cat.label }}
           </button>
         </div>
       </div>
@@ -181,7 +190,7 @@
     </div>
 
     <!-- Compose Modal -->
-    <ComposeUVibeModal ref="composeModalRef" :affiliateItems="props.affiliateItems" @postCreated="onPostCreated" />
+    <ComposeUVibeModal ref="composeModalRef" :affiliateItems="props.affiliateItems" :publishers="props.publishers" :userEvents="props.userEvents" @postCreated="onPostCreated" @openUniversityModal="openMyUniversities" />
 
     <!-- Say Thank You Modal -->
     <SayThankYouModal ref="sayThankYouModalRef" />
@@ -194,11 +203,20 @@
 
     <!-- Affiliate Hub Modal -->
     <AffiliateHubModal ref="affiliateHubModalRef" :items="props.affiliateItems" :stats="props.stats" />
+
+    <!-- Keep Vibes Clean Modal -->
+    <KeepVibesCleanModal ref="keepVibesCleanModalRef" />
+
+    <!-- My Universities Modal -->
+    <MyUniversitiesModal ref="myUniversitiesModalRef" @addUniversity="openCampusExplorer" />
+
+    <!-- Campus Explorer Modal -->
+    <CampusExplorerModal ref="campusExplorerModalRef" @manageUniversities="openMyUniversities" />
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { usePage, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import MainLayout from '../../../layouts/new_front_layout/MainLayout.vue';
@@ -207,13 +225,19 @@ import SayThankYouModal from '../../../components/new_frontend/modals/SayThankYo
 import VibesMessagesModal from '../../../components/new_frontend/modals/VibesMessagesModal.vue';
 import VibesChatModal from '../../../components/new_frontend/modals/VibesChatModal.vue';
 import AffiliateHubModal from '../../../components/new_frontend/modals/AffiliateHubModal.vue';
+import KeepVibesCleanModal from '../../../components/new_frontend/modals/KeepVibesCleanModal.vue';
+import MyUniversitiesModal from '../../../components/new_frontend/modals/MyUniversitiesModal.vue';
+import CampusExplorerModal from '../../../components/new_frontend/modals/CampusExplorerModal.vue';
 import { getUVibes, UVIBE_CAMPUSES, UVIBE_CATS, SEED, getUser } from '../../../components/new_frontend/MockDataStore';
 
 defineOptions({ layout: MainLayout });
 
 const props = defineProps({
   affiliateItems: { type: Array, default: () => [] },
-  stats: { type: Object, default: () => ({}) }
+  stats: { type: Object, default: () => ({}) },
+  uvibes: { type: Array, default: () => [] },
+  publishers: { type: Object, default: () => ({ organizations: [], custom: [] }) },
+  userEvents: { type: Array, default: () => [] }
 });
 
 const page = usePage();
@@ -221,7 +245,7 @@ const user = computed(() => page.props.auth?.user || getUser());
 
 const activeCampus = ref('All Campuses');
 const activeCategory = ref('all');
-const posts = ref(getUVibes());
+const posts = ref(props.uvibes && props.uvibes.length ? props.uvibes : getUVibes());
 
 const setCampus = (c) => activeCampus.value = c;
 const setCategory = (c) => activeCategory.value = c;
@@ -231,8 +255,52 @@ const sayThankYouModalRef = ref(null);
 const vibesMessagesModalRef = ref(null);
 const vibesChatModalRef = ref(null);
 const affiliateHubModalRef = ref(null);
+const keepVibesCleanModalRef = ref(null);
+const myUniversitiesModalRef = ref(null);
+const campusExplorerModalRef = ref(null);
+
+const categoryList = [
+  { id: 'all', label: 'All', icon: ' ' },
+  { id: 'events', label: 'Events', icon: '📅' },
+  { id: 'parties', label: 'Parties', icon: '🎉' },
+  { id: 'campus-life', label: 'Campus Life', icon: '🏫' },
+  { id: 'clubs', label: 'Clubs', icon: '👥' },
+  { id: 'food', label: 'Food', icon: '🍴' },
+  { id: 'opportunity', label: 'Gigs', icon: '🧳' },
+];
+
+const openMyUniversities = () => {
+  if (myUniversitiesModalRef.value) {
+    myUniversitiesModalRef.value.open();
+  }
+};
+
+const openCampusExplorer = () => {
+  if (campusExplorerModalRef.value) {
+    campusExplorerModalRef.value.open();
+  }
+};
+
+onMounted(() => {
+  if (keepVibesCleanModalRef.value) {
+    keepVibesCleanModalRef.value.open();
+  }
+});
 
 const openCompose = () => {
+  try {
+    const saved = localStorage.getItem('lk_my_universities');
+    const parsed = saved ? JSON.parse(saved) : [];
+    if (!parsed.length) {
+      showToast('Please set your university first');
+      openMyUniversities();
+      return;
+    }
+  } catch (e) {
+    openMyUniversities();
+    return;
+  }
+
   if (composeModalRef.value) {
     composeModalRef.value.open();
   }

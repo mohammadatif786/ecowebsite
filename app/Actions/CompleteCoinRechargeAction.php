@@ -44,7 +44,7 @@ class CompleteCoinRechargeAction
                     'quantity'      => $secureCoinCount,
                     'stripe_id'     => $paymentIntent->id,
                     'stripe_price'  => $paymentIntent->amount / 100,
-                    'stripe_status' => $paymentIntent->status,
+                    'stripe_status' => 'complete',
                     'ends_at'       => now(),
                 ]);
 

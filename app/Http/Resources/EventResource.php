@@ -40,6 +40,9 @@ class EventResource extends JsonResource
             'is_favourite' => $this->relationLoaded('authUserFavorite')
                 ? $this->authUserFavorite !== null
                 : false,
+            'is_going' => $request->user() ? \App\Models\TicketSale::where('link_up_event_id', $this->id)->where('user_id', $request->user()->id)->whereIn('ticket_status', ['confirmed', 'Confirmed', 'checked_in'])->exists() : false,
+            'attendees' => (bool) ($this->eventDetails?->attendees ?? true),
+            'gallery_urls' => $this->gallery_urls ?? [],
             'favourites_count' => $this->whenLoaded('favourites', fn () => $this->favourites->count()),
             'event_details' => $this->whenLoaded('eventDetails', fn () => $this->eventDetails
                 ? new EventDetailsResource($this->eventDetails)
