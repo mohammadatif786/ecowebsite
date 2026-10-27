@@ -40,8 +40,8 @@
           <div v-if="postAsType === 'organization'" class="mt-3 p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
             <div v-if="allPublishers.length" class="flex flex-wrap gap-2">
               <button v-for="org in allPublishers" :key="org.id || org.name"
-                      @click="selectedOrg = org"
-                      :class="['chip font-bold px-3 py-1.5 transition', (selectedOrg?.name === org.name) ? 'bg-violet-600 text-white shadow-sm' : 'bg-white text-slate-700 border border-slate-200']">
+                      @click="selectOrganization(org)"
+                      :class="['chip font-bold px-3 py-1.5 transition', isSelectedOrg(org) ? 'bg-violet-600 text-white shadow-sm' : 'bg-white text-slate-700 border border-slate-200']">
                 🏛️ {{ org.name }}
               </button>
             </div>
@@ -52,13 +52,14 @@
               <div class="grid sm:grid-cols-2 gap-2">
                 <input v-model="newOrgName" placeholder="Organization name" class="w-full bg-white rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold outline-none" />
                 <select v-model="newOrgType" class="w-full bg-white rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold outline-none">
-                  <option value="Student Union">Student Union</option>
-                  <option value="University (official)">University (official)</option>
-                  <option value="Club / Society">Club / Society</option>
-                  <option value="Faculty / Department">Faculty / Department</option>
-                  <option value="Event Committee">Event Committee</option>
-                  <option value="Sports Team">Sports Team</option>
-                  <option value="Other">Other</option>
+                  <option value="organization">Student Union</option>
+                  <option value="organization">University (official)</option>
+                  <option value="organization">Club / Society</option>
+                  <option value="organization">Faculty / Department</option>
+                  <option value="organization">Event Committee</option>
+                  <option value="organization">Sports Team</option>
+                  <option value="group">Group</option>
+                  <option value="organization">Other</option>
                 </select>
               </div>
               <input v-model="newOrgRole" placeholder="Your role (optional) — e.g. President, PR Chair" class="w-full bg-white rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold outline-none" />
@@ -74,13 +75,11 @@
         <!-- Posting To Section -->
         <div class="space-y-1.5">
           <p class="text-[11px] font-black text-slate-400 uppercase">Posting to</p>
-          <div @click="openUniversityModal"
-               class="p-3.5 rounded-2xl border-2 border-violet-500 bg-violet-50/30 flex items-center justify-between cursor-pointer hover:bg-violet-50/60 transition shadow-sm">
+          <div class="p-3.5 rounded-2xl border-2 border-violet-500 bg-violet-50/30 flex items-center justify-between shadow-sm">
             <div class="flex items-center gap-2.5">
               <span class="text-base">🏫</span>
               <span class="font-black text-sm text-violet-900">{{ selectedCampus || 'Select a university...' }}</span>
             </div>
-            <span class="text-xs font-bold text-violet-600 underline">Change</span>
           </div>
           <p class="text-[11px] font-bold text-slate-400">
             Attended more than one school? Add them under My universities in your profile.
@@ -270,7 +269,7 @@ const tagModalRef = ref(null);
 const postAsType = ref('myself');
 const selectedOrg = ref(null);
 const newOrgName = ref('');
-const newOrgType = ref('Student Union');
+const newOrgType = ref('organization');
 const newOrgRole = ref('');
 const creatingOrg = ref(false);
 
@@ -325,9 +324,9 @@ const textBackgrounds = [
   '#2563eb'
 ];
 
-const open = () => {
+const open = (skipUniversityCheck = false) => {
   // Check if university is set first!
-  if (!selectedCampus.value) {
+  if (!skipUniversityCheck && !selectedCampus.value) {
     emit('openUniversityModal');
     return;
   }
@@ -346,10 +345,6 @@ const close = () => {
 
 defineExpose({ open, close });
 
-const openUniversityModal = () => {
-  emit('openUniversityModal');
-};
-
 const createCustomPublisher = async () => {
   if (!newOrgName.value.trim()) return;
   try {
@@ -362,6 +357,7 @@ const createCustomPublisher = async () => {
     customPublishers.value.push(created);
     selectedOrg.value = created;
     newOrgName.value = '';
+    newOrgType.value = 'organization';
     newOrgRole.value = '';
     showToast('✅ Organization added!');
   } catch (e) {
@@ -369,6 +365,15 @@ const createCustomPublisher = async () => {
   } finally {
     creatingOrg.value = false;
   }
+};
+
+const selectOrganization = (org) => {
+  selectedOrg.value = org;
+};
+
+const isSelectedOrg = (org) => {
+  if (!selectedOrg.value) return false;
+  return selectedOrg.value.id === org.id && selectedOrg.value.name === org.name;
 };
 
 const onImagesSelected = (e) => {
@@ -432,7 +437,7 @@ const savePost = async () => {
 
     media.value.forEach((m, idx) => {
       formData.append(`media[${idx}]`, m.file);
-      formData.append(`media_sources[${idx}]`, 'upload');
+      formData.append(`media_sources[${idx}]`, 'gallery');
     });
 
     if (taggedItem.value?.kind === 'product') {
