@@ -34,20 +34,25 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request, TwilioService $twilio)
     {
-        $request->validate([
-            'email' => 'required',
-            'password' => 'required',
-        ]);
-
         $request->authenticate();
-        $user = User::where('email', $request->email)->first();
+        // The user who just passed the password check (works for email or @handle login).
+        $user = Auth::user();
 
         if ($user && $user->phone_verified_at) {
+            $request->session()->regenerate();
             return redirect()->intended(route('new_frontend.home', absolute: false));
         }
 
+        // Phone not verified yet: the password was correct, but the session must NOT stay
+        // logged in until the OTP is confirmed. Otherwise the OTP step can be skipped by
+        // waiting for the code to expire (EnsureOtpVerified only blocks while a code is active).
+        $remember = $request->boolean('remember');
+        Auth::guard('web')->logout();
+        $request->session()->regenerate();
+        $request->session()->put('otp_remember', $remember);
+
         // Generate OTP
-        $otp = rand(100000, 999999);
+        $otp = random_int(100000, 999999);
         // Remove old OTPs
         UserOtp::where('user_id', $user->id)->delete();
         // Save new OTP
@@ -107,8 +112,13 @@ class AuthenticatedSessionController extends Controller
 
         $user = User::findOrFail($userId);
 
+        // Only what the OTP screen needs — this page is reachable by token without login,
+        // so the full user record must not be sent to the browser.
         return Inertia::render("User/Auth/OTPVerification", [
-            'user' => $user,
+            'user' => [
+                'has_phone' => ! empty($user->phone_number),
+                'phone_masked' => $this->maskPhone($user->phone_number),
+            ],
             'token' => $token,
             'open' => true,
             'redirectOnSuccess' => true,
@@ -137,7 +147,7 @@ class AuthenticatedSessionController extends Controller
             ->first();
 
         if (! $otpRecord) {
-            return response()->json(['message' => 'OTP expired or invalid'], 422);
+            return response()->json(['message' => 'This code is no longer valid. Tap "Resend code" to get a new one.'], 422);
         }
 
         // Expired
@@ -151,6 +161,7 @@ class AuthenticatedSessionController extends Controller
             $otpRecord->increment('attempts');
             if ($otpRecord->attempts >= 3) {
                 $otpRecord->update(['is_active' => false]);
+                return response()->json(['message' => 'Too many wrong codes. Tap "Resend code" to get a new one.'], 429);
             }
             return response()->json(['message' => 'Invalid OTP'], 422);
         }
@@ -159,12 +170,12 @@ class AuthenticatedSessionController extends Controller
         $user->forceFill([
             'phone_verified_at' => now(),
         ])->save();
-        Auth::login($user);
+        Auth::login($user, (bool) $request->session()->pull('otp_remember', false));
         // Cleanup
         $otpRecord->delete();
         $request->session()->regenerate();
 
-        $redirectUrl = route('new_frontend.home', absolute: false);
+        $redirectUrl = $request->session()->pull('url.intended', route('new_frontend.home', absolute: false));
         return response()->json(['redirect' => $redirectUrl]);
     }
 
@@ -181,10 +192,14 @@ class AuthenticatedSessionController extends Controller
             return response()->json(['message' => 'User not found'], 404);
         }
 
+        if (empty($user->phone_number)) {
+            return response()->json(['message' => 'Add your phone number first.'], 422);
+        }
+
         // Invalidate previous OTPs
         UserOtp::where('user_id', $user->id)->delete();
         // Generate new OTP
-        $otp = rand(100000, 999999);
+        $otp = random_int(100000, 999999);
         UserOtp::create([
             'user_id' => $user->id,
             'otp_hash' => Hash::make($otp),
@@ -256,7 +271,7 @@ class AuthenticatedSessionController extends Controller
 
         // Reset existing OTPs and create a new one
         UserOtp::where('user_id', $user->id)->delete();
-        $otp = rand(100000, 999999);
+        $otp = random_int(100000, 999999);
         UserOtp::create([
             'user_id' => $user->id,
             'otp_hash' => Hash::make($otp),
@@ -282,6 +297,24 @@ class AuthenticatedSessionController extends Controller
         return response()->json([
             'message' => 'Phone number updated. A new code has been sent.',
             'token' => $tokenToReturn,
+            'phone_masked' => $this->maskPhone($user->phone_number),
         ]);
+    }
+
+    /**
+     * "+18761234567" → "+1 ••••••4567". Empty → null.
+     */
+    private function maskPhone(?string $phone): ?string
+    {
+        if (empty($phone)) {
+            return null;
+        }
+        $digits = preg_replace('/\D/', '', $phone);
+        if (strlen($digits) <= 4) {
+            return $phone;
+        }
+        $prefix = str_starts_with($phone, '+') ? '+' . substr($digits, 0, 1) . ' ' : '';
+        $hidden = strlen($digits) - 4 - ($prefix ? 1 : 0);
+        return $prefix . str_repeat('•', max($hidden, 0)) . substr($digits, -4);
     }
 }
