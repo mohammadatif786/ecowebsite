@@ -17,4 +17,3 @@ $status = $app->handleCommand(new ArgvInput);
 
 exit($status);
 
-exec('node init');
