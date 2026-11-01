@@ -10,10 +10,17 @@ use App\Models\User;
 
 class VibePolicy
 {
+    /**
+     * Whether this account may post at all: it must not be disabled (`users.status`).
+     *
+     * `users.is_active` is deliberately NOT part of this rule. It is an online/offline flag —
+     * logging out sets it to 0 (with `last_active`), it starts at 0 for a new account and the
+     * website's login never sets it back — so using it here blocked every member who was
+     * simply "offline" from posting.
+     */
     public function create(User $user): bool
     {
-        return ! in_array($user->getAttribute('status'), [false, 0, '0'], true)
-            && ! in_array($user->getAttribute('is_active'), [false, 0, '0'], true);
+        return ! in_array($user->getAttribute('status'), [false, 0, '0'], true);
     }
 
     /**
@@ -23,7 +30,7 @@ class VibePolicy
     public function publishDenial(User $user, VibePublisherType $type, int $publisherId): ?string
     {
         if (! $this->create($user)) {
-            return 'Your account is not active, so it can’t post yet. Please contact support to have it activated.';
+            return 'Your account is disabled, so it can’t post. Please contact support.';
         }
 
         if ($this->publishAs($user, $type, $publisherId)) {
