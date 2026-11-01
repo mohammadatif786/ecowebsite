@@ -1,73 +1,88 @@
 <template>
-  <div class="fade">
+  <div class="fade uv-page">
     <!-- Header Section -->
     <div class="rounded-3xl overflow-hidden mb-6" style="background:linear-gradient(120deg,#7c3aed,#a855f7)">
-      <div class="p-5 sm:p-6 text-white space-y-4">
+      <div class="p-6 text-white">
         <!-- Top Title Row -->
-        <div class="flex items-center justify-between gap-3 flex-wrap">
+        <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
           <div class="flex items-center gap-3">
-            <span class="h-12 w-12 rounded-2xl bg-white/20 grid place-items-center shrink-0">
-              <i data-lucide="graduation-cap" class="w-6 h-6"></i>
+            <span class="h-14 w-14 rounded-2xl bg-white/20 grid place-items-center shrink-0">
+              <CampusLogo :size="30" />
             </span>
             <div>
-              <h1 class="text-2xl font-black tracking-tight">U Vibe</h1>
-              <p class="text-white/80 text-xs sm:text-sm font-bold">University Vibes · cross-campus network</p>
+              <h1 class="text-2xl font-black">U Vibe</h1>
+              <p class="text-white/75 text-sm font-bold">University Vibes · cross-campus network</p>
             </div>
           </div>
           <div class="flex items-center gap-2 shrink-0">
-            <button @click="openCampusExplorer" class="h-10 w-10 rounded-xl bg-white/20 hover:bg-white/30 grid place-items-center text-white transition active:scale-95" title="Search">
-              <i data-lucide="search" class="w-4 h-4"></i>
-            </button>
-            <button @click="openMessages" class="h-10 w-10 rounded-xl bg-white/20 hover:bg-white/30 grid place-items-center text-white transition active:scale-95" title="Messages">
-              <i data-lucide="message-circle" class="w-4 h-4"></i>
-            </button>
-            <button @click="openThankYou" class="h-10 w-10 rounded-xl bg-white/20 hover:bg-white/30 grid place-items-center text-lg text-white transition active:scale-95" title="Say Thank You">
-              🙏
-            </button>
-            <button @click="openCompose" class="btn bg-white text-violet-700 hover:bg-violet-50 px-4 py-2 rounded-xl font-black text-sm flex items-center gap-1.5 shadow-md active:scale-95">
-              <i data-lucide="plus" class="w-4 h-4"></i>Post
+            <!-- Each header button is its own feature component (components/new_frontend/uvibe/…) -->
+            <UVibeSearch @visit="goCampus" />
+            <UVibeChat />
+            <UVibeThankYou />
+            <button @click="openCompose" class="btn bg-white text-violet-700 px-4 py-2.5 font-black flex items-center gap-1.5">
+              <Plus class="w-4 h-4" />Post
             </button>
           </div>
         </div>
 
-        <!-- Campus Action Filter Pills -->
-        <div class="flex gap-2 overflow-x-auto hide-scroll pt-1 pb-1">
-          <button @click="openMyUniversities"
-                  class="rounded-full px-4 py-2 text-xs sm:text-sm font-black shrink-0 transition bg-white/20 hover:bg-white/30 text-white flex items-center gap-1.5 border border-white/30 active:scale-95">
-            {{ selectedUniversityName ? `🎓 ${selectedUniversityName}` : '+ Set your university' }}
-          </button>
-          <button @click="openCampusExplorer"
-                  class="rounded-full px-4 py-2 text-xs sm:text-sm font-black shrink-0 transition bg-white text-violet-700 shadow-sm flex items-center gap-1.5 active:scale-95">
-            🎓 All Campuses
-          </button>
-          <button @click="openCampusExplorer"
-                  class="rounded-full px-4 py-2 text-xs sm:text-sm font-black shrink-0 transition bg-white/20 hover:bg-white/30 text-white flex items-center gap-1.5 border border-white/30 active:scale-95">
-            🧭 Explore · 57
-          </button>
+        <!-- Campus bar: main university, other own universities, followed campuses, All, Explore -->
+        <div>
+          <div class="cp-bar">
+            <button v-if="!campus.main" type="button" @click="openMyUniversities" class="cp-chip dashed">
+              ＋ Set your university
+            </button>
+            <button v-else type="button" @click="goCampus(campus.main)" :class="['cp-chip', { on: activeCampusId === campus.main.id }]">
+              🏠 {{ campus.main.name }}
+            </button>
+
+            <button v-for="u in otherMine" :key="'m' + u.id" type="button" @click="goCampus(u)" :class="['cp-chip', { on: activeCampusId === u.id }]">
+              🎓 {{ u.name }}
+            </button>
+            <button v-for="u in campus.following" :key="'f' + u.id" type="button" @click="goCampus(u)" :class="['cp-chip', { on: activeCampusId === u.id }]">
+              {{ u.flag }} {{ u.name }}
+            </button>
+            <button v-if="visiting" type="button" @click="goCampus(visiting)" class="cp-chip on">
+              {{ visiting.flag }} {{ visiting.name }}
+            </button>
+
+            <button type="button" @click="goCampus(null)" :class="['cp-chip', { on: activeCampusId === 'all' }]">
+              🎓 All Campuses
+            </button>
+            <button type="button" @click="openCampusExplorer('browse')" class="cp-chip outlined">
+              🧭 Explore{{ exploreCount ? ' · ' + exploreCount : '' }}
+            </button>
+          </div>
+
+          <!-- Strip under the bar when viewing a campus other than your main one -->
+          <div v-if="activeUni && !activeUni.is_main" class="cp-strip">
+            <span class="cp-strip-text">
+              <template v-if="activeUni.is_mine">Your university · {{ activeUni.status === 'alumni' ? 'Alumni' : 'Student' }}</template>
+              <template v-else>{{ activeUni.is_following ? 'Following ' : 'Visiting ' }}{{ activeUni.full_name }}</template>
+            </span>
+            <button v-if="activeUni.is_mine" type="button" @click="openMyUniversities" class="cp-strip-btn">Manage</button>
+            <button v-else type="button" @click="toggleFollowActive" :disabled="followBusy"
+                    :class="['cp-strip-btn', { light: !activeUni.is_following }]">
+              {{ activeUni.is_following ? 'Unfollow' : '⭐ Follow campus' }}
+            </button>
+          </div>
         </div>
 
         <!-- Category Filters -->
-        <div class="flex gap-2 overflow-x-auto hide-scroll pt-1">
-          <button v-for="cat in categoryList" :key="cat.id" @click="setCategory(cat.id)"
-                  :class="['rounded-full px-4 py-2 text-xs sm:text-sm font-black shrink-0 flex items-center gap-1.5 transition',
-                           activeCategory === cat.id ? 'bg-white text-violet-700 shadow-sm' : 'bg-white/20 text-white hover:bg-white/30']">
-            <span>{{ cat.icon }}</span> {{ cat.label }}
-          </button>
-        </div>
+        <UVibeCategoryTabs v-model="activeCategory" :options="props.composeOptions" />
       </div>
     </div>
 
     <!-- Main Grid Layout -->
     <div class="grid lg:grid-cols-3 gap-6">
       <!-- Main Feed Column -->
-      <div class="lg:col-span-2 space-y-4">
+      <div class="lg:col-span-2 space-y-4 min-w-0">
 
         <!-- Stories Carousel -->
         <div class="card p-4">
           <div class="flex gap-4 overflow-x-auto hide-scroll">
             <button @click="openCompose" class="flex flex-col items-center gap-1 shrink-0">
-              <span class="w-16 h-16 rounded-full border-2 border-dashed border-slate-300 grid place-items-center text-slate-400 hover:border-violet-400 transition">
-                <i data-lucide="plus" class="w-6 h-6"></i>
+              <span class="w-16 h-16 rounded-full border-2 border-dashed border-slate-300 grid place-items-center text-slate-400">
+                <Plus class="w-6 h-6" />
               </span>
               <span class="text-xs font-bold text-slate-500">Add</span>
             </button>
@@ -75,393 +90,264 @@
         </div>
 
         <!-- Share on your campus bar -->
-        <div class="card p-4 flex items-center gap-3 shadow-sm">
-          <img :src="user.avatar" class="w-11 h-11 rounded-full object-cover shadow-sm"/>
+        <div class="card p-4 flex items-center gap-3">
+          <img :src="user.avatar" class="w-11 h-11 rounded-full object-cover" />
           <button @click="openCompose"
                   class="flex-1 text-left bg-slate-100 hover:bg-slate-200 rounded-full px-5 py-3 text-slate-500 font-semibold transition">
             Share on your campus…
           </button>
           <button @click="openCompose"
-                  class="w-11 h-11 rounded-full bg-gradient-to-tr from-violet-600 to-purple-600 text-white grid place-items-center shadow-md active:scale-95 transition">
-            <i data-lucide="image-plus" class="w-5 h-5"></i>
+                  class="w-11 h-11 rounded-full bg-gradient-to-tr from-violet-600 to-purple-600 text-white grid place-items-center">
+            <ImagePlus class="w-5 h-5" />
           </button>
         </div>
 
-        <!-- Posts Feed -->
+        <!-- Posts Feed: every card is a UVibePostCard; its parts (poster, repost, Boost, gig…) are components in components/new_frontend/uvibe/feed/ -->
         <div class="space-y-4">
-          <div v-if="filteredPosts.length === 0" class="text-slate-400 font-bold text-center py-16">
+          <p v-if="filteredPosts.length === 0" class="text-slate-400 font-bold text-center py-16">
             No posts match this filter yet.
-          </div>
+          </p>
 
-          <div v-for="p in filteredPosts" :key="p.id" class="card overflow-hidden shadow-sm">
-            <div class="p-4 flex items-center gap-3">
-              <div class="flex items-center gap-3 flex-1 min-w-0 text-left cursor-pointer" @click="showToast('Profile · ' + p.org)">
-                <span class="h-11 w-11 rounded-xl bg-violet-100 text-violet-700 grid place-items-center font-black shrink-0">
-                  {{ (typeof p.org === 'string' ? p.org : p.org?.name || 'U').slice(0, 1) }}
-                </span>
-                <div class="flex-1 min-w-0">
-                  <p class="font-black text-sm flex items-center gap-1 truncate">
-                    {{ typeof p.org === 'string' ? p.org : p.org?.name || 'University' }}
-                    <i v-if="p.verified" data-lucide="badge-check" class="w-3.5 h-3.5 text-lkblue shrink-0"></i>
-                  </p>
-                  <p class="text-[11px] text-slate-400 truncate">{{ p.group }} · {{ p.time }}</p>
-                </div>
-              </div>
-              <button @click="showToast('🌹 Vibe sent to ' + p.org)" title="Send a Vibe" class="text-lg shrink-0 hover:scale-110 transition">🌹</button>
-              <span class="chip shrink-0" style="background:#7c3aed14;color:#7c3aed;border-color:#7c3aed22">{{ p.tagLabel }}</span>
-            </div>
-
-            <!-- Media Display -->
-            <div v-if="p.media && p.media.length > 0" class="relative">
-              <!-- Single Image -->
-              <img v-if="p.media.length === 1 && p.media[0].type === 'image'"
-                   :src="p.media[0].url"
-                   class="w-full h-56 object-cover" />
-
-              <!-- Single Video -->
-              <video v-else-if="p.media.length === 1 && p.media[0].type === 'video'"
-                     :src="p.media[0].url"
-                     class="w-full h-56 object-cover"
-                     controls />
-
-              <!-- Multiple Images Carousel -->
-              <div v-else-if="p.media.length > 1" class="relative">
-                <div class="carousel-container w-full h-56 overflow-hidden">
-                  <div class="carousel-track flex transition-transform duration-300"
-                       :style="{ transform: `translateX(-${currentSlide[p.id] * 100}%)` }">
-                    <div v-for="(m, idx) in p.media" :key="m.id || idx"
-                         class="carousel-slide w-full h-56 flex-shrink-0">
-                      <img v-if="m.type === 'image'"
-                           :src="m.url"
-                           class="w-full h-56 object-cover" />
-                      <video v-else-if="m.type === 'video'"
-                             :src="m.url"
-                             class="w-full h-56 object-cover"
-                             controls />
-                    </div>
-                  </div>
-                </div>
-                <!-- Carousel Navigation -->
-                <button v-if="p.media.length > 1"
-                        @click="prevSlide(p.id)"
-                        class="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/50 text-white grid place-items-center hover:bg-black/70 transition">
-                  <i data-lucide="chevron-left" class="w-4 h-4"></i>
-                </button>
-                <button v-if="p.media.length > 1"
-                        @click="nextSlide(p.id, p.media.length)"
-                        class="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-black/50 text-white grid place-items-center hover:bg-black/70 transition">
-                  <i data-lucide="chevron-right" class="w-4 h-4"></i>
-                </button>
-                <!-- Carousel Dots -->
-                <div v-if="p.media.length > 1" class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
-                  <span v-for="(m, idx) in p.media" :key="idx"
-                        :class="['w-2 h-2 rounded-full transition', currentSlide[p.id] === idx ? 'bg-white' : 'bg-white/50']">
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div class="p-4">
-              <div class="flex items-center justify-between gap-2 mb-1">
-                <p class="font-black text-lg">{{ p.title }}</p>
-                <span v-if="p.price !== undefined && p.price !== null" class="text-emerald-600 font-black shrink-0">
-                  {{ p.price > 0 ? money(p.price) : 'Free' }}
-                </span>
-              </div>
-              <p class="text-sm text-slate-600 leading-relaxed">{{ p.desc }}</p>
-              <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
-                <div class="flex items-center gap-4 text-slate-500 text-sm font-bold">
-                  <span class="flex items-center gap-1.5 cursor-pointer hover:text-rose-500 transition"><i data-lucide="heart" class="w-4 h-4"></i>{{ num(p.likes) }}</span>
-                  <span class="flex items-center gap-1.5 cursor-pointer hover:text-violet-600 transition"><i data-lucide="message-circle" class="w-4 h-4"></i>{{ num(p.comments) }}</span>
-                  <button @click="showToast('🔗 Link copied')" class="hover:text-lkblue transition"><i data-lucide="share-2" class="w-4 h-4"></i></button>
-                </div>
-                <span v-if="p.onVibes" class="chip flex items-center gap-1" style="background:#05966914;color:#059669;border-color:#05966922">
-                  <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>On Vibes
-                </span>
-              </div>
-            </div>
-          </div>
+          <UVibePostCard v-for="p in filteredPosts" :key="p.id" :post="p" :campus="campusOf(p)"
+                         @openCampus="goCampus" @menu="openPostMenu" @boost="openBoost" @report="openReport"
+                         @applicants="openApplicants" @openTag="openTag"
+                         @updated="replacePost" @reposted="onReposted" @needUniversity="openMyUniversities" />
         </div>
       </div>
 
       <!-- Right Sidebar Column -->
-      <div class="space-y-4">
-        <!-- My Earnings Card -->
-        <button @click="openEarnings"
-                class="w-full rounded-2xl p-4 text-white text-left flex items-center justify-between shadow-lg shadow-emerald-600/20 hover:scale-[1.02] transition-transform active:scale-95"
-                style="background:linear-gradient(135deg,#059669,#10b981)">
-          <div>
-            <p class="font-black text-sm flex items-center gap-1.5">
-              <i data-lucide="trending-up" class="w-4 h-4"></i>My Earnings
-            </p>
-            <p class="text-[11px] text-white/80 mt-0.5">Commission from tagged sales</p>
-          </div>
-          <p class="text-xl font-black">{{ money(props.stats?.total_commission || 0) }}</p>
-        </button>
-
-        <!-- Quick Links Card -->
-        <div class="card p-4 space-y-2 shadow-sm">
-          <h3 class="font-black mb-3">Quick Links</h3>
-          <button @click="router.visit(route('new_frontend.marketplace'))" class="w-full flex items-center gap-3 rounded-2xl border border-slate-100 p-2.5 text-left hover:border-violet-200 transition">
-            <span class="h-9 w-9 rounded-xl grid place-items-center shrink-0" style="background:#7c3aed14;color:#7c3aed">
-              <i data-lucide="store" class="w-4 h-4"></i>
-            </span>
-            <span class="font-bold text-sm text-slate-700">Sell on the Marketplace</span>
-          </button>
-          <button @click="setCategory('opportunity')" class="w-full flex items-center gap-3 rounded-2xl border border-slate-100 p-2.5 text-left hover:border-violet-200 transition">
-            <span class="h-9 w-9 rounded-xl grid place-items-center shrink-0" style="background:#7c3aed14;color:#7c3aed">
-              <i data-lucide="briefcase" class="w-4 h-4"></i>
-            </span>
-            <span class="font-bold text-sm text-slate-700">Browse Campus Gigs</span>
-          </button>
-        </div>
-
-        <!-- Categories Card -->
-        <div class="card p-4 shadow-sm">
-          <h3 class="font-black mb-3">Categories</h3>
-          <div class="flex flex-wrap gap-2">
-            <span v-for="[id, label] in UVIBE_CATS.filter(c => c[0] !== 'all')" :key="id"
-                  @click="setCategory(id)"
-                  class="chip cursor-pointer hover:bg-violet-50 hover:text-violet-700 transition">
-              {{ label }}
-            </span>
-          </div>
-        </div>
+      <div class="space-y-4 min-w-0">
+        <UVibeEarningsCard :stats="earnings" :items="props.affiliateItems" />
+        <UVibeQuickLinks @browseGigs="setCategory('opportunity')" />
+        <UVibeCategoriesCard :options="props.composeOptions" @pick="setCategory" />
       </div>
     </div>
 
     <!-- Compose Modal -->
-    <ComposeUVibeModal ref="composeModalRef" :affiliateItems="props.affiliateItems" :publishers="props.publishers" :userEvents="props.userEvents" @postCreated="onPostCreated" @openUniversityModal="openMyUniversities" />
-
-    <!-- Say Thank You Modal -->
-    <SayThankYouModal ref="sayThankYouModalRef" />
-
-    <!-- Vibes Messages Modal -->
-    <VibesMessagesModal ref="vibesMessagesModalRef" @selectUser="onSelectChatUser" />
-
-    <!-- Vibes Chat Modal -->
-    <VibesChatModal ref="vibesChatModalRef" @back="openMessages" />
-
-    <!-- Affiliate Hub Modal -->
-    <AffiliateHubModal ref="affiliateHubModalRef" :items="props.affiliateItems" :stats="props.stats" />
+    <ComposeUVibeModal ref="composeModalRef" :affiliateItems="props.affiliateItems" :publishers="props.publishers" :userEvents="props.userEvents"
+                       :composeOptions="props.composeOptions"
+                       :myUniversities="campus.my_universities" :defaultUniversityId="composeUniversityId"
+                       @postCreated="onPostCreated" @openUniversityModal="openMyUniversities" />
 
     <!-- Keep Vibes Clean Modal -->
     <KeepVibesCleanModal ref="keepVibesCleanModalRef" />
 
     <!-- My Universities Modal -->
-    <MyUniversitiesModal ref="myUniversitiesModalRef" @addUniversity="openCampusExplorer" @universitySelected="onUniversitySelected" />
+    <MyUniversitiesModal ref="myUniversitiesModalRef" :state="campus" @changed="onCampusChanged" @addUniversity="openCampusExplorer('add')" />
 
     <!-- Campus Explorer Modal -->
-    <CampusExplorerModal ref="campusExplorerModalRef" @manageUniversities="openMyUniversities" @universitySelected="onUniversitySelected" />
+    <CampusExplorerModal ref="campusExplorerModalRef" :state="campus" @changed="onCampusChanged" @visit="goCampus" @manageUniversities="openMyUniversities" />
+
+    <!-- Post windows: one of each serves the whole feed -->
+    <PostMenuModal ref="postMenuRef" @edit="openEdit" @report="openReport" @deleted="removePost" @hidden="removePost" />
+    <PostEditModal ref="postEditRef" :userEvents="props.userEvents" @updated="replacePost" />
+    <PostReportModal ref="postReportRef" :reasons="props.composeOptions?.report_reasons || []" />
+    <PostBoostModal ref="postBoostRef" @boosted="onBoosted" />
+    <GigApplicantsModal ref="applicantsRef" @updated="replacePost" />
+    <VibeTagModal ref="tagModalRef" />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, nextTick, onMounted, watch } from 'vue';
 import { usePage, router } from '@inertiajs/vue3';
 import axios from 'axios';
+import { Plus, ImagePlus } from 'lucide-vue-next';
 import MainLayout from '../../../layouts/new_front_layout/MainLayout.vue';
+import CampusLogo from '../../../components/new_frontend/CampusLogo.vue';
 import ComposeUVibeModal from '../../../components/new_frontend/modals/ComposeUVibeModal.vue';
-import SayThankYouModal from '../../../components/new_frontend/modals/SayThankYouModal.vue';
-import VibesMessagesModal from '../../../components/new_frontend/modals/VibesMessagesModal.vue';
-import VibesChatModal from '../../../components/new_frontend/modals/VibesChatModal.vue';
-import AffiliateHubModal from '../../../components/new_frontend/modals/AffiliateHubModal.vue';
+import UVibePostCard from '../../../components/new_frontend/uvibe/feed/UVibePostCard.vue';
+import PostMenuModal from '../../../components/new_frontend/uvibe/feed/PostMenuModal.vue';
+import PostEditModal from '../../../components/new_frontend/uvibe/feed/PostEditModal.vue';
+import PostReportModal from '../../../components/new_frontend/uvibe/feed/PostReportModal.vue';
+import PostBoostModal from '../../../components/new_frontend/uvibe/feed/PostBoostModal.vue';
+import GigApplicantsModal from '../../../components/new_frontend/uvibe/feed/GigApplicantsModal.vue';
+import VibeTagModal from '../../../components/new_frontend/modals/VibeTagModal.vue';
+import { focusLinkedPost } from '../../../services/uvibeDeepLink';
+import UVibeSearch from '../../../components/new_frontend/uvibe/search/UVibeSearch.vue';
+import UVibeChat from '../../../components/new_frontend/uvibe/chat/UVibeChat.vue';
+import UVibeThankYou from '../../../components/new_frontend/uvibe/thanks/UVibeThankYou.vue';
+import UVibeEarningsCard from '../../../components/new_frontend/uvibe/earnings/UVibeEarningsCard.vue';
+import UVibeQuickLinks from '../../../components/new_frontend/uvibe/quicklinks/UVibeQuickLinks.vue';
+import UVibeCategoryTabs from '../../../components/new_frontend/uvibe/categories/UVibeCategoryTabs.vue';
+import UVibeCategoriesCard from '../../../components/new_frontend/uvibe/categories/UVibeCategoriesCard.vue';
 import KeepVibesCleanModal from '../../../components/new_frontend/modals/KeepVibesCleanModal.vue';
 import MyUniversitiesModal from '../../../components/new_frontend/modals/MyUniversitiesModal.vue';
 import CampusExplorerModal from '../../../components/new_frontend/modals/CampusExplorerModal.vue';
-import { UVIBE_CATS, getUser } from '../../../components/new_frontend/MockDataStore';
+import { getUser } from '../../../components/new_frontend/MockDataStore';
 
 defineOptions({ layout: MainLayout });
 
 const props = defineProps({
   affiliateItems: { type: Array, default: () => [] },
   stats: { type: Object, default: () => ({}) },
+  // Same numbers as `stats`; this is the one the Promote & Earn window refreshes after a payout.
+  earningsStats: { type: Object, default: null },
   uvibes: { type: Array, default: () => [] },
   publishers: { type: Object, default: () => ({ organizations: [], custom: [] }) },
-  userEvents: { type: Array, default: () => [] }
+  // Post types, organization types and text-card looks for the composer (same data the app gets).
+  composeOptions: { type: Object, default: null },
+  userEvents: { type: Array, default: () => [] },
+  // { main, my_universities, following, max, total_campuses } from the server
+  campusState: { type: Object, default: () => ({ main: null, my_universities: [], following: [], max: 5, total_campuses: 0 }) },
 });
 
 const page = usePage();
 const user = computed(() => page.props.auth?.user || getUser());
+const earnings = computed(() => props.earningsStats || props.stats || {});
 
-const activeCampus = ref('All Campuses');
+// Campus bar state comes from the server (same data the mobile API returns).
+const campus = ref(props.campusState);
+watch(() => props.campusState, (v) => { campus.value = v; });
+// Feed opens on your main university (as in the design); otherwise all campuses.
+const activeCampusId = ref(props.campusState?.main?.id ?? 'all');
+const visitedUni = ref(null); // a campus opened from the Explorer that isn't yours or followed
+const followBusy = ref(false);
 const activeCategory = ref('all');
 const posts = ref(props.uvibes || []);
-const selectedUniversityName = ref('');
-const currentSlide = ref({});
+watch(() => props.uvibes, (v) => { posts.value = v || []; });
 
-const setCampus = (c) => activeCampus.value = c;
 const setCategory = (c) => activeCategory.value = c;
 
 const composeModalRef = ref(null);
-const sayThankYouModalRef = ref(null);
-const vibesMessagesModalRef = ref(null);
-const vibesChatModalRef = ref(null);
-const affiliateHubModalRef = ref(null);
 const keepVibesCleanModalRef = ref(null);
 const myUniversitiesModalRef = ref(null);
 const campusExplorerModalRef = ref(null);
+// Post windows
+const postMenuRef = ref(null);
+const postEditRef = ref(null);
+const postReportRef = ref(null);
+const postBoostRef = ref(null);
+const applicantsRef = ref(null);
+const tagModalRef = ref(null);
 
-const categoryList = [
-  { id: 'all', label: 'All', icon: ' ' },
-  { id: 'events', label: 'Events', icon: '📅' },
-  { id: 'parties', label: 'Parties', icon: '🎉' },
-  { id: 'campus-life', label: 'Campus Life', icon: '🏫' },
-  { id: 'clubs', label: 'Clubs', icon: '👥' },
-  { id: 'food', label: 'Food', icon: '🍴' },
-  { id: 'opportunity', label: 'Gigs', icon: '🧳' },
-];
+const openMyUniversities = () => {
+  myUniversitiesModalRef.value?.open();
+};
 
-const openMyUniversities = (openComposeAfter = false) => {
+const openCampusExplorer = (mode = 'browse') => {
+  campusExplorerModalRef.value?.open(typeof mode === 'string' ? mode : 'browse');
+};
+
+/* ---- campus bar ---- */
+const otherMine = computed(() => (campus.value.my_universities || []).filter(u => !u.is_main));
+const knownUni = (id) =>
+  (campus.value.my_universities || []).find(u => u.id === id) ||
+  (campus.value.following || []).find(u => u.id === id) || null;
+const activeUni = computed(() => activeCampusId.value === 'all' ? null : (knownUni(activeCampusId.value) || visitedUni.value));
+// A chip for a campus you're only visiting (not yours, not followed).
+const visiting = computed(() => activeUni.value && !knownUni(activeUni.value.id) ? activeUni.value : null);
+
+const goCampus = (u) => {
+  if (!u) { activeCampusId.value = 'all'; visitedUni.value = null; return; }
+  activeCampusId.value = u.id;
+  visitedUni.value = knownUni(u.id) ? null : u;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+const onCampusChanged = (state) => {
+  if (!state) return;
+  campus.value = state;
+  if (visitedUni.value && knownUni(visitedUni.value.id)) visitedUni.value = null;
+  // Viewing a campus you just removed: fall back to your main one.
+  if (activeCampusId.value !== 'all' && !activeUni.value) {
+    activeCampusId.value = state.main?.id ?? 'all';
+  }
+  // First university added: open its feed.
+  if (activeCampusId.value === 'all' && state.main && (state.my_universities || []).length === 1) {
+    activeCampusId.value = state.main.id;
+  }
+};
+
+const toggleFollowActive = async () => {
+  const u = activeUni.value;
+  if (!u || u.is_mine || followBusy.value) return;
+  followBusy.value = true;
   try {
-    const saved = localStorage.getItem('lk_my_universities');
-    const parsed = saved ? JSON.parse(saved) : [];
-
-    if (parsed.length > 0) {
-      // If university is already set, update the display name
-      selectedUniversityName.value = parsed[0].name;
-      if (openComposeAfter) {
-        openCompose();
-      } else {
-        // Just open the modal to show current universities
-        if (myUniversitiesModalRef.value) {
-          myUniversitiesModalRef.value.open();
-        }
-      }
-    } else {
-      // If no university set, open CampusExplorer to add one
-      openCampusExplorer();
-    }
+    const wasFollowing = !!u.is_following;
+    const res = wasFollowing
+      ? await axios.delete(route('new_frontend.universities.unfollow', u.id))
+      : await axios.post(route('new_frontend.universities.follow', u.id));
+    campus.value = res.data.state;
+    // After unfollowing you're still looking at that campus, now as a visitor.
+    visitedUni.value = wasFollowing ? { ...u, is_following: false } : null;
+    showToast(res.data.message);
   } catch (e) {
-    openCampusExplorer();
+    showToast(e?.response?.data?.message || 'Could not update');
+  } finally {
+    followBusy.value = false;
   }
 };
 
-const openCampusExplorer = () => {
-  if (campusExplorerModalRef.value) {
-    campusExplorerModalRef.value.open();
-  }
-};
+// "Posting to" default: the campus you're looking at if it's yours, else your main one.
+const composeUniversityId = computed(() => (activeUni.value?.is_mine ? activeUni.value.id : campus.value.main?.id) || null);
 
 onMounted(() => {
   if (keepVibesCleanModalRef.value) {
-    keepVibesCleanModalRef.value.open();
+    keepVibesCleanModalRef.value.openIfDue();
   }
 
-  // Load selected university name
-  try {
-    const saved = localStorage.getItem('lk_my_universities');
-    const parsed = saved ? JSON.parse(saved) : [];
-    if (parsed.length > 0) {
-      selectedUniversityName.value = parsed[0].name;
-    }
-  } catch (e) {}
-
-  // Initialize carousel slides for posts with multiple media
-  posts.value.forEach(p => {
-    if (p.media && p.media.length > 1) {
-      currentSlide.value[p.id] = 0;
-    }
+  // A shared link (?post=ID) opens the feed on that post.
+  focusLinkedPost({
+    posts, showEverything: () => { activeCampusId.value = 'all'; visitedUni.value = null; activeCategory.value = 'all'; },
+    notFound: () => showToast('That post is no longer available'),
   });
 });
 
 const openCompose = () => {
-  try {
-    const saved = localStorage.getItem('lk_my_universities');
-    const parsed = saved ? JSON.parse(saved) : [];
-    if (!parsed.length) {
-      showToast('Please set your university first');
-      openCampusExplorer();
-      return;
-    }
-    // Update the selected university name display
-    selectedUniversityName.value = parsed[0].name;
-  } catch (e) {
-    openCampusExplorer();
+  // You can post only to your own universities (enforced on the server too).
+  if (!(campus.value.my_universities || []).length) {
+    showToast('Add your university to your profile first');
+    openMyUniversities();
     return;
   }
-
-  if (composeModalRef.value) {
-    composeModalRef.value.open();
-  }
-};
-
-const openMessages = async () => {
-  try {
-    const res = await axios.get(route('new_frontend.vibes.chats.conversations'));
-    const conversations = res.data?.conversations || [];
-    if (vibesMessagesModalRef.value) {
-      vibesMessagesModalRef.value.open(conversations);
-    }
-  } catch (e) {
-    if (vibesMessagesModalRef.value) {
-      vibesMessagesModalRef.value.open([]);
-    }
-  }
-};
-
-const onSelectChatUser = (targetUser) => {
-  if (vibesChatModalRef.value) {
-    vibesChatModalRef.value.open(targetUser);
-  }
-};
-
-const openThankYou = async () => {
-  try {
-    const res = await axios.get(route('new_frontend.vibes.gifts-received'));
-    const gifts = res.data?.gifts_received || [];
-    if (sayThankYouModalRef.value) {
-      sayThankYouModalRef.value.open(gifts);
-    }
-  } catch (e) {
-    if (sayThankYouModalRef.value) {
-      sayThankYouModalRef.value.open([]);
-    }
-  }
-};
-
-const openEarnings = () => {
-  if (affiliateHubModalRef.value) {
-    affiliateHubModalRef.value.open('earnings');
-  }
+  composeModalRef.value?.open();
 };
 
 const showToast = (msg) => {
   if (window.toast) window.toast(msg);
 };
 
-const onPostCreated = (newPost) => {
-  posts.value.unshift(newPost);
+/* ---- post windows + keeping the list in step with what happened ---- */
+const openPostMenu = (p) => postMenuRef.value?.open(p);
+const openEdit = (p) => postEditRef.value?.open(p);
+const openReport = (p) => postReportRef.value?.open(p);
+const openBoost = (p) => postBoostRef.value?.open(p);
+const openApplicants = (p) => applicantsRef.value?.open(p);
+const openTag = (p) => tagModalRef.value?.open(p.tag);
+
+const replacePost = (np) => { posts.value = posts.value.map(x => (x.id === np.id ? np : x)); };
+const removePost = (id) => { posts.value = posts.value.filter(x => x.id !== id); };
+const onBoosted = ({ post_id, boost_coins }) => {
+  posts.value = posts.value.map(x => (x.id === post_id ? { ...x, boost_coins } : x));
+};
+// A repost is a new post on your campus; the original shows its new count.
+const onReposted = ({ post: copy, original }) => {
+  posts.value = [copy, ...posts.value.map(x => (x.id === original.id ? { ...x, reposts: original.reposts, reposted: true } : x))];
 };
 
-const onUniversitySelected = (campus, openComposeAfter = false) => {
-  if (campus && campus.name) {
-    selectedUniversityName.value = campus.name;
-    // Open compose modal if requested (from CampusExplorer)
-    if (openComposeAfter && composeModalRef.value) {
-      composeModalRef.value.open(true);
-    }
-  }
+// The create endpoint returns a Vibes-format post, not the U Vibe card format,
+// so reload the U Vibe list from the server instead of inserting it by hand.
+const onPostCreated = () => {
+  router.reload({ only: ['uvibes', 'stats', 'campusState'] }); // campusState: post counts per campus
 };
 
-const prevSlide = (postId) => {
-  if (!currentSlide.value[postId]) currentSlide.value[postId] = 0;
-  if (currentSlide.value[postId] > 0) {
-    currentSlide.value[postId]--;
-  }
-};
+const exploreCount = computed(() => campusExplorerModalRef.value?.campusCount || campus.value.total_campuses || 0);
 
-const nextSlide = (postId, totalSlides) => {
-  if (!currentSlide.value[postId]) currentSlide.value[postId] = 0;
-  if (currentSlide.value[postId] < totalSlides - 1) {
-    currentSlide.value[postId]++;
-  }
+/* ---- post card helpers ---- */
+// The campus pill opens that campus's feed.
+const campusOf = (p) => {
+  if (!p.university_id) return null;
+  return knownUni(p.university_id) || {
+    id: p.university_id, name: p.campus, full_name: p.campus, flag: p.campus_flag || '🎓',
+    is_mine: false, is_following: false,
+  };
 };
 
 const filteredPosts = computed(() => {
   let filtered = posts.value;
-  if (activeCampus.value !== 'All Campuses') {
-    filtered = filtered.filter(p => p.campus === activeCampus.value);
+  if (activeCampusId.value !== 'all') {
+    filtered = filtered.filter(p => p.university_id === activeCampusId.value);
   }
   if (activeCategory.value !== 'all') {
     filtered = filtered.filter(p => p.category === activeCategory.value);
@@ -469,22 +355,36 @@ const filteredPosts = computed(() => {
   return filtered;
 });
 
-const num = (n) => Number(n).toLocaleString();
-const money = (n) => '$' + Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 </script>
 
 <style scoped>
-.carousel-container {
-  position: relative;
-}
+/* Buttons show the pointer cursor, as in the design. */
+.uv-page button:not(:disabled) { cursor: pointer; }
 
-.carousel-track {
-  display: flex;
-  width: 100%;
-}
+/* The post a shared link points at. */
+.uv-flash { animation: uv-flash 2.2s ease-out; }
+@keyframes uv-flash { 0%, 60% { box-shadow: 0 0 0 4px #a855f7; } 100% { box-shadow: 0 0 0 0 transparent; } }
 
-.carousel-slide {
-  width: 100%;
-  flex-shrink: 0;
+/* Campus bar */
+.cp-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.cp-chip {
+  flex: none; border-radius: 999px; padding: 7px 13px; font-size: 12px; font-weight: 900; white-space: nowrap;
+  background: rgba(255, 255, 255, .18); color: #fff;
 }
+.cp-chip.on { background: #fff; color: #4c1d95; }
+.cp-chip.dashed { border: 1.5px dashed rgba(255, 255, 255, .75); }
+.cp-chip.outlined { border: 1.5px solid rgba(255, 255, 255, .6); }
+
+/* Strip under the bar when viewing another campus */
+.cp-strip {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 6px;
+  border-radius: 14px; background: rgba(255, 255, 255, .14); padding: 8px 12px; color: #fff; font-size: 12px; font-weight: 700;
+}
+.cp-strip-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cp-strip-btn {
+  flex: none; border-radius: 999px; padding: 6px 12px; font-size: 12px; font-weight: 900;
+  background: rgba(255, 255, 255, .2); color: #fff;
+}
+.cp-strip-btn.light { background: #fff; color: #4c1d95; }
+.cp-strip-btn:disabled { opacity: .6; }
 </style>

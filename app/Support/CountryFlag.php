@@ -27,18 +27,42 @@ class CountryFlag
         'uruguay' => 'UY', 'venezuela' => 'VE', 'virgin islands' => 'VG',
     ];
 
-    public static function emoji(?string $value): string
+    /** ISO 3166-1 alpha-2 code for a code ("tt") or a known country name ("Trinidad and Tobago"). */
+    public static function alpha2(?string $value): ?string
     {
-        if (! $value) {
-            return '';
+        $value = trim((string) $value);
+        if ($value === '') {
+            return null;
         }
 
-        $value = trim($value);
-
-        $alpha2 = preg_match('/^[A-Za-z]{2}$/', $value)
+        return preg_match('/^[A-Za-z]{2}$/', $value)
             ? strtoupper($value)
-            : self::NAME_TO_ALPHA2[strtolower($value)] ?? null;
+            : (self::NAME_TO_ALPHA2[strtolower($value)] ?? null);
+    }
 
+    /** English country name for a code or name, or null when it is not known. */
+    public static function name(?string $value): ?string
+    {
+        $alpha2 = self::alpha2($value);
+        if (! $alpha2) {
+            return null;
+        }
+
+        if (class_exists(\Locale::class)) {
+            $name = \Locale::getDisplayRegion('-'.$alpha2, 'en');
+            if ($name && $name !== $alpha2 && $name !== '-'.$alpha2) {
+                return $name;
+            }
+        }
+
+        $found = array_search($alpha2, self::NAME_TO_ALPHA2, true);
+
+        return $found === false ? null : str_replace(' And ', ' and ', ucwords($found));
+    }
+
+    public static function emoji(?string $value): string
+    {
+        $alpha2 = self::alpha2($value);
         if (! $alpha2) {
             return '';
         }

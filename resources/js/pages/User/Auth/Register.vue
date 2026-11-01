@@ -219,6 +219,24 @@
                                     <InputError class="mt-1 text-xs text-red-600" :message="form.errors.email" />
                                 </div>
 
+                                <!-- University (optional) — becomes the member's main school on U Vibe -->
+                                <div>
+                                    <label class="block text-xs text-[#64748b] mb-1.5 tracking-[0.02em]"
+                                        for="signupUniversity">University <span class="text-[#94a3b8]">(optional)</span></label>
+                                    <input v-model="universityText" id="signupUniversity" name="university" type="text"
+                                        list="signupUniversityList" autocomplete="off"
+                                        placeholder="Start typing your school…"
+                                        @focus="loadUniversities"
+                                        class="w-full px-3 py-3 rounded-xl border border-[#e6edf7] bg-white outline-none text-[15px] transition-all duration-150 focus:border-[rgba(47,164,230,.55)] focus:shadow-[0_0_0_4px_rgba(47,164,230,.14)]" />
+                                    <datalist id="signupUniversityList">
+                                        <option v-for="u in universityOptions" :key="u.id" :value="u.full_name">{{ u.country || 'New campus' }}</option>
+                                    </datalist>
+                                    <p class="mt-1 text-[11px] text-[#94a3b8]">
+                                        {{ universityHint }}
+                                    </p>
+                                    <InputError class="mt-1 text-xs text-red-600" :message="form.errors.university_id || form.errors.university_name" />
+                                </div>
+
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                                     <div class="relative">
                                         <label class="block text-xs text-[#64748b] mb-1.5 tracking-[0.02em]"
@@ -529,6 +547,35 @@ const form = useForm({
     linkup_id: '',
     password: '',
     password_confirmation: '',
+    university_id: null as number | null,
+    university_name: '' as string,
+});
+
+// University picker (optional): type-to-search over the campus list; an unknown name is
+// added as a new campus when the account is created.
+const universityText = ref('');
+const universityOptions = ref<Array<{ id: number; name: string; full_name: string; country: string | null }>>([]);
+let universitiesLoaded = false;
+const loadUniversities = async () => {
+    if (universitiesLoaded) return;
+    universitiesLoaded = true;
+    try {
+        const res = await axios.get(route('new_frontend.universities.catalog'));
+        universityOptions.value = res.data?.universities || [];
+    } catch (e) {
+        universitiesLoaded = false;
+    }
+};
+const matchedUniversity = computed(() => {
+    const t = universityText.value.trim().toLowerCase();
+    if (!t) return null;
+    return universityOptions.value.find(u => u.full_name.toLowerCase() === t || u.name.toLowerCase() === t) || null;
+});
+const universityHint = computed(() => {
+    const t = universityText.value.trim();
+    if (!t) return 'Students and alumni can post on their campus in U Vibe. You can add more later.';
+    if (matchedUniversity.value) return '🎓 ' + matchedUniversity.value.full_name + (matchedUniversity.value.country ? ' · ' + matchedUniversity.value.country : '');
+    return t.length < 3 ? 'Keep typing…' : '🏫 “' + t + '” will be added as a new campus.';
 });
 
 // Signin form
@@ -831,9 +878,12 @@ const toggleForgot = (on: boolean) => {
 const submit = async () => {
     // Remove @ from linkup_id before submitting
     const linkupId = form.linkup_id.replace(/^@+/, '');
+    const uniText = universityText.value.trim();
     form.transform((data) => ({
         ...data,
         linkup_id: linkupId,
+        university_id: matchedUniversity.value ? matchedUniversity.value.id : null,
+        university_name: !matchedUniversity.value && uniText.length >= 3 ? uniText : null,
     })).post(route('register'), {});
 };
 

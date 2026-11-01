@@ -111,7 +111,9 @@ class MediaOptimizationService
     {
         try {
             if ($type === 'image') {
-                $image = $this->imageManager->read($inputPath);
+                // Intervention Image 4 renamed read() to decodePath(); read() no longer exists.
+                // (A missing method is an \Error, not an \Exception, so the catch below can't save it.)
+                $image = $this->imageManager->decodePath($inputPath);
                 $image->contain(1080, 1350, '000000') // Black background
                       ->save($outputPath);
                 return $outputPath;
