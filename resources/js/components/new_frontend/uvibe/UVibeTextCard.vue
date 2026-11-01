@@ -1,9 +1,9 @@
 <template>
   <!-- A "text card" post: words on a coloured background, with an optional motion and floating stickers. -->
-  <div class="uv-tc" :class="'uv-tc-' + motion">
+  <div ref="root" class="uv-tc" :class="'uv-tc-' + motion">
     <div class="uv-tc-bg" :style="bgStyle"></div>
     <span v-for="s in stickers" :key="s.i" class="uv-tc-stk" :style="s.style">{{ view.sticker }}</span>
-    <p class="uv-tc-txt" :style="textStyle">
+    <p ref="txtEl" class="uv-tc-txt" :style="textStyle">
       <span v-if="!view.text" class="opacity-60">{{ placeholder }}</span>
       <template v-else-if="motion === 'pop'">
         <template v-for="(w, i) in words" :key="i">
@@ -17,7 +17,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 const props = defineProps({
   // Ready to draw: { text, bg, ink, font_css, motion, sticker } — what the backend sends as `text_card`.
@@ -50,7 +50,50 @@ const size = computed(() => {
   return n <= 28 ? 11.5 : n <= 60 ? 9.4 : n <= 110 ? 7.6 : n <= 160 ? 6.4 : n <= 240 ? 5.5 : n <= 400 ? 4.4 : 3.6;
 });
 
-const textStyle = computed(() => `color:${view.value.ink || '#fff'};font-size:${size.value}cqw;${view.value.font_css || ''}`);
+// The steps above suit a roomy card. A feed card is only 400px / 500px tall (same as the Vibes page), so longer
+// text is shrunk — just as much as needed, never below what fits with some air around it — and short text
+// keeps its full size.
+const root = ref(null);
+const txtEl = ref(null);
+const fitScale = ref(1);
+let frame = 0;
+
+const fit = async () => {
+  await nextTick();
+  const box = root.value;
+  const p = txtEl.value;
+  if (!box || !p || !box.clientHeight) return;
+  const saved = p.style.cssText; // measuring below borrows the font size; put it back afterwards
+  const room = box.clientHeight * 0.88;
+  // Does the text fit at this scale? Uses the very same font size the card will be drawn with.
+  const fits = (s) => { p.style.fontSize = `${(size.value * s).toFixed(3)}cqw`; return p.offsetHeight <= room; };
+  let best = 1;
+  if (!fits(1)) {
+    let lo = 0.2;
+    let hi = 1;
+    for (let i = 0; i < 8; i += 1) { // biggest scale that still fits
+      const mid = (lo + hi) / 2;
+      if (fits(mid)) lo = mid; else hi = mid;
+    }
+    // That lands right on the edge where one more word wraps, so step down a little and check the exact value.
+    best = Math.round(lo * 0.98 * 1000) / 1000;
+    for (let i = 0; i < 6 && !fits(best); i += 1) best = Math.round(best * 0.97 * 1000) / 1000;
+  }
+  p.style.cssText = saved;
+  fitScale.value = best;
+};
+const refit = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(fit); };
+
+let watcher = null;
+onMounted(() => {
+  fit();
+  if (typeof ResizeObserver !== 'undefined' && root.value) { watcher = new ResizeObserver(refit); watcher.observe(root.value); }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(refit);
+});
+onBeforeUnmount(() => { cancelAnimationFrame(frame); if (watcher) watcher.disconnect(); });
+watch(() => [view.value.text, view.value.font_css, motion.value, props.placeholder], fit, { flush: 'post' });
+
+const textStyle = computed(() => `color:${view.value.ink || '#fff'};font-size:${(size.value * fitScale.value).toFixed(3)}cqw;${view.value.font_css || ''}`);
 
 const words = computed(() => {
   let k = 0;
