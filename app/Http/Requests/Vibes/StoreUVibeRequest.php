@@ -82,6 +82,9 @@ class StoreUVibeRequest extends StoreVibeRequest
         return [
             'title.required' => 'Add a title.',
             'category.in' => 'Choose a valid type for your post.',
+            // PHP itself refused the file (upload_max_filesize / post_max_size) — say so, with the real limits.
+            'media.*.uploaded' => 'A photo could not be uploaded — this server accepts files up to '
+                .ini_get('upload_max_filesize').' each ('.ini_get('post_max_size').' per post). Try a smaller photo.',
         ];
     }
 }
