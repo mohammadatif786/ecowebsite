@@ -36,6 +36,8 @@ class WizardUpdateFormRequest extends FormRequest
             'about_me' => 'required|string|max:1000',
             'job' => 'required|string|max:255',
             'university' => 'required|string|max:255',
+            // Country picked next to the university (so a new campus lands under the right country).
+            'university_country' => 'nullable|string|max:100',
             'whyare' => 'required',
             'phone_number' => 'required',
             'language' => 'required',

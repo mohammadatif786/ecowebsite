@@ -19,6 +19,7 @@ class VibeChatController extends Controller
         $messages = VibeMessage::where('from_user_id', $user->id)
             ->orWhere('to_user_id', $user->id)
             ->latest()
+            ->orderByDesc('id') // two messages in the same second: the later one is the newer
             ->get();
 
         $partnerIds = [];
@@ -31,6 +32,9 @@ class VibeChatController extends Controller
 
         $partners = User::whereIn('id', $partnerIds)
             ->get(['id', 'name', 'linkup_id', 'avatar'])
+            // Newest conversation first (the query above returns them in id order).
+            ->sortBy(fn ($p) => array_search($p->id, $partnerIds, true))
+            ->values()
             ->map(function ($p) use ($messages, $user) {
                 $lastMsg = $messages->first(function ($m) use ($user, $p) {
                     return ($m->from_user_id === $user->id && $m->to_user_id === $p->id) ||

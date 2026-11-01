@@ -10,6 +10,9 @@ use App\Models\Product;
 use App\Models\User;
 use App\Models\Vibe;
 use App\Policies\VibePolicy;
+use App\Domain\Vibes\Enums\VibePublisherType;
+use App\Services\UniversityService;
+use App\Support\UVibeOptions;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -17,7 +20,11 @@ use Illuminate\Validation\ValidationException;
 
 class CreateVibeAction
 {
-    public function __construct(private readonly UploadVibeMediaAction $media, private readonly VibePolicy $policy) {}
+    public function __construct(
+        private readonly UploadVibeMediaAction $media,
+        private readonly VibePolicy $policy,
+        private readonly UniversityService $universities,
+    ) {}
 
     public function execute(User $user, CreateVibeData $data): Vibe
     {
@@ -33,9 +40,22 @@ class CreateVibeAction
             throw ValidationException::withMessages(['event_ids' => 'One or more events cannot be tagged.']);
         }
 
+        // U Vibe: a post goes to one of the poster's own universities (main one if none chosen).
+        $university = $data->isUvibe
+            ? $this->universities->postingUniversity($user, $data->universityId, $data->campus)
+            : null;
+
+        // U Vibe text card: the server turns the chosen look into the background/font older
+        // screens draw, so a post looks the same whether it came from the website or the app.
+        $style = $data->isUvibe && $data->textStyle ? UVibeOptions::normalizeStyle($data->textStyle) : null;
+        $look = $style ? UVibeOptions::legacyLook($style) : null;
+
+        // "Posted by <you> · <role>" only exists when the post goes out as an organization or the university.
+        $byOrganization = $data->isUvibe && ($data->asUniversity || $data->publisherType !== VibePublisherType::User);
+
         $stored = [];
         try {
-            $vibe = DB::transaction(function () use ($user, $data, &$stored) {
+            $vibe = DB::transaction(function () use ($user, $data, $university, $style, $look, $byOrganization, &$stored) {
                 $vibe = Vibe::create([
                     'created_by' => $user->id,
                     'publisher_type' => $data->publisherType->value,
@@ -43,11 +63,16 @@ class CreateVibeAction
                     'caption' => $data->caption,
                     'title' => $data->title,
                     'category' => $data->category,
-                    'campus' => $data->campus,
+                    'campus' => $university?->name ?? $data->campus,
+                    'university_id' => $university?->id,
                     'price' => $data->price,
                     'is_uvibe' => $data->isUvibe,
-                    'text_bg' => $data->textBg,
-                    'text_font' => $data->textFont,
+                    'show_on_vibes' => $data->showOnVibes,
+                    'text_bg' => $look['bg'] ?? $data->textBg,
+                    'text_font' => $look['font'] ?? $data->textFont,
+                    'text_style' => $style,
+                    'posted_role' => $byOrganization && filled($data->postedRole) ? mb_substr($data->postedRole, 0, UVibeOptions::ROLE_MAX) : null,
+                    'as_university' => $data->isUvibe && $data->asUniversity,
                     'location_name' => $data->locationName,
                     'location_place_id' => $data->locationPlaceId,
                     'latitude' => $data->latitude,

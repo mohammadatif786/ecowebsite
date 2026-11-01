@@ -338,7 +338,7 @@
                                 Let Link Up know where you studied. This helps us to connect with others whow share you
                                 background.
                             </p>
-                            <University v-model="form.university" />
+                            <University v-model="form.university" v-model:country="form.university_country" />
                             <!-- <Input v-model="form.university" :error="form.errors.university" placeholder=" Standford Universty" /> -->
                             <p class="text-xs font-semibold text-red-500">{{ form.errors.university }}</p>
                         </div>
@@ -628,6 +628,7 @@ const form = useForm({
     about_me: parsedForm?.about_me ?? '',
     job: parsedForm?.job ?? '',
     university: parsedForm?.university ?? '',
+    university_country: parsedForm?.university_country ?? '',
     // Step 5 data
     whyare: parsedForm?.whyare ?? '', // This is the new field added for the last step
     more_photos: [],

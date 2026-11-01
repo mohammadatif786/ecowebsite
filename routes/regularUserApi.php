@@ -3,6 +3,12 @@
 use App\Http\Controllers\Api\UserWizardController;
 use App\Http\Controllers\Frontend\LiveStreamGumletController;
 use App\Http\Controllers\NewFrontend\NightLifeController;
+use App\Http\Controllers\NewFrontend\UniversityController;
+use App\Http\Controllers\NewFrontend\UVibeController;
+use App\Http\Controllers\NewFrontend\UVibeOrganizationController;
+use App\Http\Controllers\NewFrontend\UVibePostController;
+use App\Http\Controllers\NewFrontend\UVibeSearchController;
+use App\Http\Controllers\NewFrontend\UVibeThankYouController;
 use App\Http\Controllers\NewFrontend\VibeController;
 use App\Http\Controllers\NewFrontend\VibeInteractionController;
 use App\Http\Controllers\NewFrontend\VibeChatController;
@@ -27,6 +33,9 @@ Route::prefix('regular-user')->name('regularUserAPI.')->group(function () {
     Route::post('check-linkup-id', [UserWizardController::class, 'checkLinkupId']);
 
     Route::post('register', [UserWizardController::class, 'register']);
+
+    // Public campus list (sign-up + Campus Explorer)
+    Route::get('universities', [UniversityController::class, 'catalog'])->middleware('throttle:60,1')->name('universities.catalog');
 });
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -34,6 +43,39 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('regular-user')
         ->name('regularUserAPI.')
         ->group(function () {
+
+            // U Vibe campuses (same controller as the web routes in routes/new_front.php)
+            Route::prefix('universities')->name('universities.')->controller(UniversityController::class)->group(function () {
+                Route::get('state', 'state')->name('state');
+                Route::post('mine', 'addMine')->middleware('throttle:20,1')->name('mine.store');
+                Route::delete('mine/{university}', 'removeMine')->name('mine.destroy');
+                Route::patch('mine/{university}', 'setStatus')->name('mine.status');
+                Route::post('mine/{university}/main', 'makeMain')->name('mine.main');
+                Route::post('{university}/follow', 'follow')->name('follow');
+                Route::delete('{university}/follow', 'unfollow')->name('unfollow');
+            });
+
+            // U Vibe campus feed + "Post to U Vibe" (same controller as the web routes in routes/new_front.php)
+            Route::get('uvibe/posts', [UVibeController::class, 'index'])->middleware('throttle:60,1')->name('uvibe.posts.index');
+            Route::post('uvibe/posts', [UVibeController::class, 'store'])->middleware('throttle:10,1')->name('uvibe.posts.store');
+            Route::get('uvibe/options', [UVibeController::class, 'options'])->name('uvibe.options');
+            Route::get('uvibe/organizations', [UVibeOrganizationController::class, 'index'])->name('uvibe.organizations.index');
+            Route::post('uvibe/organizations', [UVibeOrganizationController::class, 'store'])->middleware('throttle:20,1')->name('uvibe.organizations.store');
+            // What a member can do with a post in the feed: edit, delete, hide, report, repost, Boost, and Campus Gig apply/pay
+            Route::put('uvibe/posts/{vibe}', [UVibePostController::class, 'update'])->middleware('throttle:30,1')->name('uvibe.posts.update');
+            Route::delete('uvibe/posts/{vibe}', [UVibePostController::class, 'destroy'])->middleware('throttle:30,1')->name('uvibe.posts.destroy');
+            Route::post('uvibe/posts/{vibe}/hide', [UVibePostController::class, 'hide'])->middleware('throttle:60,1')->name('uvibe.posts.hide');
+            Route::post('uvibe/posts/{vibe}/report', [UVibePostController::class, 'report'])->middleware('throttle:10,1')->name('uvibe.posts.report');
+            Route::post('uvibe/posts/{vibe}/repost', [UVibePostController::class, 'repost'])->middleware('throttle:20,1')->name('uvibe.posts.repost');
+            Route::get('uvibe/boosts', [UVibePostController::class, 'boosts'])->name('uvibe.boosts');
+            Route::post('uvibe/posts/{vibe}/boost', [UVibePostController::class, 'boost'])->middleware('throttle:30,1')->name('uvibe.posts.boost');
+            Route::post('uvibe/posts/{vibe}/apply', [UVibePostController::class, 'apply'])->middleware('throttle:20,1')->name('uvibe.posts.apply');
+            Route::get('uvibe/posts/{vibe}/applicants', [UVibePostController::class, 'applicants'])->middleware('throttle:60,1')->name('uvibe.posts.applicants');
+            Route::post('uvibe/posts/{vibe}/applications/{application}/pay', [UVibePostController::class, 'pay'])->middleware('throttle:6,1')->name('uvibe.posts.pay');
+            // Header: the search window (people + campuses) and "Say Thank You" (Vibes gifts + Boosts you received)
+            Route::get('uvibe/search', [UVibeSearchController::class, 'index'])->middleware('throttle:120,1')->name('uvibe.search');
+            Route::get('uvibe/thank-you', [UVibeThankYouController::class, 'index'])->middleware('throttle:60,1')->name('uvibe.thank-you.index');
+            Route::post('uvibe/thank-you', [UVibeThankYouController::class, 'store'])->middleware('throttle:20,1')->name('uvibe.thank-you.store');
 
             Route::get('vibes/posts', [VibeController::class, 'index'])->name('vibes.posts');
             Route::get('vibes/suggested-creators', [VibeController::class, 'suggestedCreators'])->name('vibes.suggested-creators');
