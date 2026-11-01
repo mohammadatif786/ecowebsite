@@ -28,8 +28,8 @@ class CreateVibeAction
 
     public function execute(User $user, CreateVibeData $data): Vibe
     {
-        if (! $this->policy->publishAs($user, $data->publisherType, $data->publisherId)) {
-            throw new AuthorizationException('You are not allowed to publish as this account.');
+        if ($denied = $this->policy->publishDenial($user, $data->publisherType, $data->publisherId)) {
+            throw new AuthorizationException($denied);
         }
 
         if (Product::query()->whereIn('id', $data->productIds)->where('status', true)->count() !== count(array_unique($data->productIds))) {
