@@ -612,13 +612,21 @@ class DashboardController extends Controller
 
         // Followed users plus current user for stories
         $followedUserIds = \App\Models\Frontend\FriendRequest::where(function ($q) use ($user) {
-            $q->where('user_id', $user->id)->orWhere('receiver_id', $user->id);
-        })->where('status', 1)
-        ->get()
-        ->map(fn($r) => $r->user_id === $user->id ? $r->receiver_id : $r->user_id)
-        ->push($user->id)
-        ->unique()
-        ->toArray();
+            $q->where('user_id', $user->id)
+            ->orWhere('receiver_id', $user->id);
+        })
+            ->where('status', 1)
+            ->get()
+            ->map(fn ($r) => (int) (
+                $r->user_id == $user->id
+                    ? $r->receiver_id
+                    : $r->user_id
+            ))
+            ->push((int) $user->id)
+            ->toBase()
+            ->unique()
+            ->values()
+            ->all();
 
         // Latest reel per followed user for the stories carousel (within last 24 hours)
         $latestStoryIds = DB::query()
@@ -711,11 +719,20 @@ class DashboardController extends Controller
             ->values();
 
         $followingUserIds = \App\Models\Frontend\FriendRequest::where(function ($q) use ($user) {
-            $q->where('user_id', $user->id)->orWhere('receiver_id', $user->id);
-        })->where('status', 1)
-        ->get()
-        ->map(fn($r) => $r->user_id === $user->id ? $r->receiver_id : $r->user_id)
-        ->toArray();
+            $q->where('user_id', $user->id)
+            ->orWhere('receiver_id', $user->id);
+        })
+            ->where('status', 1)
+            ->get()
+            ->map(fn ($r) => (int) (
+                $r->user_id == $user->id
+                    ? $r->receiver_id
+                    : $r->user_id
+            ))
+            ->toBase()
+            ->unique()
+            ->values()
+            ->all();
 
         $suggestedCreators = User::where(function ($query) {
                 $query->whereHas('vibes')
