@@ -45,9 +45,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue', 'update:country']);
 
 const usStateToAbbr = {
     Alabama: 'AL',
@@ -1335,6 +1335,10 @@ const province = ref('');
 
 const universitiesData = ref([]);
 const filteredUniversities = ref([]);
+// Tell the wizard which country the school is in, so a campus nobody has listed yet is added
+// to U Vibe under that country (the "I did not attend" choice sends nothing).
+watch(country, (c) => emit('update:country', c && c !== 'none' ? c : ''));
+
 const showState = computed(() => country.value === 'United States');
 const showProvince = computed(() => country.value === 'Canada');
 const showUniversitySelect = computed(
@@ -1374,6 +1378,11 @@ function onCountryChange() {
     university.value = '';
     universityText.value = '';
     filteredUniversities.value = [];
+    if (country.value === 'none') {
+        // "I did not attend university" — the wizard still needs an answer; U Vibe ignores "None".
+        university.value = 'None';
+        return;
+    }
     if (country.value === 'United States' || country.value === 'Canada') {
         // Wait for state/province selection
         return;

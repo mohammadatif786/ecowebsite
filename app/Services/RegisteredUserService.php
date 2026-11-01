@@ -15,6 +15,17 @@ class RegisteredUserService
     {
         $user = $this->storeRegisteredUser($validated);
 
+        // U Vibe: the university picked at sign-up becomes the main one. Never blocks sign-up.
+        try {
+            app(UniversityService::class)->setFromRegistration(
+                $user,
+                isset($validated['university_id']) ? (int) $validated['university_id'] : null,
+                $validated['university_name'] ?? null,
+            );
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
         event(new Registered($user));
 
         $this->sendWelcomeEmail($user);

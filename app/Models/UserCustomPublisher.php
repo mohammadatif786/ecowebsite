@@ -9,7 +9,7 @@ class UserCustomPublisher extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'name', 'type'];
+    protected $fillable = ['user_id', 'name', 'type', 'org_type'];
 
     public function user()
     {

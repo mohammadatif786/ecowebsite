@@ -41,6 +41,10 @@ class RegisteredUserFormRequest extends FormRequest
             'last_name' => 'required|string|max:255',
             'email' => 'required|string|lowercase|email|max:255|unique:' . User::class,
             'linkup_id' => 'required|string|min:4|max:21|regex:/^@[a-z0-9_]+$/|unique:users,linkup_id',
+            // Optional: the school the member attends/attended (becomes their main U Vibe university).
+            // Send university_id for a listed campus, or university_name to add a new one.
+            'university_id' => ['nullable', 'integer', 'exists:universities,id'],
+            'university_name' => ['nullable', 'string', 'min:3', 'max:80'],
             'password' => ['required', 'confirmed', Rules\Password::min(8)
                 ->letters()
                 ->numbers()

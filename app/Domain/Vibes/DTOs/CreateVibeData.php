@@ -29,6 +29,13 @@ final readonly class CreateVibeData
         public array $mediaSources,
         public array $productIds,
         public array $eventIds,
+        // Last, with a default, so any other code building this DTO keeps working.
+        public bool $showOnVibes = true,
+        public ?int $universityId = null,
+        // U Vibe composer extras.
+        public ?array $textStyle = null,
+        public ?string $postedRole = null,
+        public bool $asUniversity = false,
     ) {}
 
     public static function fromRequest(StoreVibeRequest $request): self
@@ -56,6 +63,11 @@ final readonly class CreateVibeData
             $data['media_sources'] ?? [],
             array_map('intval', $data['product_ids'] ?? []),
             array_map('intval', $data['event_ids'] ?? []),
+            (bool) ($data['show_on_vibes'] ?? true),
+            isset($data['university_id']) ? (int) $data['university_id'] : null,
+            $data['text_style'] ?? null,
+            isset($data['posted_role']) ? trim($data['posted_role']) : null,
+            (bool) ($data['as_university'] ?? false),
         );
     }
 }

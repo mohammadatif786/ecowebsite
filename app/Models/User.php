@@ -657,4 +657,18 @@ class User extends Authenticatable implements Payable
     {
         return $this->hasMany(SubscribedPlan::class, 'user_id');
     }
+
+    /** U Vibe: schools this member attends or attended (pivot: status student|alumni, is_main). */
+    public function universities()
+    {
+        return $this->belongsToMany(University::class, 'user_universities')
+            ->withPivot(['status', 'is_main'])
+            ->withTimestamps();
+    }
+
+    /** U Vibe: campuses this member follows. */
+    public function followedUniversities()
+    {
+        return $this->belongsToMany(University::class, 'university_follows')->withTimestamps();
+    }
 }
