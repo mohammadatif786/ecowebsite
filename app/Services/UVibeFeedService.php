@@ -235,8 +235,9 @@ class UVibeFeedService
             'is_liked' => $vibe->relationLoaded('authUserLike') && $vibe->authUserLike !== null,
             'onVibes' => (bool) ($vibe->show_on_vibes ?? true),
             'allow_coin_gifts' => (bool) $vibe->allow_coin_gifts,
-            // The Boost button: shown on other people's posts unless the poster turned Boosts off.
-            'can_boost' => ! $mine && (bool) $vibe->allow_coin_gifts,
+            // The Boost button: shown on every post whose poster left "Allow Boosts" on (as in the design).
+            // Sending one to your own post is still refused — the button says so instead of opening the window.
+            'can_boost' => (bool) $vibe->allow_coin_gifts,
             'boost_coins' => (int) ($vibe->boost_coins ?? 0),
             // Repost: where it came from, and whether this member already reposted it.
             'repostOf' => $vibe->reposted_from_id ? ['id' => (int) $vibe->reposted_from_id, 'name' => (string) $vibe->reposted_from_name] : null,

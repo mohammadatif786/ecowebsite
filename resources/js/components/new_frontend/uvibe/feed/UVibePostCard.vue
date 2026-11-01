@@ -5,7 +5,8 @@
     open (menu, edit, report, Boost, applicants, shop) live once on the page and are told about
     them through the events below.
   -->
-  <div :id="'uvpost-' + post.id" class="card overflow-hidden">
+  <!-- Same card box as a post on the Vibes page (VibeCard): at most 720px wide and centred. -->
+  <div :id="'uvpost-' + post.id" class="card overflow-hidden max-w-[720px] mx-auto w-full border border-slate-200 shadow-sm">
     <!-- Poster row -->
     <div class="p-4 flex items-center gap-3">
       <PostPoster :post="post">
@@ -25,8 +26,9 @@
       <Repeat2 class="w-3.5 h-3.5 text-emerald-600" />{{ name }} reposted from {{ post.repostOf.name }}
     </p>
 
-    <!-- Text card (words on a coloured background) or the photos / videos -->
-    <UVibeTextCard v-if="post.isText" :post="post" class="w-full aspect-square" />
+    <!-- Text card (words on a coloured background) or the photos / videos. Same heights as the Vibes page:
+         text cards 400px (500px from md up), photos / videos 500px (600px from md up) — see PostMedia. -->
+    <UVibeTextCard v-if="post.isText" :post="post" class="w-full h-[400px] md:h-[500px]" />
     <PostMedia v-else :media="post.media || []" />
 
     <div class="p-4">

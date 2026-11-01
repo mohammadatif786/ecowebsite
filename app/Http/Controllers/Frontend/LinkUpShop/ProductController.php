@@ -104,6 +104,28 @@ class ProductController extends Controller
             ]
         ]);
     }
+
+    /**
+     * The Shop has no stand-alone product / create / edit page: products are browsed, added and edited
+     * inside the listing and Marketplace screens. `Route::resource('products', …)` still registers these
+     * three URLs, and with no method behind them they crashed with
+     * "Call to undefined method ProductController::show()". Send them to the Marketplace instead.
+     */
+    public function show(Product $product)
+    {
+        return redirect()->route('new_frontend.marketplace');
+    }
+
+    public function create()
+    {
+        return redirect()->route('new_frontend.marketplace');
+    }
+
+    public function edit(Product $product)
+    {
+        return redirect()->route('new_frontend.marketplace');
+    }
+
     public function search(Request $request)
     {
         $query = Product::where('status', 1)->with(['category', 'merchant']);
