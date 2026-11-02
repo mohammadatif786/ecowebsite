@@ -5,17 +5,31 @@ namespace App\Http\Controllers\NewFrontend;
 use App\Domain\Vibes\Actions\PostVibeCommentAction;
 use App\Domain\Vibes\Actions\ToggleVibeLikeAction;
 use App\Http\Controllers\Controller;
+use App\Models\MarketplaceAffiliateEarning;
+use App\Models\User;
 use App\Models\Vibe;
 use App\Models\VibeComment;
+use App\Services\CoinGiftService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use O21\LaravelWallet\Models\Custodian;
 
 class VibeInteractionController extends Controller
 {
+    /** Commission statuses that can be moved to the wallet (vibe sales use "released", marketplace orders "available"). */
+    private const PAYABLE_STATUSES = ['released', 'available'];
+
+    /** 404 for posts the user isn't allowed to see (private, friends-only, blocked). */
+    private function ensureVisible(Vibe $vibe): void
+    {
+        abort_unless($vibe->isVisibleTo(auth()->user()), 404, 'Post not found.');
+    }
+
     public function toggleLike(Vibe $vibe, ToggleVibeLikeAction $action): JsonResponse
     {
+        $this->ensureVisible($vibe);
         $result = $action->execute(auth()->user(), $vibe);
 
         return response()->json($result);
@@ -23,6 +37,7 @@ class VibeInteractionController extends Controller
 
     public function indexComments(Vibe $vibe): JsonResponse
     {
+        $this->ensureVisible($vibe);
         $comments = $vibe->comments()
             ->whereNull('parent_id')
             ->with(['user:id,name,avatar', 'replies.user:id,name,avatar'])
@@ -46,6 +61,7 @@ class VibeInteractionController extends Controller
 
     public function topComments(Vibe $vibe): JsonResponse
     {
+        $this->ensureVisible($vibe);
         $comments = $vibe->comments()
             ->whereNull('parent_id')
             ->with(['user:id,name,avatar'])
@@ -65,6 +81,7 @@ class VibeInteractionController extends Controller
 
     public function storeComment(Request $request, Vibe $vibe, PostVibeCommentAction $action): JsonResponse
     {
+        $this->ensureVisible($vibe);
         $request->validate([
             'comment' => 'required|string|max:1000',
             'parent_id' => 'nullable|exists:vibe_comments,id',
@@ -83,6 +100,7 @@ class VibeInteractionController extends Controller
 
     public function share(Vibe $vibe): JsonResponse
     {
+        $this->ensureVisible($vibe);
         $vibe->increment('shares_count');
 
         return response()->json([
@@ -90,38 +108,41 @@ class VibeInteractionController extends Controller
         ]);
     }
 
+    /**
+     * Big Up: send coins to a post's creator (or, with no post, to `recipient_id`).
+     * The coin move is atomic — see CoinGiftService.
+     */
     public function sendBigUp(Request $request, ?Vibe $vibe = null): JsonResponse
     {
-        $sender = auth()->user();
-        $recipientId = $request->input('recipient_id') ?? $vibe?->created_by;
+        $sender = $request->user();
 
-        if (!$recipientId) {
-            return response()->json(['message' => 'Recipient not found'], 404);
+        $data = $request->validate([
+            'gift_name' => 'nullable|string|max:60',
+            'emoji' => 'nullable|string|max:16',
+            'coins' => 'required|integer|min:1|max:100000',
+            'recipient_id' => 'nullable|integer',
+        ]);
+
+        if ($vibe) {
+            $this->ensureVisible($vibe);
+            if (! $vibe->allow_coin_gifts) {
+                return response()->json(['message' => 'Big Ups are turned off for this post.'], 422);
+            }
+            // A Big Up on a post always goes to that post's creator.
+            $receiver = User::find($vibe->created_by);
+        } else {
+            $receiver = isset($data['recipient_id']) ? User::find($data['recipient_id']) : null;
         }
 
-        $receiver = \App\Models\User::find($recipientId);
-
-        if (!$receiver) {
+        if (! $receiver) {
             return response()->json(['message' => 'Creator not found'], 404);
         }
 
-        $request->validate([
-            'gift_name' => 'nullable|string',
-            'emoji' => 'nullable|string',
-            'coins' => 'required|integer|min:1',
-        ]);
+        $coins = (int) $data['coins'];
+        $giftName = $data['gift_name'] ?? 'Big Up';
+        $emoji = $data['emoji'] ?? '⚡';
 
-        $giftName = $request->input('gift_name', 'Big Up');
-        $emoji = $request->input('emoji', '⚡');
-
-        if ($sender->coins < $request->coins) {
-            return response()->json(['message' => 'Insufficient coins'], 422);
-        }
-
-        DB::transaction(function () use ($sender, $receiver, $vibe, $request, $giftName, $emoji) {
-            $sender->decrement('coins', $request->coins);
-            $receiver->increment('coins', $request->coins);
-
+        $balance = app(CoinGiftService::class)->send($sender, $receiver, $coins, function () use ($sender, $receiver, $vibe, $coins, $giftName, $emoji) {
             \App\Models\GiftCoins::create([
                 'sender_id' => $sender->id,
                 'recieved_id' => $receiver->id,
@@ -129,7 +150,7 @@ class VibeInteractionController extends Controller
                 'source' => 'vibe',
                 'name' => $giftName,
                 'emoji' => $emoji,
-                'coins' => $request->coins,
+                'coins' => $coins,
             ]);
 
             if ($vibe) {
@@ -147,7 +168,7 @@ class VibeInteractionController extends Controller
                 'avatar'   => $sender->avatar ?? null,
                 'metadata' => json_encode([
                     'vibe_id'    => $vibe?->id,
-                    'amount'     => $request->coins,
+                    'amount'     => $coins,
                     'gift_name'  => $giftName,
                     'emoji'      => $emoji,
                     'sender_name' => $sender->name,
@@ -156,8 +177,8 @@ class VibeInteractionController extends Controller
         });
 
         return response()->json([
-            'bigups_count' => $vibe?->bigups_count ?? 0,
-            'user_coins' => $sender->fresh()->coins,
+            'bigups_count' => $vibe ? (int) Vibe::whereKey($vibe->id)->value('bigups_count') : 0,
+            'user_coins' => $balance,
         ]);
     }
 
@@ -243,52 +264,83 @@ class VibeInteractionController extends Controller
         ]);
     }
 
+    /**
+     * Releases the user's pending commissions from Vibe sales once the hold period
+     * (config vibes.affiliate_hold_days) has passed. Marketplace order commissions are
+     * released only when the buyer confirms delivery (ReleaseMarketplaceAffiliateCommissionAction),
+     * so a user can no longer release their own commissions straight away.
+     */
     public function releasePendingEarnings(): JsonResponse
     {
         $user = auth()->user();
+        $holdDays = (int) config('vibes.affiliate_hold_days', 7);
 
-        $updated = \App\Models\MarketplaceAffiliateEarning::where('affiliate_user_id', $user->id)
+        $updated = MarketplaceAffiliateEarning::where('affiliate_user_id', $user->id)
             ->where('status', 'pending')
+            ->whereNull('order_id')
+            ->where('created_at', '<=', now()->subDays($holdDays))
             ->update([
                 'status' => 'released',
-                'released_at' => now()
+                'released_at' => now(),
             ]);
+
+        $stillPending = MarketplaceAffiliateEarning::where('affiliate_user_id', $user->id)
+            ->where('status', 'pending')
+            ->count();
+
+        if ($updated > 0) {
+            $message = "Released {$updated} commission".($updated === 1 ? '' : 's').'.';
+        } elseif ($stillPending > 0) {
+            $message = "Nothing to release yet — commissions are released {$holdDays} days after the sale, or when the buyer confirms delivery.";
+        } else {
+            $message = 'No pending commissions.';
+        }
 
         return response()->json([
             'success' => true,
             'count' => $updated,
-            'message' => "Successfully released {$updated} pending commissions."
+            'still_pending' => $stillPending,
+            'message' => $message,
         ]);
     }
 
+    /**
+     * Moves all available commissions to the wallet (minus the 5% LinkUp fee).
+     * The rows are locked first, so two transfers at the same moment can't pay
+     * the same commission twice.
+     */
     public function transferToWallet(): JsonResponse
     {
         $user = auth()->user();
 
-        $earnings = \App\Models\MarketplaceAffiliateEarning::where('affiliate_user_id', $user->id)
-            ->where('status', 'released')
-            ->get();
-
-        $totalAmount = (float) $earnings->sum('commission_amount');
-
-        if ($totalAmount <= 0) {
-            return response()->json(['message' => 'Nothing available to transfer'], 422);
-        }
-
-        // LinkUp Platform Fee: Take 5% during transfer before sending to wallet
-        $linkupFee = round($totalAmount * 0.05, 2);
-        $userPayout = round($totalAmount - $linkupFee, 2);
-
         try {
-            DB::transaction(function () use ($user, $earnings, $userPayout, $linkupFee, $totalAmount) {
-                // 1. Mark as paid
-                \App\Models\MarketplaceAffiliateEarning::whereIn('id', $earnings->pluck('id'))
+            $result = DB::transaction(function () use ($user) {
+                $earnings = MarketplaceAffiliateEarning::where('affiliate_user_id', $user->id)
+                    ->whereIn('status', self::PAYABLE_STATUSES)
+                    ->lockForUpdate()
+                    ->get();
+
+                $totalAmount = round((float) $earnings->sum('commission_amount'), 2);
+                if ($totalAmount <= 0) {
+                    return null;
+                }
+
+                // LinkUp Platform Fee: take 5% during transfer before sending to wallet
+                $linkupFee = round($totalAmount * 0.05, 2);
+                $userPayout = round($totalAmount - $linkupFee, 2);
+
+                $marked = MarketplaceAffiliateEarning::whereIn('id', $earnings->pluck('id'))
+                    ->whereIn('status', self::PAYABLE_STATUSES)
                     ->update([
                         'status' => 'paid',
-                        'paid_at' => now()
+                        'paid_at' => now(),
                     ]);
 
-                // 2. Deposit the NET amount (95%) to user wallet
+                if ($marked !== $earnings->count()) {
+                    throw new \RuntimeException('Commission rows changed during the transfer.');
+                }
+
+                // Deposit the NET amount (95%) to the user's wallet
                 deposit($userPayout, 'USD')
                     ->from(Custodian::of('e_money'))
                     ->to($user)
@@ -302,28 +354,55 @@ class VibeInteractionController extends Controller
                         'net_payout' => $userPayout,
                     ])
                     ->commit();
-            });
 
-            return response()->json([
-                'success' => true,
-                'amount' => $userPayout,
-                'linkup_fee' => $linkupFee,
-                'message' => '$' . number_format($userPayout, 2) . ' transferred to your wallet! (5% LinkUp fee applied: $' . number_format($linkupFee, 2) . ')'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Transfer failed: ' . $e->getMessage()], 500);
+                return ['payout' => $userPayout, 'fee' => $linkupFee];
+            });
+        } catch (\Throwable $e) {
+            Log::error('Vibe commission transfer failed', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+
+            return response()->json(['message' => 'Transfer failed. Please try again.'], 500);
         }
+
+        if ($result === null) {
+            return response()->json(['message' => 'Nothing available to transfer'], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'amount' => $result['payout'],
+            'linkup_fee' => $result['fee'],
+            'message' => '$'.number_format($result['payout'], 2).' transferred to your wallet! (5% LinkUp fee applied: $'.number_format($result['fee'], 2).')',
+        ]);
     }
 
     public function repost(Vibe $vibe): JsonResponse
     {
         $user = auth()->user();
+        $this->ensureVisible($vibe);
 
-        $newVibe = DB::transaction(function () use ($user, $vibe) {
+        if ((int) $vibe->created_by === (int) $user->id) {
+            return response()->json(['message' => 'That’s already your own post.'], 422);
+        }
+        if ($vibe->visibility !== \App\Domain\Vibes\Enums\VibeVisibility::Public) {
+            return response()->json(['message' => 'Only public posts can be reposted.'], 422);
+        }
+        if (Vibe::where('created_by', $user->id)->where('reposted_from_id', $vibe->id)->exists()) {
+            return response()->json(['message' => 'You already reposted this.'], 422);
+        }
+
+        // Keep who posted it first, so the repost credits the original creator.
+        $vibe->loadMissing('publisher', 'creator');
+        $originalName = collect([$vibe->publisher?->name, $vibe->publisher?->organizer_name, $vibe->creator?->name])
+            ->map(fn ($name) => trim((string) $name))
+            ->first(fn ($name) => $name !== '') ?? 'LinkUp member';
+
+        $newVibe = DB::transaction(function () use ($user, $vibe, $originalName) {
             $newVibe = Vibe::create([
                 'created_by' => $user->id,
                 'publisher_type' => 'user',
                 'publisher_id' => $user->id,
+                'reposted_from_id' => $vibe->id,
+                'reposted_from_name' => mb_substr((string) $originalName, 0, 120),
                 'caption' => $vibe->caption,
                 'text_bg' => $vibe->text_bg,
                 'text_font' => $vibe->text_font,
@@ -417,7 +496,7 @@ class VibeInteractionController extends Controller
             ->get();
 
         $pendingAff = (float) $affEarnings->where('status', 'pending')->sum('commission_amount');
-        $availableAff = (float) $affEarnings->where('status', 'released')->sum('commission_amount');
+        $availableAff = (float) $affEarnings->whereIn('status', self::PAYABLE_STATUSES)->sum('commission_amount');
         $paidAff = (float) $affEarnings->where('status', 'paid')->sum('commission_amount');
 
         $earningsStats = [

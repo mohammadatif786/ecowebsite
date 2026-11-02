@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\NewFrontend;
 
 use App\Http\Controllers\Controller;
+use App\Models\CreatorFollower;
 use App\Models\LinkUpEvent;
 use App\Models\Asue;
 use App\Models\MarketplaceProduct;
@@ -418,6 +419,8 @@ class DashboardController extends Controller
             ->where('status', VibeStatus::Published)
             // U Vibe posts only show in the main Vibes feed when "Also post on Vibes" was ticked.
             ->where(fn ($q) => $q->where('is_uvibe', false)->orWhere('show_on_vibes', true))
+            // Private, friends-only and followers-only posts, and blocked users, are filtered here.
+            ->visibleTo($user)
             ->latest()
             ->take(20)
             ->get();
@@ -532,7 +535,7 @@ class DashboardController extends Controller
             ->get();
 
         $pendingAff = (float) $affEarnings->where('status', 'pending')->sum('commission_amount');
-        $availableAff = (float) $affEarnings->where('status', 'released')->sum('commission_amount');
+        $availableAff = (float) $affEarnings->whereIn('status', ['released', 'available'])->sum('commission_amount');
         $paidAff = (float) $affEarnings->where('status', 'paid')->sum('commission_amount');
 
         $earningsStats = [
@@ -624,6 +627,7 @@ class DashboardController extends Controller
             ))
             ->push((int) $user->id)
             ->toBase()
+            ->merge(CreatorFollower::followedIds($user->id))
             ->unique()
             ->values()
             ->all();
@@ -718,21 +722,7 @@ class DashboardController extends Controller
             })
             ->values();
 
-        $followingUserIds = \App\Models\Frontend\FriendRequest::where(function ($q) use ($user) {
-            $q->where('user_id', $user->id)
-            ->orWhere('receiver_id', $user->id);
-        })
-            ->where('status', 1)
-            ->get()
-            ->map(fn ($r) => (int) (
-                $r->user_id == $user->id
-                    ? $r->receiver_id
-                    : $r->user_id
-            ))
-            ->toBase()
-            ->unique()
-            ->values()
-            ->all();
+        $followingUserIds = CreatorFollower::followedIds($user->id);
 
         $suggestedCreators = User::where(function ($query) {
                 $query->whereHas('vibes')
@@ -747,7 +737,7 @@ class DashboardController extends Controller
                     'handle' => $u->linkup_id ?? $u->name ?? 'User',
                     'name' => $u->name,
                     'avatar' => $u->avatar ?: ('https://i.pravatar.cc/150?u=' . $u->id),
-                    'is_following' => in_array($u->id, $followingUserIds),
+                    'is_following' => in_array((int) $u->id, $followingUserIds, true),
                 ];
             })
             ->values();
@@ -1272,16 +1262,11 @@ class DashboardController extends Controller
             ->take(50)
             ->get();
 
-        $followingUserIds = \App\Models\Frontend\FriendRequest::where(function ($q) use ($user) {
-            $q->where('user_id', $user->id)->orWhere('receiver_id', $user->id);
-        })->where('status', 1)
-        ->get()
-        ->map(fn($r) => $r->user_id === $user->id ? $r->receiver_id : $r->user_id)
-        ->toArray();
+        $followingUserIds = CreatorFollower::followedIds($user->id);
 
         $activities = $notifications->map(function ($n) use ($followingUserIds) {
             $sender = $n->sender;
-            $isFollowing = $sender ? in_array($sender->id, $followingUserIds, true) : false;
+            $isFollowing = $sender ? in_array((int) $sender->id, $followingUserIds, true) : false;
 
             $type = match (true) {
                 str_contains(strtolower($n->title), 'like') || $n->type === 'like' => 'like',
@@ -1779,11 +1764,7 @@ class DashboardController extends Controller
     {
         $currentUser = Auth::user();
 
-        $isFollowing = \App\Models\Frontend\FriendRequest::where(function ($q) use ($currentUser, $user) {
-            $q->where('user_id', $currentUser->id)->where('receiver_id', $user->id);
-        })->orWhere(function ($q) use ($currentUser, $user) {
-            $q->where('user_id', $user->id)->where('receiver_id', $currentUser->id);
-        })->where('status', 1)->exists();
+        $isFollowing = CreatorFollower::where('follower_id', $currentUser->id)->where('creator_id', $user->id)->exists();
 
         $reels = UserReel::active()
             ->where('user_id', $user->id)
@@ -1814,6 +1795,7 @@ class DashboardController extends Controller
             });
 
         $vibesRaw = Vibe::where('created_by', $user->id)
+            ->visibleTo($currentUser)
             ->with(['creator', 'media', 'products', 'events', 'comments', 'likes'])
             ->latest()
             ->get();
@@ -1923,25 +1905,20 @@ class DashboardController extends Controller
                 'coins' => (int) $g->total_coins,
             ]);
 
-        $followersCount = \App\Models\Frontend\FriendRequest::where('receiver_id', $user->id)
-            ->where('status', 1)
-            ->count();
+        $followersCount = CreatorFollower::where('creator_id', $user->id)->count();
 
-        $followingCount = \App\Models\Frontend\FriendRequest::where('user_id', $user->id)
-            ->where('status', 1)
-            ->count();
+        $followingCount = CreatorFollower::where('follower_id', $user->id)->count();
 
-        $followers = \App\Models\Frontend\FriendRequest::where('receiver_id', $user->id)
-            ->where('status', 1)
-            ->with('user:id,name,linkup_id,avatar')
+        $followers = CreatorFollower::where('creator_id', $user->id)
+            ->with('follower:id,name,linkup_id,avatar')
             ->latest()
             ->limit(10)
             ->get()
             ->map(fn($r) => [
-                'id' => $r->user?->id,
-                'name' => $r->user?->name,
-                'handle' => '@' . ($r->user?->linkup_id ?? $r->user?->name ?? 'user'),
-                'avatar' => $r->user?->avatar,
+                'id' => $r->follower?->id,
+                'name' => $r->follower?->name,
+                'handle' => '@' . ($r->follower?->linkup_id ?? $r->follower?->name ?? 'user'),
+                'avatar' => $r->follower?->avatar,
             ])
             ->filter(fn($f) => $f['id'] !== null)
             ->values();
@@ -1952,7 +1929,7 @@ class DashboardController extends Controller
             ->get();
 
         $pendingAff = (float) $affEarnings->where('status', 'pending')->sum('commission_amount');
-        $availableAff = (float) $affEarnings->where('status', 'released')->sum('commission_amount');
+        $availableAff = (float) $affEarnings->whereIn('status', ['released', 'available'])->sum('commission_amount');
         $paidAff = (float) $affEarnings->where('status', 'paid')->sum('commission_amount');
 
         $earningsStats = [
@@ -2012,7 +1989,7 @@ class DashboardController extends Controller
             ->get();
 
         $pendingAff = (float) $affEarnings->where('status', 'pending')->sum('commission_amount');
-        $availableAff = (float) $affEarnings->where('status', 'released')->sum('commission_amount');
+        $availableAff = (float) $affEarnings->whereIn('status', ['released', 'available'])->sum('commission_amount');
         $paidAff = (float) $affEarnings->where('status', 'paid')->sum('commission_amount');
 
         return [

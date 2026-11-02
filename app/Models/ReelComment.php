@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class ReelComment extends Model
 {
@@ -36,5 +37,11 @@ class ReelComment extends Model
     public function replies(): HasMany
     {
         return $this->hasMany(ReelComment::class, 'parent_id');
+    }
+
+    /** Likes on this comment (same `votes` table vibe comments use). */
+    public function likes(): MorphMany
+    {
+        return $this->morphMany(Vote::class, 'votable')->where('type', 'like');
     }
 }

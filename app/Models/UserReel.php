@@ -98,6 +98,11 @@ class UserReel extends Model
                         ->from('friend_requests')
                         ->where('receiver_id', $userId)
                         ->where('status', 1);
+                })->orWhereIn('id', function ($innerQuery) use ($userId) {
+                    // Creators the user follows on Vibes/Reels.
+                    $innerQuery->select('creator_id')
+                        ->from('creator_followers')
+                        ->where('follower_id', $userId);
                 });
             });
         });

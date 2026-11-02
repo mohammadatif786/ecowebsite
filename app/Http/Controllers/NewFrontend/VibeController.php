@@ -7,22 +7,36 @@ use App\Domain\Vibes\DTOs\CreateVibeData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Vibes\StoreVibeRequest;
 use App\Http\Resources\VibeResource;
+use App\Models\BlockedUser;
+use App\Models\CreatorFollower;
+use App\Models\User;
 use App\Models\Vibe;
 use Illuminate\Http\JsonResponse;
 
 class VibeController extends Controller
 {
+    /** Feed page size; `?page=2` loads the next page. */
+    private const FEED_PAGE_SIZE = 20;
+
     public function index(\Illuminate\Http\Request $request): JsonResponse
     {
         $user = $request->user();
+        $page = max(1, (int) $request->query('page', 1));
 
         $vibes = Vibe::with(['creator', 'publisher', 'media', 'products.user', 'events.user', 'events.tickets'])
+            ->withExists(['likes as liked_by_viewer' => fn ($q) => $q->where('user_id', $user?->id)])
             ->where('status', \App\Domain\Vibes\Enums\VibeStatus::Published)
             // U Vibe posts only show in the main Vibes feed when "Also post on Vibes" was ticked.
             ->where(fn ($q) => $q->where('is_uvibe', false)->orWhere('show_on_vibes', true))
+            // Private, friends-only and followers-only posts, and blocked users, are filtered here.
+            ->visibleTo($user)
             ->latest()
-            ->take(20)
+            ->skip(($page - 1) * self::FEED_PAGE_SIZE)
+            ->take(self::FEED_PAGE_SIZE + 1)
             ->get();
+
+        $hasMore = $vibes->count() > self::FEED_PAGE_SIZE;
+        $vibes = $vibes->take(self::FEED_PAGE_SIZE);
 
         $formattedVibes = $vibes->map(function ($vibe) use ($user) {
             $tag = null;
@@ -103,7 +117,8 @@ class VibeController extends Controller
                 'shares_count' => $vibe->shares_count,
                 'reposts_count' => $vibe->reposts_count ?? 0,
                 'bigups_count' => $vibe->bigups_count,
-                'is_liked' => $user ? $vibe->likes()->where('user_id', $user->id)->exists() : false,
+                'is_liked' => (bool) $vibe->liked_by_viewer,
+                'repost_of' => $vibe->reposted_from_id ? ['id' => (int) $vibe->reposted_from_id, 'name' => $vibe->reposted_from_name] : null,
                 'allow_coin_gifts' => (bool) $vibe->allow_coin_gifts,
                 'bigup' => $vibe->bigups_count,
                 'shoppable' => $tag !== null,
@@ -112,7 +127,9 @@ class VibeController extends Controller
         });
 
         return response()->json([
-            'posts' => $formattedVibes,
+            'posts' => $formattedVibes->values(),
+            'page' => $page,
+            'has_more' => $hasMore,
         ]);
     }
 
@@ -170,30 +187,23 @@ class VibeController extends Controller
     public function suggestedCreators(\Illuminate\Http\Request $request): JsonResponse
     {
         $user = $request->user();
+        $followingIds = CreatorFollower::followedIds($user->id);
 
-        $followingUserIds = \App\Models\Frontend\FriendRequest::where(function ($q) use ($user) {
-            $q->where('user_id', $user->id)->orWhere('receiver_id', $user->id);
-        })->where('status', 1)
-        ->get()
-        ->map(fn($r) => $r->user_id === $user->id ? $r->receiver_id : $r->user_id)
-        ->toArray();
-
-        $suggestedCreators = User::where(function ($query) {
-                $query->whereHas('vibes')
-                      ->orWhereHas('reels');
-            })
+        $suggestedCreators = User::query()
             ->where('id', '!=', $user->id)
+            ->where(fn ($query) => $query->whereHas('vibes')->orWhereHas('reels'))
+            ->whereNotIn('id', BlockedUser::query()->where('user_id', $user->id)->where('is_blocked', true)->select('blocked_user_id'))
+            ->whereNotIn('id', BlockedUser::query()->where('blocked_user_id', $user->id)->where('is_blocked', true)->select('user_id'))
             ->latest()
-            ->get()
-            ->map(function ($u) use ($followingUserIds) {
-                return [
-                    'user_id' => $u->id,
-                    'handle' => $u->linkup_id ?? $u->name ?? 'User',
-                    'name' => $u->name,
-                    'avatar' => $u->avatar ?: ('https://i.pravatar.cc/150?u=' . $u->id),
-                    'is_following' => in_array($u->id, $followingUserIds),
-                ];
-            })
+            ->limit(30)
+            ->get(['id', 'name', 'linkup_id', 'avatar'])
+            ->map(fn ($u) => [
+                'user_id' => $u->id,
+                'handle' => $u->linkup_id ?? $u->name ?? 'User',
+                'name' => $u->name,
+                'avatar' => $u->avatar ?: ('https://i.pravatar.cc/150?u=' . $u->id),
+                'is_following' => in_array((int) $u->id, $followingIds, true),
+            ])
             ->values();
 
         return response()->json([
@@ -201,7 +211,11 @@ class VibeController extends Controller
         ]);
     }
 
-    public function toggleFollowCreator(\App\Models\User $user): JsonResponse
+    /**
+     * Follow / unfollow a creator. One-way: it no longer creates an accepted
+     * friend request, so following someone doesn't make you their friend.
+     */
+    public function toggleFollowCreator(User $user): JsonResponse
     {
         $currentUser = auth()->user();
 
@@ -209,28 +223,19 @@ class VibeController extends Controller
             return response()->json(['message' => 'You cannot follow yourself'], 422);
         }
 
-        $friendRequest = \App\Models\Frontend\FriendRequest::where(function ($q) use ($currentUser, $user) {
-            $q->where('user_id', $currentUser->id)->where('receiver_id', $user->id);
-        })->orWhere(function ($q) use ($currentUser, $user) {
-            $q->where('user_id', $user->id)->where('receiver_id', $currentUser->id);
-        })->first();
+        $blocked = BlockedUser::query()->where('is_blocked', true)->where(function ($q) use ($currentUser, $user) {
+            $q->where(fn ($a) => $a->where('user_id', $currentUser->id)->where('blocked_user_id', $user->id))
+                ->orWhere(fn ($b) => $b->where('user_id', $user->id)->where('blocked_user_id', $currentUser->id));
+        })->exists();
+        if ($blocked) {
+            return response()->json(['message' => 'You can’t follow this user.'], 422);
+        }
 
-        if ($friendRequest) {
-            if ($friendRequest->status == 1) {
-                $friendRequest->delete();
-                $isFollowing = false;
-            } else {
-                $friendRequest->update(['status' => 1]);
-                $isFollowing = true;
-            }
+        $deleted = CreatorFollower::where('follower_id', $currentUser->id)->where('creator_id', $user->id)->delete();
+        if ($deleted > 0) {
+            $isFollowing = false;
         } else {
-            \App\Models\Frontend\FriendRequest::create([
-                'uid' => \Illuminate\Support\Str::uuid(),
-                'user_id' => $currentUser->id,
-                'receiver_id' => $user->id,
-                'status' => 1,
-                'type' => 0,
-            ]);
+            CreatorFollower::firstOrCreate(['follower_id' => $currentUser->id, 'creator_id' => $user->id]);
             $isFollowing = true;
         }
 
@@ -266,6 +271,7 @@ class VibeController extends Controller
 
         return response()->json([
             'is_following' => $isFollowing,
+            'followers_count' => CreatorFollower::where('creator_id', $user->id)->count(),
             'message' => $isFollowing ? 'Creator followed' : 'Creator unfollowed',
             'reels' => $userReels,
         ]);

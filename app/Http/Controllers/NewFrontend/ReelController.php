@@ -54,9 +54,22 @@ class ReelController extends Controller
 
     public function store(Request $request, CreateReelAction $action): JsonResponse
     {
+        // Only real photos and videos (checked from the file's content, not its name).
+        // Without this, any file type — including scripts — could be stored in public storage.
+        $images = 'image/jpeg,image/png,image/webp,image/gif';
+        $videos = 'video/mp4,video/quicktime,video/webm';
         $request->validate([
             'type' => 'required|in:video,image,gallery',
-            'file' => 'required|file|max:51200', // 50MB max
+            'file' => [
+                'required',
+                'file',
+                'max:51200', // 50MB max
+                'mimetypes:'.match ($request->input('type')) {
+                    'video' => $videos,
+                    'image' => $images,
+                    default => $images.','.$videos,
+                },
+            ],
             'caption' => 'nullable|string|max:1000',
             'location' => 'nullable|string|max:255',
         ]);
@@ -144,11 +157,7 @@ class ReelController extends Controller
                 ];
             });
 
-        $isFollowing = \App\Models\Frontend\FriendRequest::where(function ($q) use ($currentUser, $user) {
-            $q->where('user_id', $currentUser->id)->where('receiver_id', $user->id);
-        })->orWhere(function ($q) use ($currentUser, $user) {
-            $q->where('user_id', $user->id)->where('receiver_id', $currentUser->id);
-        })->where('status', 1)->exists();
+        $isFollowing = \App\Models\CreatorFollower::where('follower_id', $currentUser->id)->where('creator_id', $user->id)->exists();
 
         return response()->json([
             'user' => [
@@ -200,13 +209,12 @@ class ReelController extends Controller
     {
         abort_unless($reel->user_id === auth()->id(), 403, 'Unauthorized');
 
-        // Delete file from storage
-        if ($reel->file_path) {
-            Storage::disk('public')->delete(str_replace('storage/', '', $reel->file_path));
-        }
-
-        if ($reel->thumbnail_path) {
-            Storage::disk('public')->delete(str_replace('storage/', '', $reel->thumbnail_path));
+        // Delete the files. The model turns paths into full URLs, so use the stored values.
+        foreach (['file_path', 'thumbnail_path'] as $column) {
+            $path = $reel->getRawOriginal($column);
+            if ($path) {
+                Storage::disk('public')->delete($path);
+            }
         }
 
         $reel->delete();
