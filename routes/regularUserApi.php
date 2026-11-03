@@ -82,23 +82,23 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('vibes/gifts-received', [DashboardController::class, 'giftsReceivedApi'])->name('vibes.gifts-received');
             Route::get('vibes/activity', [DashboardController::class, 'activityApi'])->name('vibes.activity');
             Route::post('vibes/thank-sender', [DashboardController::class, 'thankSender'])->name('vibes.thank-sender');
-            Route::post('creators/{user}/toggle-follow', [VibeController::class, 'toggleFollowCreator'])->name('creators.toggle-follow');
+            Route::post('creators/{user}/toggle-follow', [VibeController::class, 'toggleFollowCreator'])->middleware('throttle:60,1')->name('creators.toggle-follow');
             Route::get('vibes/earnings', [VibeInteractionController::class, 'earningsSummary'])->name('vibes.earnings.summary');
-            Route::post('vibes/earnings/release', [VibeInteractionController::class, 'releasePendingEarnings'])->name('vibes.earnings.release');
-            Route::post('vibes/earnings/transfer', [VibeInteractionController::class, 'transferToWallet'])->name('vibes.earnings.transfer');
-            Route::post('vibes/store', [VibeController::class, 'store'])->name('vibes.store');
+            Route::post('vibes/earnings/release', [VibeInteractionController::class, 'releasePendingEarnings'])->middleware('throttle:6,1')->name('vibes.earnings.release');
+            Route::post('vibes/earnings/transfer', [VibeInteractionController::class, 'transferToWallet'])->middleware('throttle:6,1')->name('vibes.earnings.transfer');
+            Route::post('vibes/store', [VibeController::class, 'store'])->middleware('throttle:10,1')->name('vibes.store');
             Route::delete('vibes/{vibe}', [VibeController::class, 'destroy'])->name('vibes.destroy');
             Route::put('vibes/{vibe}', [VibeController::class, 'update'])->name('vibes.update');
             Route::post('vibes/{vibe}/update', [VibeController::class, 'update'])->name('vibes.update.post');
             Route::get('vibes/{vibe}/copy-link', [VibeController::class, 'copyLink'])->name('vibes.copy-link');
-            Route::post('vibes/{vibe}/like', [VibeInteractionController::class, 'toggleLike'])->name('vibes.like');
+            Route::post('vibes/{vibe}/like', [VibeInteractionController::class, 'toggleLike'])->middleware('throttle:120,1')->name('vibes.like');
             Route::get('vibes/{vibe}/comments', [VibeInteractionController::class, 'indexComments'])->name('vibes.comments.index');
             Route::get('vibes/{vibe}/top-comments', [VibeInteractionController::class, 'topComments'])->name('vibes.top-comments');
-            Route::post('vibes/{vibe}/comments', [VibeInteractionController::class, 'storeComment'])->name('vibes.comments.store');
+            Route::post('vibes/{vibe}/comments', [VibeInteractionController::class, 'storeComment'])->middleware('throttle:30,1')->name('vibes.comments.store');
             Route::post('vibes/{vibe}/share', [VibeInteractionController::class, 'share'])->name('vibes.share');
-            Route::post('vibes/{vibe}/repost', [VibeInteractionController::class, 'repost'])->name('vibes.repost');
-            Route::post('vibes/{vibe}/bigup', [VibeInteractionController::class, 'sendBigUp'])->name('vibes.bigup');
-            Route::post('vibe-comments/{comment}/like', [VibeInteractionController::class, 'toggleCommentLike'])->name('vibes.comments.like');
+            Route::post('vibes/{vibe}/repost', [VibeInteractionController::class, 'repost'])->middleware('throttle:20,1')->name('vibes.repost');
+            Route::post('vibes/{vibe}/bigup', [VibeInteractionController::class, 'sendBigUp'])->middleware('throttle:30,1')->name('vibes.bigup');
+            Route::post('vibe-comments/{comment}/like', [VibeInteractionController::class, 'toggleCommentLike'])->middleware('throttle:120,1')->name('vibes.comments.like');
 
             // Vibe Chat routes
             Route::get('vibes/chats/conversations', [VibeChatController::class, 'getConversations'])->name('vibes.chats.conversations');
@@ -107,19 +107,19 @@ Route::middleware('auth:sanctum')->group(function () {
 
             // Reels routes
             Route::get('reels', [ReelController::class, 'index'])->name('reels.index');
-            Route::post('reels/store', [ReelController::class, 'store'])->name('reels.store');
+            Route::post('reels/store', [ReelController::class, 'store'])->middleware('throttle:10,1')->name('reels.store');
             Route::get('reels/followed', [ReelController::class, 'getFollowedReels'])->name('reels.followed');
             Route::get('reels/user/{user}', [ReelController::class, 'getUserReels'])->name('reels.user');
             Route::get('reels/{reel}', [ReelController::class, 'show'])->name('reels.show');
             Route::delete('reels/{reel}', [ReelController::class, 'destroy'])->name('reels.destroy');
-            Route::post('reels/{reel}/like', [ReelInteractionController::class, 'toggleLike'])->name('reels.like');
-            Route::post('reels/{reel}/comments', [ReelInteractionController::class, 'storeComment'])->name('reels.comments.store');
+            Route::post('reels/{reel}/like', [ReelInteractionController::class, 'toggleLike'])->middleware('throttle:120,1')->name('reels.like');
+            Route::post('reels/{reel}/comments', [ReelInteractionController::class, 'storeComment'])->middleware('throttle:30,1')->name('reels.comments.store');
             Route::get('reels/{reel}/comments', [ReelInteractionController::class, 'indexComments'])->name('reels.comments.index');
             Route::post('reels/{reel}/share', [ReelInteractionController::class, 'share'])->name('reels.share');
             Route::post('reels/{reel}/save', [ReelInteractionController::class, 'toggleSave'])->name('reels.save');
-            Route::post('reels/{reel}/bigup', [ReelInteractionController::class, 'sendBigUp'])->name('reels.bigup');
-            Route::post('reels/{reel}/gift', [ReelInteractionController::class, 'sendGift'])->name('reels.gift');
-            Route::post('reel-comments/{comment}/like', [ReelInteractionController::class, 'toggleCommentLike'])->name('reels.comments.like');
+            Route::post('reels/{reel}/bigup', [ReelInteractionController::class, 'sendBigUp'])->middleware('throttle:30,1')->name('reels.bigup');
+            Route::post('reels/{reel}/gift', [ReelInteractionController::class, 'sendGift'])->middleware('throttle:30,1')->name('reels.gift');
+            Route::post('reel-comments/{comment}/like', [ReelInteractionController::class, 'toggleCommentLike'])->middleware('throttle:120,1')->name('reels.comments.like');
 
             Route::post('send-otp', [UserWizardController::class, 'sendOtp']);
 

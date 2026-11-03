@@ -231,11 +231,12 @@ const removePromo = (p) => {
 
 const releaseEarnings = async () => {
   try {
-    await axios.post(route('new_frontend.vibes.earnings.release'));
-    if (window.toast) window.toast('✅ Deliveries confirmed — commission released');
+    // The server only releases commissions whose hold period is over (or whose order was delivered).
+    const response = await axios.post(route('new_frontend.vibes.earnings.release'));
+    if (window.toast) window.toast(response.data?.message || '✅ Commissions released');
     router.reload({ only: ['earningsStats'] });
   } catch (e) {
-    console.error(e);
+    if (window.toast) window.toast(e.response?.data?.message || 'Couldn’t release commissions');
   }
 };
 

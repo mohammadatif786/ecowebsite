@@ -8,6 +8,7 @@ use App\Models\ReelLike;
 use App\Models\ReelSave;
 use App\Models\ReelShare;
 use App\Models\UserReel;
+use App\Services\CoinGiftService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -45,6 +46,8 @@ class ReelInteractionController extends Controller
         $comments = $reel->comments()
             ->whereNull('parent_id')
             ->with(['user:id,name,avatar,linkup_id', 'replies.user:id,name,avatar,linkup_id'])
+            ->withCount('likes')
+            ->withExists(['likes as is_liked' => fn ($q) => $q->where('user_id', auth()->id())])
             ->latest()
             ->paginate(20);
 
@@ -56,6 +59,8 @@ class ReelInteractionController extends Controller
                 'comment' => $comment->comment,
                 'parent_id' => $comment->parent_id,
                 'created_at' => $comment->created_at->diffForHumans(),
+                'likes_count' => (int) $comment->likes_count,
+                'is_liked' => (bool) $comment->is_liked,
                 'user' => [
                     'id' => $comment->user->id,
                     'name' => $comment->user->name,
@@ -146,43 +151,43 @@ class ReelInteractionController extends Controller
         ]);
     }
 
+    /** Gift on a reel. The coin move is atomic — see CoinGiftService. */
     public function sendGift(Request $request, UserReel $reel): JsonResponse
     {
-        $sender = auth()->user();
+        $sender = $request->user();
         $receiver = $reel->user;
 
         if (!$receiver) {
             return response()->json(['message' => 'Creator not found'], 404);
         }
 
-        $request->validate([
-            'gift_name' => 'required|string',
-            'emoji' => 'required|string',
-            'coins' => 'required|integer|min:1',
+        $data = $request->validate([
+            'gift_name' => 'required|string|max:60',
+            'emoji' => 'required|string|max:16',
+            'coins' => 'required|integer|min:1|max:100000',
         ]);
 
-        if ($sender->coins < $request->coins) {
-            return response()->json(['message' => 'Insufficient coins'], 422);
+        if (! $this->giftsAllowed($reel)) {
+            return response()->json(['message' => 'Gifts are turned off for this reel.'], 422);
         }
 
-        DB::transaction(function () use ($sender, $receiver, $reel, $request) {
-            $sender->decrement('coins', $request->coins);
-            $receiver->increment('coins', $request->coins);
+        $coins = (int) $data['coins'];
 
+        $balance = app(CoinGiftService::class)->send($sender, $receiver, $coins, function () use ($sender, $receiver, $reel, $data, $coins) {
             \App\Models\GiftCoins::create([
                 'sender_id' => $sender->id,
                 'recieved_id' => $receiver->id,
                 'reel_id' => $reel->id,
-                'name' => $request->gift_name,
-                'emoji' => $request->emoji,
-                'coins' => $request->coins,
+                'name' => $data['gift_name'],
+                'emoji' => $data['emoji'],
+                'coins' => $coins,
             ]);
 
             $reel->incrementGiftsCount();
 
             \App\Models\Notification::create([
                 'title'    => 'Gift received!',
-                'message'  => "{$sender->name} sent you a '{$request->emoji} {$request->gift_name}' on your reel!",
+                'message'  => "{$sender->name} sent you a '{$data['emoji']} {$data['gift_name']}' on your reel!",
                 'send_by'  => $sender->id,
                 'user_id'  => $receiver->id,
                 'type'     => 'gift',
@@ -191,21 +196,22 @@ class ReelInteractionController extends Controller
                 'avatar'   => $sender->avatar ?? null,
                 'metadata' => json_encode([
                     'reel_id'    => $reel->id,
-                    'amount'     => $request->coins,
-                    'gift_name'  => $request->gift_name,
-                    'emoji'      => $request->emoji,
+                    'amount'     => $coins,
+                    'gift_name'  => $data['gift_name'],
+                    'emoji'      => $data['emoji'],
                     'sender_name' => $sender->name,
                 ]),
             ]);
         });
 
         return response()->json([
-            'gifts_count' => $reel->gifts_count,
-            'user_coins' => $sender->fresh()->coins,
+            'gifts_count' => (int) UserReel::whereKey($reel->id)->value('gifts_count'),
+            'user_coins' => $balance,
         ]);
     }
 
-    public function toggleCommentLike(VibeComment $comment): JsonResponse
+    /** Like a reel comment (reel comments live in `reel_comments`, not `vibe_comments`). */
+    public function toggleCommentLike(ReelComment $comment): JsonResponse
     {
         $user = auth()->user();
         $like = $comment->likes()->where('user_id', $user->id)->first();
@@ -250,41 +256,41 @@ class ReelInteractionController extends Controller
         ]);
     }
 
+    /** Big Up on a reel. The coin move is atomic — see CoinGiftService. */
     public function sendBigUp(Request $request, UserReel $reel): JsonResponse
     {
-        $sender = auth()->user();
+        $sender = $request->user();
         $receiver = $reel->user;
 
         if (!$receiver) {
             return response()->json(['message' => 'Creator not found'], 404);
         }
 
-        $request->validate([
-            'coins' => 'required|integer|min:1',
+        $data = $request->validate([
+            'coins' => 'required|integer|min:1|max:100000',
         ]);
 
-        if ($sender->coins < $request->coins) {
-            return response()->json(['message' => 'Insufficient coins'], 422);
+        if (! $this->giftsAllowed($reel)) {
+            return response()->json(['message' => 'Big Ups are turned off for this reel.'], 422);
         }
 
-        DB::transaction(function () use ($sender, $receiver, $reel, $request) {
-            $sender->decrement('coins', $request->coins);
-            $receiver->increment('coins', $request->coins);
+        $coins = (int) $data['coins'];
 
+        $balance = app(CoinGiftService::class)->send($sender, $receiver, $coins, function () use ($sender, $receiver, $reel, $coins) {
             \App\Models\GiftCoins::create([
                 'sender_id' => $sender->id,
                 'recieved_id' => $receiver->id,
                 'reel_id' => $reel->id,
                 'name' => 'Big Up',
                 'emoji' => '⚡',
-                'coins' => $request->coins,
+                'coins' => $coins,
             ]);
 
             $reel->incrementBigupsCount();
 
             \App\Models\Notification::create([
                 'title'    => 'Big Up received!',
-                'message'  => "{$sender->name} sent you {$request->coins} coins as a Big Up on your reel!",
+                'message'  => "{$sender->name} sent you {$coins} coins as a Big Up on your reel!",
                 'send_by'  => $sender->id,
                 'user_id'  => $receiver->id,
                 'type'     => 'gift',
@@ -293,15 +299,21 @@ class ReelInteractionController extends Controller
                 'avatar'   => $sender->avatar ?? null,
                 'metadata' => json_encode([
                     'reel_id'    => $reel->id,
-                    'amount'     => $request->coins,
+                    'amount'     => $coins,
                     'sender_name' => $sender->name,
                 ]),
             ]);
         });
 
         return response()->json([
-            'bigups_count' => $reel->bigups_count,
-            'user_coins' => $sender->fresh()->coins,
+            'bigups_count' => (int) UserReel::whereKey($reel->id)->value('bigups_count'),
+            'user_coins' => $balance,
         ]);
+    }
+
+    /** Older reels have no `allow_coin_gifts` value; treat that as allowed. */
+    private function giftsAllowed(UserReel $reel): bool
+    {
+        return $reel->allow_coin_gifts === null || (bool) $reel->allow_coin_gifts;
     }
 }

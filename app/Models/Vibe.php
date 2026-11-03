@@ -5,9 +5,11 @@ namespace App\Models;
 use App\Domain\Vibes\Enums\VibeStatus;
 use App\Domain\Vibes\Enums\VibeVisibility;
 use App\Models\Vote;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 
 class Vibe extends Model
 {
@@ -82,5 +84,52 @@ class Vibe extends Model
     public function comments()
     {
         return $this->hasMany(VibeComment::class);
+    }
+
+    /**
+     * Only posts the viewer is allowed to see:
+     * public posts, the viewer's own posts, friends-only posts from friends,
+     * followers-only posts from creators the viewer follows — and nothing from
+     * someone who blocked the viewer or whom the viewer blocked.
+     */
+    public function scopeVisibleTo(Builder $query, ?User $viewer): Builder
+    {
+        if (! $viewer) {
+            return $query->where('visibility', VibeVisibility::Public->value);
+        }
+
+        $viewerId = $viewer->getKey();
+
+        return $query
+            ->where(function (Builder $q) use ($viewerId) {
+                $q->where('created_by', $viewerId)
+                    ->orWhere('visibility', VibeVisibility::Public->value)
+                    ->orWhere(function (Builder $friends) use ($viewerId) {
+                        // Friend requests go both ways, so check both directions.
+                        $friends->where('visibility', VibeVisibility::Friends->value)
+                            ->where(function (Builder $either) use ($viewerId) {
+                                $either->whereIn('created_by', DB::table('friend_requests')->where('status', 1)->where('user_id', $viewerId)->select('receiver_id'))
+                                    ->orWhereIn('created_by', DB::table('friend_requests')->where('status', 1)->where('receiver_id', $viewerId)->select('user_id'));
+                            });
+                    })
+                    ->orWhere(function (Builder $followers) use ($viewerId) {
+                        $followers->where('visibility', VibeVisibility::Followers->value)
+                            ->whereIn('created_by', CreatorFollower::query()->where('follower_id', $viewerId)->select('creator_id'));
+                    });
+            })
+            ->whereNotIn('created_by', BlockedUser::query()
+                ->where('user_id', $viewerId)->where('is_blocked', true)->select('blocked_user_id'))
+            ->whereNotIn('created_by', BlockedUser::query()
+                ->where('blocked_user_id', $viewerId)->where('is_blocked', true)->select('user_id'));
+    }
+
+    /** Same rule as scopeVisibleTo, for one post that is already loaded. */
+    public function isVisibleTo(?User $viewer): bool
+    {
+        if ($viewer && (int) $this->created_by === (int) $viewer->getKey()) {
+            return true;
+        }
+
+        return self::query()->whereKey($this->getKey())->visibleTo($viewer)->exists();
     }
 }
