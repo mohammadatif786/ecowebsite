@@ -90,16 +90,37 @@ import { ref } from 'vue';
 
 const isOpen = ref(false);
 
+// Shown at most once every 7 days (same rule as the design: LK_CLEAN_DAYS = 7).
+const ACK_KEY = 'lk_clean_ack';
+const CLEAN_DAYS = 7;
+
+const isDue = () => {
+  try {
+    const last = Number(localStorage.getItem(ACK_KEY)) || 0;
+    return Date.now() - last > CLEAN_DAYS * 864e5;
+  } catch (e) {
+    return true;
+  }
+};
+
 const open = () => {
   isOpen.value = true;
 };
 
+// Open only if the reminder hasn't been seen in the last 7 days.
+const openIfDue = () => {
+  if (isDue()) open();
+};
+
 const close = () => {
   isOpen.value = false;
+  try { localStorage.setItem(ACK_KEY, String(Date.now())); } catch (e) {}
 };
 
 defineExpose({
   open,
+  openIfDue,
+  isDue,
   close,
   isOpen
 });

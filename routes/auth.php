@@ -22,11 +22,13 @@ Route::middleware('guest')->group(function () {
     Route::post('reset-password', [NewPasswordController::class, 'store'])->name('password.store');
 });
 
-Route::post('change-phone', [AuthenticatedSessionController::class, 'changePhone'])->name('change.phone');
+// OTP endpoints are rate-limited per IP: 3 wrong codes already kill a code (controller),
+// these limits stop an attacker from cycling Resend to keep guessing, and limit SMS spend.
+Route::post('change-phone', [AuthenticatedSessionController::class, 'changePhone'])->middleware('throttle:5,10,otp-send')->name('change.phone');
 Route::get('verify-otp/{token}', [AuthenticatedSessionController::class, 'VerifyOTP'])->name('verify.otp');
-Route::post('verify/{token}', [AuthenticatedSessionController::class, 'verify'])->name('verify');
-Route::post('verify-otp/{token}/resend', [AuthenticatedSessionController::class, 'resendOtp'])->name('verify.otp.resend');
-Route::post('verify-otp/{token}/change-phone', [AuthenticatedSessionController::class, 'changePhone'])->name('verify.otp.change_phone');
+Route::post('verify/{token}', [AuthenticatedSessionController::class, 'verify'])->middleware('throttle:10,10,otp-verify')->name('verify');
+Route::post('verify-otp/{token}/resend', [AuthenticatedSessionController::class, 'resendOtp'])->middleware('throttle:5,10,otp-send')->name('verify.otp.resend');
+Route::post('verify-otp/{token}/change-phone', [AuthenticatedSessionController::class, 'changePhone'])->middleware('throttle:5,10,otp-send')->name('verify.otp.change_phone');
 
 Route::middleware('auth')->group(function () {
     Route::get('verify-email', EmailVerificationPromptController::class)->name('verification.notice');

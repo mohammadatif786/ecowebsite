@@ -18,6 +18,8 @@ class VibeController extends Controller
 
         $vibes = Vibe::with(['creator', 'publisher', 'media', 'products.user', 'events.user', 'events.tickets'])
             ->where('status', \App\Domain\Vibes\Enums\VibeStatus::Published)
+            // U Vibe posts only show in the main Vibes feed when "Also post on Vibes" was ticked.
+            ->where(fn ($q) => $q->where('is_uvibe', false)->orWhere('show_on_vibes', true))
             ->latest()
             ->take(20)
             ->get();

@@ -416,6 +416,8 @@ class DashboardController extends Controller
 
         $vibes = Vibe::with(['creator', 'publisher', 'media', 'products.user', 'events.user', 'events.tickets'])
             ->where('status', VibeStatus::Published)
+            // U Vibe posts only show in the main Vibes feed when "Also post on Vibes" was ticked.
+            ->where(fn ($q) => $q->where('is_uvibe', false)->orWhere('show_on_vibes', true))
             ->latest()
             ->take(20)
             ->get();
@@ -610,13 +612,21 @@ class DashboardController extends Controller
 
         // Followed users plus current user for stories
         $followedUserIds = \App\Models\Frontend\FriendRequest::where(function ($q) use ($user) {
-            $q->where('user_id', $user->id)->orWhere('receiver_id', $user->id);
-        })->where('status', 1)
-        ->get()
-        ->map(fn($r) => $r->user_id === $user->id ? $r->receiver_id : $r->user_id)
-        ->push($user->id)
-        ->unique()
-        ->toArray();
+            $q->where('user_id', $user->id)
+            ->orWhere('receiver_id', $user->id);
+        })
+            ->where('status', 1)
+            ->get()
+            ->map(fn ($r) => (int) (
+                $r->user_id == $user->id
+                    ? $r->receiver_id
+                    : $r->user_id
+            ))
+            ->push((int) $user->id)
+            ->toBase()
+            ->unique()
+            ->values()
+            ->all();
 
         // Latest reel per followed user for the stories carousel (within last 24 hours)
         $latestStoryIds = DB::query()
@@ -709,11 +719,20 @@ class DashboardController extends Controller
             ->values();
 
         $followingUserIds = \App\Models\Frontend\FriendRequest::where(function ($q) use ($user) {
-            $q->where('user_id', $user->id)->orWhere('receiver_id', $user->id);
-        })->where('status', 1)
-        ->get()
-        ->map(fn($r) => $r->user_id === $user->id ? $r->receiver_id : $r->user_id)
-        ->toArray();
+            $q->where('user_id', $user->id)
+            ->orWhere('receiver_id', $user->id);
+        })
+            ->where('status', 1)
+            ->get()
+            ->map(fn ($r) => (int) (
+                $r->user_id == $user->id
+                    ? $r->receiver_id
+                    : $r->user_id
+            ))
+            ->toBase()
+            ->unique()
+            ->values()
+            ->all();
 
         $suggestedCreators = User::where(function ($query) {
                 $query->whereHas('vibes')
@@ -784,101 +803,19 @@ class DashboardController extends Controller
         $affiliateItems = $this->getAffiliateItems($user);
         $earningsStats = $this->getEarningsStats($user);
 
-        $vibes = Vibe::with(['creator', 'publisher', 'media', 'products.user', 'events.user', 'events.tickets'])
+        $vibes = Vibe::with(\App\Services\UVibeFeedService::RELATIONS)
             ->where('is_uvibe', true)
             ->where('status', VibeStatus::Published)
+            // Posts this member chose to hide ("⋯ → Hide this post") stay out of their feed.
+            ->whereNotIn('id', app(\App\Services\UVibeFeedService::class)->hiddenBy($user))
             ->latest()
             ->get();
 
-        $formattedVibes = $vibes->map(function ($vibe) use ($user) {
-            $tag = null;
-            if ($vibe->products->isNotEmpty()) {
-                $p = $vibe->products->first();
-                $tag = [
-                    'kind' => 'product',
-                    'vibe_id' => $vibe->id,
-                    'affiliate_user_id' => $vibe->created_by,
-                    'id' => $p->id,
-                    'title' => $p->name,
-                    'price' => $p->price,
-                    'seller' => $p->user?->name ?? $p->seller?->name,
-                    'image' => $p->image_url,
-                ];
-            } elseif ($vibe->events->isNotEmpty()) {
-                $e = $vibe->events->first();
-                $tag = [
-                    'kind' => 'event',
-                    'vibe_id' => $vibe->id,
-                    'affiliate_user_id' => $vibe->created_by,
-                    'id' => $e->id,
-                    'title' => $e->title,
-                    'price' => $e->tickets->min('price') ?? 0,
-                    'date' => $e->start_date?->format('Y-m-d'),
-                    'location' => $e->venue,
-                    'seller' => $e->user?->name,
-                    'image' => $e->image_url,
-                ];
-            }
+        // Same post shape as the mobile API's U Vibe feed (verified badge, alumni badge, organization badge…).
+        $formattedVibes = app(\App\Services\UVibeFeedService::class)->presentMany($vibes, $user);
 
-            $mediaItems = $vibe->media->map(function ($m) {
-                return [
-                    'id' => $m->id,
-                    'type' => $m->media_type->value,
-                    'url' => $m->disk === 'public' ? asset('storage/' . $m->path) : Storage::disk($m->disk)->url($m->path),
-                    'thumbnail' => $m->thumbnail_path ? ($m->disk === 'public' ? asset('storage/' . $m->thumbnail_path) : Storage::disk($m->thumbnail_path)) : null,
-                ];
-            });
-
-            $publisher = $vibe->publisher;
-            $publisherName = $user->name;
-
-            if ($publisher instanceof User) {
-                $publisherName = $publisher->name;
-            } elseif ($publisher instanceof \App\Models\OrganizerProfile) {
-                $publisherName = $publisher->organizer_name;
-            } elseif ($publisher instanceof \App\Models\ClubFete) {
-                $publisherName = $publisher->name;
-            } elseif ($publisher instanceof UserCustomPublisher) {
-                $publisherName = $publisher->name;
-            }
-
-            $catLabels = [
-                'events' => 'Events',
-                'parties' => 'Parties',
-                'campus-life' => 'Campus Life',
-                'clubs' => 'Clubs',
-                'food' => 'Food',
-                'opportunity' => 'Gigs',
-            ];
-
-            return [
-                'id' => $vibe->id,
-                'org' => $publisherName,
-                'verified' => true,
-                'group' => $publisherName,
-                'campus' => $vibe->campus ?? 'All Campuses',
-                'time' => $vibe->created_at?->diffForHumans() ?? 'Just now',
-                'category' => $vibe->category ?? 'campus-life',
-                'tagLabel' => $catLabels[$vibe->category ?? 'campus-life'] ?? 'Campus Life',
-                'image' => $mediaItems->first()['url'] ?? null,
-                'images' => $mediaItems->pluck('url')->toArray(),
-                'media' => $mediaItems->toArray(),
-                'title' => $vibe->title ?? $vibe->caption,
-                'price' => (float) ($vibe->price ?? 0),
-                'desc' => $vibe->caption,
-                'likes' => $vibe->likes_count ?? 0,
-                'comments' => $vibe->comments_count ?? 0,
-                'onVibes' => true,
-                'allow_coin_gifts' => (bool) $vibe->allow_coin_gifts,
-                'tag' => $tag,
-            ];
-        });
-
-        $customPublishers = UserCustomPublisher::where('user_id', $user->id)->get()->map(fn($p) => [
-            'id' => $p->id,
-            'name' => $p->name,
-            'type' => $p->type,
-        ]);
+        // Organizations the member has added (name, org type, emoji) — same list the mobile API returns.
+        $customPublishers = app(\App\Services\UVibeOrganizationService::class)->list($user);
 
         $organizerProfiles = \App\Models\OrganizerProfile::where('user_id', $user->id)->get()->map(fn($o) => [
             'id' => $o->id,
@@ -898,12 +835,18 @@ class DashboardController extends Controller
         return Inertia::render('new_front/u_vibe/Index', [
             'affiliateItems' => $affiliateItems,
             'earningsStats' => $earningsStats,
+            // The page reads `stats`; it used to get nothing, so My Earnings always showed $0.00.
+            'stats' => $earningsStats,
             'uvibes' => $formattedVibes,
+            // Own universities + followed campuses for the campus bar and "Posting to".
+            'campusState' => app(\App\Services\UniversityService::class)->state($user),
             'publishers' => [
                 'organizations' => $organizerProfiles,
                 'custom' => $customPublishers,
             ],
             'userEvents' => $userEvents,
+            // What the "Post to U Vibe" composer lets a member choose (types, org types, text-card looks).
+            'composeOptions' => \App\Support\UVibeOptions::all(),
         ]);
     }
 

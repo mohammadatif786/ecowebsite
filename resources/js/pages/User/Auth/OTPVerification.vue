@@ -13,11 +13,14 @@
               <h2 class="text-2xl font-extrabold tracking-tight text-slate-900">
                 Verify your phone
               </h2>
-              <p class="mt-2 text-sm text-slate-600">
+              <p v-if="currentPhone" class="mt-2 text-sm text-slate-600">
                 Enter the 6-digit code sent to
                 <span class="font-semibold text-slate-900">
                   {{ currentPhone }}
                 </span>
+              </p>
+              <p v-else class="mt-2 text-sm text-slate-600">
+                There's no phone number on your account yet. Add one and we'll text you a 6-digit code.
               </p>
             </div>
 
@@ -60,7 +63,7 @@
             <!-- Secondary actions -->
             <div class="mt-5 flex gap-3">
               <button @click="changePhone" class="flex-1 py-2.5 rounded-xl bg-slate-100 border font-semibold">
-                Change number
+                {{ currentPhone ? 'Change number' : 'Add phone number' }}
               </button>
 
               <button @click="emit('close')" class="flex-1 py-2.5 rounded-xl bg-slate-100 border font-semibold">
@@ -99,7 +102,10 @@ const effectiveToken = computed(() => props.token ?? (props.user?.token as strin
 /* ---------------- State ---------------- */
 const otpInput = ref('')
 const otpRefs = ref<HTMLInputElement[]>([])
-const currentPhone = ref<string | undefined>(props.user?.phone ?? props.user?.phone_number)
+// The verify-otp page now receives only { has_phone, phone_masked }; other callers may still pass a full user.
+const currentPhone = ref<string | undefined>(
+  props.user?.phone_masked ?? props.user?.phone ?? props.user?.phone_number ?? undefined
+)
 const showChangeModal = ref(false)
 
 /* ---------------- Toast ---------------- */
@@ -183,10 +189,7 @@ async function verify() {
 
     emit('verified')
   } catch (err: any) {
-    showToast(
-      'error',
-      err.response?.data?.message || 'Verification failed'
-    )
+    showToast('error', errorMessage(err, 'Verification failed'))
   }
 }
 
@@ -217,13 +220,27 @@ async function resend() {
     return
   }
 
+  if (!currentPhone.value) {
+    showChangeModal.value = true
+    return
+  }
+
   startResendCooldown(30)
-  await axios.post(`/verify-otp/${effectiveToken.value}/resend`)
-  showToast('success', 'A new code has been sent')
+  try {
+    await axios.post(`/verify-otp/${effectiveToken.value}/resend`, {}, { headers: { Accept: 'application/json' } })
+    showToast('success', 'A new code has been sent')
+  } catch (err: any) {
+    showToast('error', errorMessage(err, 'Could not send a new code. Please try again shortly.'))
+  }
 
   otpInput.value = ''
   otpRefs.value.forEach(i => (i.value = ''))
   otpRefs.value[0]?.focus()
+}
+
+function errorMessage(err: any, fallback: string) {
+  if (err?.response?.status === 429) return 'Too many attempts. Please wait a few minutes and try again.'
+  return err?.response?.data?.message || fallback
 }
 
 /* ---------------- Change Phone ---------------- */
@@ -237,11 +254,21 @@ async function onChangePhoneSubmit(phone: string) {
     return
   }
 
-  await axios.post(`/verify-otp/${effectiveToken.value}/change-phone`, { phone })
-  currentPhone.value = phone
-  showToast('success', 'Phone updated and OTP sent')
-  showChangeModal.value = false
-  startResendCooldown(30)
+  try {
+    const res = await axios.post(
+      `/verify-otp/${effectiveToken.value}/change-phone`,
+      { phone },
+      { headers: { Accept: 'application/json' } }
+    )
+    currentPhone.value = res.data?.phone_masked || phone
+    showToast('success', 'Phone updated and code sent')
+    startResendCooldown(30)
+    requestAnimationFrame(() => otpRefs.value[0]?.focus())
+  } catch (err: any) {
+    showToast('error', errorMessage(err, 'Could not update the phone number.'))
+  } finally {
+    showChangeModal.value = false
+  }
 }
 
 /* ---------------- Toast Helper ---------------- */
@@ -265,6 +292,12 @@ function onKeydown(e: KeyboardEvent) {
 /* ---------------- Lifecycle ---------------- */
 onMounted(() => {
   document.addEventListener('keydown', onKeydown)
+  if (!currentPhone.value) {
+    // No phone on file (e.g. email-only sign-up): ask for one straight away instead of
+    // waiting for a code that can never arrive.
+    showChangeModal.value = true
+    return
+  }
   startResendCooldown(30)
   requestAnimationFrame(() => otpRefs.value[0]?.focus())
 })

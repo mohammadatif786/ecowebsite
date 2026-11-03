@@ -207,6 +207,7 @@ class AuthController extends Controller
             'kyc_status' => 'nullable|string',
             'language' => 'nullable|string',
             'university' => 'nullable|string',
+            'university_country' => 'nullable|string|max:100',
             'link_me_with' => 'nullable|string',
             'link_me_with_country_code' => 'nullable|string',
             'link_me_with_country_name' => 'nullable|string',
@@ -268,7 +269,24 @@ class AuthController extends Controller
         // Mark the wizard completed
         $validated['is_wizard_completed'] = true;
 
+        // Not a users column — the country of the university picked next to its name.
+        $universityCountry = $validated['university_country'] ?? null;
+        unset($validated['university_country']);
+        $previousUniversity = $user->university;
+
         $user->update($validated);
+
+        // The university becomes the member's main campus in U Vibe (only when it changed or none is listed yet).
+        if (filled($validated['university'] ?? null)) {
+            try {
+                $universities = app(\App\Services\UniversityService::class);
+                if (! $universities->sameName($validated['university'], $previousUniversity) || ! $universities->hasAny($user)) {
+                    $universities->syncFromProfile($user, $validated['university'], $universityCountry);
+                }
+            } catch (\Throwable $e) {
+                report($e); // the campus list must never block saving a profile
+            }
+        }
 
         return response()->json([
             'status' => true,
