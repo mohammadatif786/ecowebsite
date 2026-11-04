@@ -9,7 +9,10 @@ use App\Http\Controllers\NewFrontend\UVibeOrganizationController;
 use App\Http\Controllers\NewFrontend\UVibePostController;
 use App\Http\Controllers\NewFrontend\UVibeSearchController;
 use App\Http\Controllers\NewFrontend\UVibeThankYouController;
+use App\Http\Controllers\NewFrontend\VibeComposeController;
 use App\Http\Controllers\NewFrontend\VibeController;
+use App\Http\Controllers\NewFrontend\VibeExploreController;
+use App\Http\Controllers\NewFrontend\VibeShopController;
 use App\Http\Controllers\NewFrontend\VibeInteractionController;
 use App\Http\Controllers\NewFrontend\VibeChatController;
 use App\Http\Controllers\NewFrontend\DashboardController;
@@ -78,6 +81,15 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('uvibe/thank-you', [UVibeThankYouController::class, 'store'])->middleware('throttle:20,1')->name('uvibe.thank-you.store');
 
             Route::get('vibes/posts', [VibeController::class, 'index'])->name('vibes.posts');
+            Route::get('vibes/trending-tags', [VibeExploreController::class, 'trendingTags'])->middleware('throttle:60,1')->name('vibes.trending-tags');
+            Route::get('vibes/search', [VibeExploreController::class, 'search'])->middleware('throttle:120,1')->name('vibes.search');
+            Route::get('vibes/creators/{user}', [VibeExploreController::class, 'creator'])->middleware('throttle:120,1')->name('vibes.creators.show');
+            Route::get('vibes/report-reasons', [VibeController::class, 'reportReasons'])->name('vibes.report-reasons');
+            Route::get('vibes/publishers', [VibeComposeController::class, 'publishers'])->name('vibes.publishers');
+            Route::post('vibes/custom-publishers', [VibeComposeController::class, 'storeCustomPublisher'])->middleware('throttle:20,1')->name('vibes.custom-publishers.store');
+            Route::get('vibes/taggable', [VibeComposeController::class, 'taggable'])->middleware('throttle:60,1')->name('vibes.taggable');
+            // "Send a Vibe" to a person (no post): coins go to recipient_id.
+            Route::post('vibes/bigup', [VibeInteractionController::class, 'sendBigUp'])->middleware('throttle:30,1')->name('vibes.send-vibe');
             Route::get('vibes/suggested-creators', [VibeController::class, 'suggestedCreators'])->name('vibes.suggested-creators');
             Route::get('vibes/gifts-received', [DashboardController::class, 'giftsReceivedApi'])->name('vibes.gifts-received');
             Route::get('vibes/activity', [DashboardController::class, 'activityApi'])->name('vibes.activity');
@@ -91,6 +103,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('vibes/{vibe}', [VibeController::class, 'update'])->name('vibes.update');
             Route::post('vibes/{vibe}/update', [VibeController::class, 'update'])->name('vibes.update.post');
             Route::get('vibes/{vibe}/copy-link', [VibeController::class, 'copyLink'])->name('vibes.copy-link');
+            Route::get('vibes/{vibe}', [VibeController::class, 'show'])->whereNumber('vibe')->name('vibes.show');
+            Route::post('vibes/{vibe}/hide', [VibeController::class, 'hide'])->middleware('throttle:60,1')->name('vibes.hide');
+            Route::post('vibes/{vibe}/report', [VibeController::class, 'report'])->middleware('throttle:10,1')->name('vibes.report');
+            Route::post('vibes/{vibe}/buy/quote', [VibeShopController::class, 'quote'])->middleware('throttle:60,1')->name('vibes.buy.quote');
+            Route::post('vibes/{vibe}/buy', [VibeShopController::class, 'buy'])->middleware('throttle:10,1')->name('vibes.buy');
             Route::post('vibes/{vibe}/like', [VibeInteractionController::class, 'toggleLike'])->middleware('throttle:120,1')->name('vibes.like');
             Route::get('vibes/{vibe}/comments', [VibeInteractionController::class, 'indexComments'])->name('vibes.comments.index');
             Route::get('vibes/{vibe}/top-comments', [VibeInteractionController::class, 'topComments'])->name('vibes.top-comments');

@@ -79,11 +79,17 @@ Route::prefix('new_frontend')->name('new_frontend.')->group(function () {
         Route::post('/reels/{reel}/bigup', [ReelInteractionController::class, 'sendBigUp'])->middleware('throttle:30,1')->name('reels.bigup');
         Route::post('/reels/{reel}/gift', [ReelInteractionController::class, 'sendGift'])->middleware('throttle:30,1')->name('reels.gift');
         Route::post('/reel-comments/{comment}/like', [ReelInteractionController::class, 'toggleCommentLike'])->middleware('throttle:120,1')->name('reels.comments.like');
-        Route::post('/vibes/{vibe}/purchase', [VibeInteractionController::class, 'purchaseAttachment'])->middleware('throttle:10,1')->name('vibes.purchase');
+        // Buy the item tagged on a post: priced on the server, a real order, paid from the wallet.
+        Route::post('/vibes/{vibe}/purchase/quote', [\App\Http\Controllers\NewFrontend\VibeShopController::class, 'quote'])->middleware('throttle:60,1')->name('vibes.purchase.quote');
+        Route::post('/vibes/{vibe}/purchase', [\App\Http\Controllers\NewFrontend\VibeShopController::class, 'buy'])->middleware('throttle:10,1')->name('vibes.purchase');
+        Route::post('/vibes/{vibe}/hide', [VibeController::class, 'hide'])->middleware('throttle:60,1')->name('vibes.hide');
+        Route::post('/vibes/{vibe}/report', [VibeController::class, 'report'])->middleware('throttle:10,1')->name('vibes.report');
+        Route::get('/vibes/report-reasons', [VibeController::class, 'reportReasons'])->name('vibes.report-reasons');
+        Route::get('/vibes/search', [\App\Http\Controllers\NewFrontend\VibeExploreController::class, 'search'])->middleware('throttle:120,1')->name('vibes.search');
         Route::post('/vibes/earnings/release', [VibeInteractionController::class, 'releasePendingEarnings'])->middleware('throttle:6,1')->name('vibes.earnings.release');
         Route::post('/vibes/earnings/transfer', [VibeInteractionController::class, 'transferToWallet'])->middleware('throttle:6,1')->name('vibes.earnings.transfer');
         Route::post('/vibe-comments/{comment}/like', [VibeInteractionController::class, 'toggleCommentLike'])->middleware('throttle:120,1')->name('vibes.comments.like');
-        Route::post('/vibes/custom-publishers', [DashboardController::class, 'storeCustomPublisher'])->name('vibes.custom-publishers.store');
+        Route::post('/vibes/custom-publishers', [DashboardController::class, 'storeCustomPublisher'])->middleware('throttle:20,1')->name('vibes.custom-publishers.store');
         Route::get('/home', [DashboardController::class, 'home'])->name('home');
         Route::get('/vibes', [DashboardController::class, 'vibes'])->name('vibes');
         Route::get('/vibes/profile/{user}', [DashboardController::class, 'vibeUserProfile'])->name('vibes.user-profile');

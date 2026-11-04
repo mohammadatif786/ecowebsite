@@ -408,11 +408,15 @@ Route::get('/test-hide-debug', function () {
     return view('test_hide_debug');
 });
 
-require __DIR__.'/settings.php';
-require __DIR__.'/auth.php';
-require __DIR__.'/admin.php';
-require __DIR__.'/organizer.php';
-require __DIR__.'/NewAdminRoutes.php';
-require __DIR__.'/new_front.php';
+// ---------------------------------------------------------------------------------------------
+// Route areas live in their own folders. Keep these requires ABOVE the catch-all /{slug} route
+// below, otherwise it swallows their URLs.
+//   routes/web/    auth (+ sign-up), organizer, member app
+//   routes/admin/  everything under /admin (index.php loads the rest of the folder)
+// ---------------------------------------------------------------------------------------------
+require __DIR__.'/web/auth.php';
+require __DIR__.'/admin/index.php';
+require __DIR__.'/web/organizer.php';
+require __DIR__.'/web/member.php';
 
 Route::get('/{slug}', [App\Http\Controllers\LegalPageController::class, 'show'])->name('legal.dynamic');

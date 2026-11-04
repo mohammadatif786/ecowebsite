@@ -14,12 +14,15 @@ LinkupFinal is a social networking and event management platform built with Lara
 - **Key Features**: Multi-role system (Users, Organizers, Admins), Wallet system with transactions, Real-time features with Pusher, Payment processing with Stripe/Cashier, QR code generation and PDF generation
 
 **Route Organization:**
-- `routes/web.php` - Frontend user routes with authentication middleware
-- `routes/admin.php` - Admin panel routes
-- `routes/organizer.php` - Event organizer specific routes  
-- `routes/api.php` - API endpoints
-- `routes/auth.php` - Authentication routes
-- `routes/settings.php` - Application settings
+Laravel registers only `web.php`, `api.php`, `console.php` and `channels.php`. Everything else is loaded from those, grouped by area in folders:
+
+- `routes/web.php` - public routes, legal pages, `/proxy/*`; loads the web areas below (keep their `require`s above the `/{slug}` catch-all at the bottom)
+- `routes/web/auth.php` - login, register, OTP, password reset
+- `routes/web/member.php` - member app under `/new_frontend`
+- `routes/web/organizer.php` - event organizer area
+- `routes/admin/index.php` - loads every `/admin/*` file: `settings`, `core`, `ads`, `subscriptions`, `dashboards`
+- `routes/api.php` - API v1; loads `routes/api/mobile.php` (mobile app API under `/api/regular-user`)
+- `routes/console.php`, `routes/channels.php` - standard Laravel files
 
 **Application Structure:**
 - `app/Http/Controllers/` - Controllers organized by area (Frontend/, Admin/, etc.)
