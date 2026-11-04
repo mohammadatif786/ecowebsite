@@ -3,105 +3,22 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Auth\LoginRequest;
 use App\Models\User;
 use App\Models\UserOtp;
 use App\Services\TwilioService;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * The phone-code screens for existing members (verify, resend, change phone).
+ * Sign in / sign out moved to User\Signup\SignInController.
+ */
 class AuthenticatedSessionController extends Controller
 {
-    /**
-     * Display the login view.
-     */
-    public function create(): Response
-    {
-        return Inertia::render('User/Auth/Register', [
-            'canResetPassword' => Route::has('password.request'),
-            'status' => session('status'),
-        ]);
-    }
-
-    /**
-     * Handle an incoming authentication request.
-     */
-    public function store(LoginRequest $request, TwilioService $twilio)
-    {
-        $request->authenticate();
-        // The user who just passed the password check (works for email or @handle login).
-        $user = Auth::user();
-
-        if ($user && $user->phone_verified_at) {
-            $request->session()->regenerate();
-            return redirect()->intended(route('user.feed', absolute: false));
-        }
-
-        // Phone not verified yet: the password was correct, but the session must NOT stay
-        // logged in until the OTP is confirmed. Otherwise the OTP step can be skipped by
-        // waiting for the code to expire (EnsureOtpVerified only blocks while a code is active).
-        $remember = $request->boolean('remember');
-        Auth::guard('web')->logout();
-        $request->session()->regenerate();
-        $request->session()->put('otp_remember', $remember);
-
-        // Generate OTP
-        $otp = random_int(100000, 999999);
-        // Remove old OTPs
-        UserOtp::where('user_id', $user->id)->delete();
-        // Save new OTP
-        UserOtp::create([
-            'user_id' => $user->id,
-            'otp_hash' => Hash::make($otp),
-            'expires_at' => now()->addMinutes(5),
-            'is_active' => true,
-            'attempts' => 0,
-        ]);
-
-        if ($user->phone_number) {
-            try {
-                // Optionally send OTP via email/SMS here
-                $twilio->sendSMS(
-                    $user->phone_number,
-                    'Link Up Otp code: ' . $otp
-                );
-            } catch (\Exception $e) {
-                // Error gracefully skipped to let user change their phone
-            }
-        }
-
-        $token = Crypt::encryptString((string) $user->id);
-        return redirect()->route('verify.otp', ['token' => $token]);
-    }
-
-    /**
-     * Destroy an authenticated session.
-     */
-    public function destroy(Request $request): RedirectResponse
-    {
-        $user = Auth::user();
-        if ($user instanceof \Illuminate\Database\Eloquent\Model) {
-            $user->update([
-                'is_active' => 0,
-                'last_active' => now(),
-            ]);
-        }
-        Auth::guard('web')->logout();
-
-        $request->session()->invalidate();
-
-        $request->session()->regenerateToken();
-
-        return redirect('/register');
-    }
-
-
     public function VerifyOTP(string $token)
     {
         try {

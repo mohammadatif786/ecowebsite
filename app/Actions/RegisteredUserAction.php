@@ -71,7 +71,8 @@ class RegisteredUserAction
 
     private function validationIdWords(string $linkupId, array $reservedWords)
     {
-        if (in_array($linkupId, $reservedWords)) {
+        // $linkupId carries its leading @; the reserved words do not.
+        if (in_array(ltrim($linkupId, '@'), $reservedWords, true)) {
             return [
                 'available' => false,
                 'reason' => 'That ID is reserved for security reasons.'

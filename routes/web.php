@@ -34,6 +34,9 @@ use App\Http\Controllers\Frontend\UserChatController;
 use App\Http\Controllers\Frontend\UsersController;
 use App\Http\Controllers\Frontend\WalletController;
 use App\Http\Controllers\PushNotificationController;
+use App\DTOs\User\Signup\WizardStep;
+use App\Http\Controllers\User\Signup\PhoneVerificationController;
+use App\Http\Controllers\User\Signup\WizardController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/sponsor/click/{ad}', [EmailAdsManagerController::class, 'trackClick'])->name('sponsor.click');
@@ -58,10 +61,26 @@ Route::get('/email/open/{token}.png', [EmailTrackingController::class, 'open'])
     ->where('token', '[0-9a-fA-F\-]{36}')
     ->name('email.open');
 
-// Wizard routes: only 'auth', but with 'frontend.' names
-Route::middleware(['auth', 'otp.verified'])->name('frontend.')->group(function () {
-    Route::get('wizard', [UsersController::class, 'wizard'])->name('users.wizard');
-    Route::post('wizard', [UsersController::class, 'wizardUpdate'])->name('wizard.update');
+// Each throttle has its own prefix: without one, Laravel counts every throttled route for the same
+// member (or IP) on one shared counter, so saving 15 steps would use up the Finish limit.
+// Profile wizard (after "Verify email"). Reachable before the wizard is finished, but never before
+// the email code is entered ('signup.email'). 'otp.verified' is left off on purpose: the wizard has
+// its own phone step, and that middleware blocks every request while a phone code is waiting,
+// which would also block the requests that send and enter the code. The final save checks the
+// phone is verified (CompleteOnboardingAction).
+Route::middleware(['auth', 'signup.email'])->name('frontend.')->group(function () {
+    Route::get('wizard', [WizardController::class, 'show'])->name('users.wizard');
+    Route::post('wizard/steps/{step}', [WizardController::class, 'saveStep'])
+        ->whereIn('step', array_column(WizardStep::cases(), 'value'))
+        ->middleware('throttle:120,10,wizard-step:')
+        ->name('wizard.step');
+    Route::post('wizard/locate', [WizardController::class, 'locate'])->middleware('throttle:10,1,wizard-locate:')->name('wizard.locate');
+    Route::post('wizard', [WizardController::class, 'complete'])->middleware('throttle:10,10,wizard-finish:')->name('wizard.update');
+    Route::get('wizard/done', [WizardController::class, 'done'])->name('wizard.done');
+
+    // Phone step: signed-in members only, so a text can only be started for your own account.
+    Route::post('wizard/phone/send', [PhoneVerificationController::class, 'send'])->middleware('throttle:10,10,wizard-phone-send:')->name('wizard.phone.send');
+    Route::post('wizard/phone/verify', [PhoneVerificationController::class, 'verify'])->middleware('throttle:20,10,wizard-phone-verify:')->name('wizard.phone.verify');
 });
 
 // All other routes: 'auth' + 'isWizardComplete' + 'frontend.' prefix

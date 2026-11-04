@@ -5,8 +5,6 @@ namespace App\Http\Controllers\Frontend;
 use App\Actions\UserNotificationAction;
 use App\Actions\WizardUpdateAction;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\WizardUpdateFormRequest;
-use App\Models\CaribbeanIsland;
 use App\Models\FlaggedUser;
 use App\Models\Notification;
 use App\Models\User;
@@ -32,23 +30,6 @@ class UsersController extends Controller
     {
         return Inertia::render('User/Linkup/Classic/Users');
     }
-    public function wizard()
-    {
-        $caribbeans = CaribbeanIsland::all();
-        return Inertia::render('User/Onboarding/Wizard', [
-            'caribbeans' => $caribbeans
-        ]);
-    }
-
-    public function wizardUpdate(WizardUpdateFormRequest $request)
-    {
-        $validated = $request->validated();
-
-        $response = $this->wizardAction->update($validated, $request);
-
-        return redirect()->intended(route('user.feed', absolute: false));
-    }
-
     public function verifyKyc()
     {
         $userKycSubmitted = Auth::user()->kyc_submitted ?? false;

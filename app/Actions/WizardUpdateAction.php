@@ -41,8 +41,8 @@ class WizardUpdateAction
             }
         }
 
-        // calculating age
-        $birthday = new DateTime($request->birthday);
+        // calculating age (the website wizard passes the birthday in $validated, not in the request)
+        $birthday = new DateTime($validated['birthday'] ?? $request->birthday);
         $today = new DateTime();
         $validated['age'] = $today->diff($birthday)->y;
 

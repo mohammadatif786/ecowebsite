@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Actions\RegisteredUserAction;
+use App\Actions\User\Signup\RegisterMemberAction;
+use App\DTOs\User\Signup\RegisterMemberData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RegisteredUserFormRequest;
 use Illuminate\Http\RedirectResponse;
@@ -43,13 +45,15 @@ class RegisteredUserController extends Controller
         ], 200);
     }
 
-    public function store(RegisteredUserFormRequest $request): RedirectResponse
+    /**
+     * "Create account". The member is created and signed in, then held on the Verify email page
+     * until the 6-digit code is entered. The mobile app's register endpoint keeps using
+     * RegisteredUserAction; this is the website's path.
+     */
+    public function store(RegisteredUserFormRequest $request, RegisterMemberAction $registerMember): RedirectResponse
     {
-        $validated = $request->validated();
+        $registerMember->execute(RegisterMemberData::fromValidated($request->validated()));
 
-        $this->registeredAction->execute($validated);
-
-        // return redirect(route('frontend.home.matches', absolute: false));
-        return redirect(route('user.feed', absolute: false));
+        return redirect()->route('verification.notice');
     }
 }

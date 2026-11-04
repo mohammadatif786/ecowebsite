@@ -3,6 +3,7 @@
  * LinkUp - one "User" folder for the whole member app.
  *
  *   node scripts/restructure-user.mjs run             everything in one go: branch, route snapshot, plan, asks, apply, rebuild, checks
+ *   node scripts/restructure-user.mjs finish          after `run` stopped with the files already moved: re-check, routes, build, stage
  *   node scripts/restructure-user.mjs plan            dry run: writes restructure-report.md + restructure-moves.csv, changes nothing
  *   node scripts/restructure-user.mjs apply           does it (needs a clean git tree)
  *   node scripts/restructure-user.mjs verify          re-checks the result on disk (imports, page names, leftovers)
@@ -482,7 +483,7 @@ function git(args) {
 function apply(quiet = false) {
   if (!has('force')) {
     let dirty;
-    try { dirty = git('status --porcelain').split('\n').filter((l) => l && !/restructure-(report\.md|moves\.csv|baseline\.json)|scripts\/restructure-user\.mjs|route-(before|after)\.json/.test(l)); }
+    try { dirty = git('status --porcelain -uall').split('\n').filter((l) => l && !/restructure-(report\.md|moves\.csv|baseline\.json)|scripts\/restructure-user\.mjs|route-(before|after)\.json/.test(l)); }
     catch { throw new Error('git is not available here. Run it from the project folder, or pass --force if you have your own backup.'); }
     if (dirty.length) throw new Error(`Working tree is not clean (${dirty.length} changes). Commit or stash first, then run apply on a fresh branch:\n  git switch -c restructure-user-folder\n${dirty.slice(0, 8).join('\n')}`);
   }
@@ -508,21 +509,23 @@ function apply(quiet = false) {
   }
   // 2. take the old copies away (git still has them)
   for (const f of moveMap.keys()) fs.unlinkSync(abs(f));
-  // 3. put the mirror in place
+  // 3. remove the folders that are now empty. This must happen BEFORE the new files are written: Windows ignores letter case,
+  //    so an empty old "Components" folder would otherwise be reused and the new "components" would silently keep the old name.
+  const dirs = new Set();
+  for (const f of moveMap.keys()) for (let d = posix.dirname(f); d && d !== '.'; d = posix.dirname(d)) dirs.add(d);
+  for (const d of [...dirs].sort((a, b) => b.length - a.length)) { try { fs.rmdirSync(abs(d)); } catch { /* not empty */ } }
+  // 4. put the mirror in place
   for (const rel of queue.keys()) {
     fs.mkdirSync(path.dirname(abs(rel)), { recursive: true });
     fs.copyFileSync(path.join(tmp, ...rel.split('/')), abs(rel));
   }
   fs.rmSync(tmp, { recursive: true, force: true });
-  // 4. clean up folders that are now empty
-  const dirs = new Set();
-  for (const f of moveMap.keys()) for (let d = posix.dirname(f); d && d !== '.'; d = posix.dirname(d)) dirs.add(d);
-  for (const d of [...dirs].sort((a, b) => b.length - a.length)) { try { fs.rmdirSync(abs(d)); } catch { /* not empty */ } }
 
   fs.writeFileSync(abs('restructure-baseline.json'), JSON.stringify({ moves: Object.fromEntries(moveMap), badBefore: plan.baselineBad, missingPages: plan.missingPages, nameMap: Object.fromEntries(plan.nameMap) }, null, 1));
   console.log(`\nApplied: ${moveMap.size} files moved, ${changed.size} files rewritten, 1 file added (${LEGACY_CONTROLLER}).`);
-  verify();
-  if (quiet) return;
+  fixCasing([...moveMap.values(), LEGACY_CONTROLLER]);
+  const bad = verify();
+  if (quiet) return bad;
   console.log(`\nNext:
   php artisan optimize:clear
   php artisan ziggy:generate          (resources/js/ziggy.js is generated - this refreshes the route names)
@@ -530,6 +533,42 @@ function apply(quiet = false) {
   node scripts/restructure-user.mjs routes-compare route-before.json route-after.json
   npm run build
   git add -A && git status           (git shows the moves as renames)`);
+}
+
+
+// ───────────────────────────────────────────────────────────── folder letter case ──
+// Windows and macOS ignore letter case, Linux (the server) does not: "./components/X.vue" must match the real folder name exactly.
+function casingIssues(expected) {
+  const cache = new Map();
+  const ls = (d) => { if (!cache.has(d)) { try { cache.set(d, fs.readdirSync(abs(d || '.'))); } catch { cache.set(d, []); } } return cache.get(d); };
+  const wanted = new Set();
+  for (const f of expected) { const parts = f.split('/'); for (let i = 1; i <= parts.length; i++) wanted.add(parts.slice(0, i).join('/')); }
+  const issues = [];
+  for (const w of [...wanted].sort((a, b) => a.split('/').length - b.split('/').length || a.localeCompare(b))) {
+    const parent = posix.dirname(w) === '.' ? '' : posix.dirname(w);
+    const name = posix.basename(w);
+    const entries = ls(parent);
+    if (entries.includes(name)) continue;
+    const actual = entries.find((e) => e.toLowerCase() === name.toLowerCase());
+    if (actual) issues.push({ parent, actual, name });
+  }
+  return issues;
+}
+
+function fixCasing(expected) {
+  let total = 0;
+  for (let round = 0; round < 12; round++) {
+    const issues = casingIssues(expected);
+    if (!issues.length) break;
+    const { parent, actual, name } = issues[0]; // shallowest first; recomputed after every rename
+    const from = abs(posix.join(parent, actual));
+    const mid = `${from}.__case_fix`;
+    fs.renameSync(from, mid); // two steps, because on Windows a rename that only changes letter case is refused or ignored
+    fs.renameSync(mid, abs(posix.join(parent, name)));
+    console.log(`   fixed folder name: ${posix.join(parent, actual)} -> ${posix.join(parent, name)}`);
+    total++;
+  }
+  return total;
 }
 
 // ─────────────────────────────────────────────────────────────────── verify ──
@@ -563,7 +602,7 @@ function verify() {
 
   const left = [];
   for (const f of files) {
-    if (!isText(f) || SKIP_CONTENT.has(f)) continue;
+    if (!isText(f) || SKIP_CONTENT.has(f) || f.startsWith('.artifacts/')) continue;
     const text = readText(f);
     for (const m of text.matchAll(/new_frontend|NewFrontend|new_front_layout|pages\/new_front/g)) if (!INTENDED.test(fullLine(text, m.index)) || /stripe_cart/.test(fullLine(text, m.index))) left.push(`${f}:${lineOf(text, m.index)}  ${snippet(text, m.index)}`);
   }
@@ -573,7 +612,13 @@ function verify() {
   const oldDirs = [`${P}new_front`, `${C}new_frontend`, `${L}new_front_layout`, 'app/Http/Controllers/NewFrontend'].filter((d) => fs.existsSync(abs(d)));
   console.log(`verify: old folders   ${oldDirs.length ? `FAIL - still there: ${oldDirs.join(', ')}` : 'ok - gone'}`);
   bad += oldDirs.length;
+
+  const caseBad = baseline ? casingIssues([...Object.values(moves), LEGACY_CONTROLLER]) : [];
+  console.log(`verify: folder names  ${caseBad.length ? `FAIL - ${caseBad.length} folder(s) with the wrong letter case (works on Windows, breaks on Linux)` : 'ok - letter case matches the plan'}`);
+  for (const c of caseBad.slice(0, 20)) console.log(`    ${posix.join(c.parent, c.actual)}  should be  ${posix.join(c.parent, c.name)}`);
+  bad += caseBad.length;
   if (bad) process.exitCode = 1;
+  return bad;
 }
 
 // ──────────────────────────────────────────────────────────── routes-compare ──
@@ -613,31 +658,109 @@ function routesCompare(beforeFile, afterFile) {
   const dup = [...pa].filter(([k, v]) => v > (pb.get(k) ?? 0) && v > 1 && !k.includes(`${OLD_AREA}/{path?}`));
   console.log(dup.length ? `FAIL - ${dup.length} address(es) now served by two routes:` : 'ok - no address is claimed by two routes');
   for (const [k] of dup.slice(0, 20)) console.log(`   ! ${k}`);
-  if (missing.length || unexpected.length || dup.length) process.exitCode = 1;
+  const ok = !(missing.length || unexpected.length || dup.length);
+  if (!ok) process.exitCode = 1;
+  return ok;
 }
 
 
 // ───────────────────────────────────────────────────────────────────── run ──
-async function run() {
-  const { createInterface } = await import('node:readline/promises');
-  const php = opt('php') ?? 'php';
+
+function findPhp() {
+  const works = (p) => { try { execSync(`"${p}" -v`, { stdio: 'ignore' }); return true; } catch { return false; } };
+  const candidates = ['php', 'C:\\xampp\\php\\php.exe', 'D:\\xampp\\php\\php.exe'];
+  for (const base of ['C:\\laragon\\bin\\php', 'C:\\wamp64\\bin\\php']) {
+    try { for (const d of fs.readdirSync(base).sort().reverse()) candidates.push(`${base}\\${d}\\php.exe`); } catch { /* not installed */ }
+  }
+  return candidates.find(works);
+}
+function toolbox() {
+  const php = has('skip-php') ? 'php' : (opt('php') ?? findPhp());
+  if (!has('skip-php') && !php) throw new Error('Could not find PHP. Run again with the full path, for example:\n  node scripts/restructure-user.mjs run --php=C:\\xampp\\php\\php.exe');
+  if (!has('skip-php')) console.log(`PHP: ${php}`);
   const sh = (c) => execSync(c, { cwd: ROOT, stdio: 'inherit' });
   const routeList = (file) => {
-    const out = execSync(`${php} artisan route:list --json`, { cwd: ROOT, maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'inherit'] }).toString();
+    let out;
+    try { out = execSync(`"${php}" artisan route:list --json`, { cwd: ROOT, maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'pipe'] }).toString(); }
+    catch (e) {
+      const text = [e.stdout, e.stderr].map((b) => (b ? b.toString() : '')).join('\n').trim();
+      console.log(`   php artisan route:list failed:\n${text ? text.split('\n').slice(0, 20).map((l) => `   | ${l}`).join('\n') : '   | (no output)'}`);
+      try { // artisan often logs the real reason instead of printing it
+        const log = fs.readFileSync(abs('storage/logs/laravel.log'), 'utf8').split('\n').filter((l) => /^\[\d{4}-\d\d-\d\d[^\]]*\] \w+\.ERROR/.test(l));
+        if (log.length) console.log(`   laravel.log, last error:\n   | ${log[log.length - 1].slice(0, 300)}`);
+      } catch { /* no log */ }
+      let stashed = '';
+      try { stashed = git('stash list').trim(); } catch { /* ignore */ }
+      throw new Error(`route:list failed.${stashed ? '\nYou have stashed work (git stash list). Files that were only in the stash (untracked controllers, uncommitted edits) may be missing here. Run git stash pop and commit that work first.' : ''}\nFix the error above (or pass --php=<full path to php.exe>), then run again.`);
+    }
     const line = out.split('\n').reverse().find((l) => l.trim().startsWith('['));
     if (!line) throw new Error('php artisan route:list --json did not return JSON');
     fs.writeFileSync(abs(file), line.trim());
     console.log(`   saved ${file} (${JSON.parse(line).length} routes)`);
   };
   const step = (n, t) => console.log(`\n[${n}] ${t}`);
+  return { php, sh, routeList, step };
+}
+
+// steps 5 and 6 - used by `run` right after apply and by `finish` when the files are already moved
+function afterApply(t, bad) {
+  const { php, sh, routeList, step } = t;
+  const undo = 'To undo everything: git reset --hard && git clean -fd';
+  if (bad) throw new Error(`The check found problems (listed above). Nothing is staged and nothing is committed.\nFix them - or send the list to Claude - then run:  node scripts/restructure-user.mjs finish\n${undo}`);
+
+  step(5, 'Refresh Laravel and check the routes');
+  if (!has('skip-php')) {
+    if (!fs.existsSync(abs('route-before.json'))) throw new Error('route-before.json is missing, so the routes cannot be compared. It is created by `run` before anything moves.');
+    sh(`"${php}" artisan optimize:clear`);
+    try { sh(`"${php}" artisan ziggy:generate`); } catch { console.log('   ziggy:generate failed - run it by hand (resources/js/ziggy.js is generated)'); }
+    routeList('route-after.json');
+    if (!routesCompare(abs('route-before.json'), abs('route-after.json'))) throw new Error(`The route check failed - do not commit.\n${undo}`);
+  } else console.log('   skipped (--skip-php)');
+
+  step(6, 'Build the front end');
+  if (!has('skip-build')) {
+    try { sh('npm run build'); } catch { throw new Error(`npm run build failed - the move broke something. Send the first error to Claude.\n${undo}`); }
+  } else console.log('   skipped (--skip-build)');
+
+  if (!has('skip-git')) {
+    // stage the real changes only - leave the tool's own report/baseline files and this script out of the commit
+    git('add -A -- . ":(exclude)scripts/restructure-user.mjs" ":(exclude)restructure-report.md" ":(exclude)restructure-moves.csv" ":(exclude)restructure-baseline.json" ":(exclude)route-before.json" ":(exclude)route-after.json"');
+  }
+  console.log('\nDone. The real changes are staged but not committed (the report files and this script are left out):\n  git status        (moves show as renames)\n  git commit -m "Move member app into one User folder"\nTry the site (home, wallet, a live page, an old /new_frontend link) before merging.');
+}
+
+// the files are already moved (apply ran) but something afterwards needs redoing: re-check, then steps 5 and 6
+function finish() {
+  if (!fs.existsSync(abs('restructure-baseline.json'))) throw new Error('restructure-baseline.json not found - `finish` only works after the files have been moved by `run` or `apply`.');
+  const t = toolbox();
+  t.step(4, 'Re-check the moved files');
+  const baseline = JSON.parse(fs.readFileSync(abs('restructure-baseline.json'), 'utf8'));
+  fixCasing([...Object.values(baseline.moves ?? {}), LEGACY_CONTROLLER]);
+  afterApply(t, verify());
+}
+
+async function run() {
+  const { createInterface } = await import('node:readline/promises');
+  const t = toolbox();
+  const { routeList, step } = t;
 
   step(1, 'Branch');
   if (!has('skip-git')) {
-    const dirty = git('status --porcelain').split('\n').filter((l) => l && !/restructure-|scripts\/restructure-user\.mjs|route-(before|after)\.json/.test(l));
+    const dirty = git('status --porcelain -uall').split('\n').filter((l) => l && !/restructure-|scripts\/restructure-user\.mjs|route-(before|after)\.json/.test(l));
     if (dirty.length) throw new Error(`Working tree is not clean (${dirty.length} changes). Commit or stash first, then run again.\n${dirty.slice(0, 8).join('\n')}`);
-    const branch = opt('branch') ?? 'restructure-user-folder';
-    git(`switch -c ${branch}`);
-    console.log(`   on new branch ${branch}`);
+    try {
+      const n = git('stash list').trim().split('\n').filter(Boolean).length;
+      if (n) console.log(`   note: ${n} stash entr${n === 1 ? 'y' : 'ies'} - stashed work is NOT in the working tree. If something is missing later, git stash pop and commit it first.`);
+    } catch { /* ignore */ }
+    const wanted = opt('branch') ?? 'restructure-user-folder';
+    if (git('branch --show-current').trim() === wanted) console.log(`   already on branch ${wanted} - continuing`);
+    else {
+      const exists = (b) => { try { git(`rev-parse --verify --quiet refs/heads/${b}`); return true; } catch { return false; } };
+      let name = wanted;
+      for (let i = 2; exists(name); i++) name = `${wanted}-${i}`;
+      git(`switch -c ${name}`);
+      console.log(`   on new branch ${name}`);
+    }
   }
 
   step(2, 'Snapshot the routes before');
@@ -650,7 +773,7 @@ async function run() {
   for (const w of plan.warnings) console.log(`   warning: ${w}`);
   if (plan.problems.length || plan.unmapped.length) {
     for (const x of [...plan.problems, ...plan.unmapped.map((u) => `still named new_front*, no move rule: ${u}`)]) console.log(`   BLOCKING: ${x}`);
-    throw new Error('Stopped before changing anything. Fix the blocking items above (or send them to Claude), then run again. The new branch is empty: `git switch -` and `git branch -D restructure-user-folder` to drop it.');
+    throw new Error('Stopped before changing anything. Fix the blocking items above (or send them to Claude), then run again. The branch only has your own commits; to drop it: `git switch -` then `git branch -D <branch>`.');
   }
   console.log('   full list: restructure-report.md   old -> new: restructure-moves.csv');
   if (!has('yes')) {
@@ -661,24 +784,7 @@ async function run() {
   }
 
   step(4, 'Apply');
-  apply(true);
-
-  step(5, 'Refresh Laravel and check the routes');
-  if (!has('skip-php')) {
-    sh(`${php} artisan optimize:clear`);
-    try { sh(`${php} artisan ziggy:generate`); } catch { console.log('   ziggy:generate failed - run it by hand (resources/js/ziggy.js is generated)'); }
-    routeList('route-after.json');
-    routesCompare(abs('route-before.json'), abs('route-after.json'));
-    if (process.exitCode) throw new Error('The route check failed - do not commit. Revert with: git reset --hard && git clean -fd');
-  } else console.log('   skipped (--skip-php)');
-
-  step(6, 'Build the front end');
-  if (!has('skip-build')) {
-    try { sh('npm run build'); } catch { throw new Error('npm run build failed - the move broke something. Revert with: git reset --hard && git clean -fd  (then send the first error to Claude)'); }
-  } else console.log('   skipped (--skip-build)');
-
-  if (!has('skip-git')) git('add -A');
-  console.log('\nDone. Everything is staged but not committed:\n  git status        (moves show as renames)\n  git commit -m "Move member app into one User folder"\nTry the site (home, wallet, a live page, an old /new_frontend link) before merging.');
+  afterApply(t, apply(true));
 }
 
 // ───────────────────────────────────────────────────────────────────── main ──
@@ -697,10 +803,11 @@ Before apply:
 then:  node scripts/restructure-user.mjs apply`);
     if (plan.problems.length || plan.unmapped.length) process.exitCode = 1;
   } else if (cmd === 'run') await run();
+  else if (cmd === 'finish') finish();
   else if (cmd === 'apply') apply();
   else if (cmd === 'verify') verify();
   else if (cmd === 'routes-compare') routesCompare(argv[1], argv[2]);
-  else throw new Error(`unknown command "${cmd}" (run | plan | apply | verify | routes-compare)`);
+  else throw new Error(`unknown command "${cmd}" (run | finish | plan | apply | verify | routes-compare)`);
 } catch (e) {
   console.error(`\n${e.message}`);
   process.exitCode = 1;

@@ -9,6 +9,7 @@ use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use App\Http\Middleware\CheckWizardCompleted;
 use App\Http\Middleware\RedirectIfAdminIsAuthenticated;
 use App\Http\Middleware\EnsureOtpVerified;
+use App\Http\Middleware\EnsureSignupEmailVerified;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -29,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'isWizardComplete' => CheckWizardCompleted::class,
             'otp.verified' => EnsureOtpVerified::class,
+            'signup.email' => EnsureSignupEmailVerified::class,
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
