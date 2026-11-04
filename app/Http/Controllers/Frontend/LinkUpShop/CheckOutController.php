@@ -31,7 +31,7 @@ class CheckOutController extends Controller
 
     public function index()
     {
-        return Inertia::render('User/LinkUpShop/Checkout/Index');
+        return Inertia::render('User/Marketplace/Classic/LinkUpShop/Checkout/Index');
     }
 
     public function quote(Request $request, CheckoutAction $checkout)
@@ -124,7 +124,7 @@ class CheckOutController extends Controller
                     ->commit();
             });
 
-            return redirect()->route('new_frontend.marketplace')->withSuccess('Payment successful');
+            return redirect()->route('user.marketplace')->withSuccess('Payment successful');
         }
 
         // CARD (Stripe)
@@ -224,6 +224,6 @@ class CheckOutController extends Controller
             $this->dispatchSellerCheckoutEmails($order);
         });
 
-        return redirect()->route('new_frontend.marketplace')->withSuccess('Payment successful');
+        return redirect()->route('user.marketplace')->withSuccess('Payment successful');
     }
 }

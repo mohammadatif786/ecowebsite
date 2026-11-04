@@ -60,7 +60,7 @@ class ClubController extends Controller
             ->where('category', 'club')
             ->get();
 
-        return Inertia::render('User/Clubs/Index', [
+        return Inertia::render('User/NightLife/Clubs/Index', [
             'clubs' => $clubs,
             'swipeAds' => $swipeAds,
         ]);
@@ -101,7 +101,7 @@ class ClubController extends Controller
             abort(404);
         }
 
-        return Inertia::render('User/Clubs/Show', [
+        return Inertia::render('User/NightLife/Clubs/Show', [
             'club' => $club,
         ]);
     }

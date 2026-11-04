@@ -15,7 +15,7 @@ class EventTicketController extends Controller
             $query->where('user_id', auth()->user()->id);
         })->get();
 
-        return Inertia::render('User/Ticket/Index', [
+        return Inertia::render('User/Events/Tickets/Index', [
             'tickets' => $tickets
         ]);
     }
@@ -23,19 +23,19 @@ class EventTicketController extends Controller
     public function create()
     {
         $events = auth()->user()->events;
-        return Inertia::render('User/Ticket/CreateTicket', [
+        return Inertia::render('User/Events/Tickets/CreateTicket', [
             'events' => $events
         ]);
     }
 
     public function eticket()
     {
-        return Inertia::render('User/Eticket');
+        return Inertia::render('User/Events/Tickets/Eticket');
     }
 
     public function buyTicket()
     {
-        return Inertia::render('User/BuyTicket');
+        return Inertia::render('User/Events/Tickets/BuyTicket');
     }
     public function store(Request $request)
     {
@@ -72,7 +72,7 @@ class EventTicketController extends Controller
     {
         $ticket = Ticket::findOrFail($id);
         $events = auth()->user()->events;
-        return Inertia::render('User/Ticket/EditTicket', [
+        return Inertia::render('User/Events/Tickets/EditTicket', [
             'ticket' => $ticket,
             'events' => $events,
         ]);

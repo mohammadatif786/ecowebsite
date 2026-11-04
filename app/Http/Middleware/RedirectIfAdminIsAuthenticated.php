@@ -25,7 +25,7 @@ class RedirectIfAdminIsAuthenticated
 
         // If regular user hits the home page, send them to their dashboard
         if ($routeName === 'user.home' && $user->type === 'user') {
-            return redirect()->route('new_frontend.home');
+            return redirect()->route('user.feed');
         }
 
         // If admin hits the home page or admin home, send them to admin dashboard

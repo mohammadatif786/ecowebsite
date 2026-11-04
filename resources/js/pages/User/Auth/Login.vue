@@ -94,9 +94,9 @@
 <script setup lang="ts">
 import InputError from '@/components/admin/InputError.vue';
 import Footer1 from '@/components/footer1.vue';
-import Card from '@/components/front/Card.vue';
-import Header from '@/components/front/Header.vue';
-import Input from '@/components/front/Input.vue';
+import Card from '@/components/User/Classic/Card.vue';
+import Header from '@/components/User/Classic/Header.vue';
+import Input from '@/components/User/Classic/Input.vue';
 import GuestLayout from '@/layouts/admin/GuestLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 

@@ -1,14 +1,14 @@
 /**
  * U Vibe post actions — the one place the website talks to the U Vibe post endpoints.
  *
- * These are the same endpoints the mobile app uses (web routes `new_frontend.uvibe.posts.*` and API
+ * These are the same endpoints the mobile app uses (web routes `user.uvibe.posts.*` and API
  * routes `regularUserAPI.uvibe.posts.*` point at UVibePostController), so every rule — who can edit,
  * what a Boost costs, who can pay a gig worker — is decided by the server, never by this file.
  */
 import axios from 'axios';
 import { notify } from './uvibe';
 
-const url = (name, params) => route(`new_frontend.uvibe.posts.${name}`, params);
+const url = (name, params) => route(`user.uvibe.posts.${name}`, params);
 
 /** Edit your own post. `data`: {title, caption, price?, event_id?}. Resolves to the updated post. */
 export const editPost = (id, data) => axios.put(url('update', { vibe: id }), data).then((r) => r.data);
@@ -25,7 +25,7 @@ export const reportPost = (id, reason, notes) => axios.post(url('report', { vibe
 export const repostPost = (id) => axios.post(url('repost', { vibe: id })).then((r) => r.data);
 
 /** The Boosts you can send and your coin balance: {coins, boosts:[{key,label,emoji,coins}]}. */
-export const fetchBoosts = () => axios.get(route('new_frontend.uvibe.boosts')).then((r) => r.data);
+export const fetchBoosts = () => axios.get(route('user.uvibe.boosts')).then((r) => r.data);
 
 /** Send a Boost (coins only). Resolves to {message, coins, boost_coins}. */
 export const sendBoost = (id, gift) => axios.post(url('boost', { vibe: id }), { gift }).then((r) => r.data);

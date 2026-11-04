@@ -40,7 +40,7 @@ class AuthenticatedSessionController extends Controller
 
         if ($user && $user->phone_verified_at) {
             $request->session()->regenerate();
-            return redirect()->intended(route('new_frontend.home', absolute: false));
+            return redirect()->intended(route('user.feed', absolute: false));
         }
 
         // Phone not verified yet: the password was correct, but the session must NOT stay
@@ -175,7 +175,7 @@ class AuthenticatedSessionController extends Controller
         $otpRecord->delete();
         $request->session()->regenerate();
 
-        $redirectUrl = $request->session()->pull('url.intended', route('new_frontend.home', absolute: false));
+        $redirectUrl = $request->session()->pull('url.intended', route('user.feed', absolute: false));
         return response()->json(['redirect' => $redirectUrl]);
     }
 

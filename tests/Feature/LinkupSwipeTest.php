@@ -17,7 +17,7 @@ test('a pass swipe is persisted as dislike', function () {
     $actor = User::factory()->create();
     $target = User::factory()->create(['uid' => 'linkup-target']);
 
-    $this->actingAs($actor)->postJson(route('new_frontend.linkup.swipe'), [
+    $this->actingAs($actor)->postJson(route('user.linkup.swipe'), [
         'target_id' => $target->id, 'action' => 'pass',
     ])->assertOk()->assertJsonPath('match', false);
 
@@ -27,7 +27,7 @@ test('a pass swipe is persisted as dislike', function () {
 test('a user cannot swipe themselves', function () {
     $actor = User::factory()->create(['uid' => 'linkup-self']);
 
-    $this->actingAs($actor)->postJson(route('new_frontend.linkup.swipe'), [
+    $this->actingAs($actor)->postJson(route('user.linkup.swipe'), [
         'target_id' => $actor->id, 'action' => 'like',
     ])->assertForbidden();
 });
@@ -38,7 +38,7 @@ test('conversation pins are personal', function () {
     UserMatch::create(['user_id' => $first->id, 'target_user_id' => $second->id, 'status' => 'like']);
     UserMatch::create(['user_id' => $second->id, 'target_user_id' => $first->id, 'status' => 'like']);
 
-    $this->actingAs($first)->postJson(route('new_frontend.dating.chats.pin', $second))->assertOk()->assertJsonPath('pinned', true);
+    $this->actingAs($first)->postJson(route('user.dating.chats.pin', $second))->assertOk()->assertJsonPath('pinned', true);
 
     expect(ConversationPreference::where('user_id', $first->id)->where('other_user_id', $second->id)->value('is_pinned'))->toBeTrue()
         ->and(ConversationPreference::where('user_id', $second->id)->where('other_user_id', $first->id)->exists())->toBeFalse();

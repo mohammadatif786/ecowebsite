@@ -31,7 +31,7 @@ class FriendRequestController extends Controller
             ->latest()
             ->get();
 
-        return Inertia::render('User/FriendRequest/Index', [
+        return Inertia::render('User/Linkup/Classic/FriendRequest/Index', [
             'friendRequests' => $friendRequests,
             'sentRequests' => $sentRequests,
         ]);

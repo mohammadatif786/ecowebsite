@@ -243,7 +243,7 @@ class UVibeFeedService
             'repostOf' => $vibe->reposted_from_id ? ['id' => (int) $vibe->reposted_from_id, 'name' => (string) $vibe->reposted_from_name] : null,
             'reposted' => isset($extras['reposted'][$vibe->id]),
             'edited' => $vibe->edited_at !== null,
-            'share_url' => route('new_frontend.uvibe', ['post' => $vibe->id]),
+            'share_url' => route('user.uvibe', ['post' => $vibe->id]),
             // Campus Gig: the poster sees how many applied/were paid; everyone else sees their own status
             // (null = not applied, 'applied' = waiting for the poster to pay, 'paid').
             'gig' => $category === 'opportunity' ? [

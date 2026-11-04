@@ -114,7 +114,7 @@ class LiveStreamGumletController extends Controller
         $gifts = LinkupLiveGift::where('active', true)->get();
         $live_stream_categories = LiveStreamCategories::query()->orderBy('category')->get();
 
-        return Inertia::render('User/GoLive/Index', [
+        return Inertia::render('User/Live/Classic/GoLive/Index', [
             'user_Streams' => $user_Streams,
             'balance' => $balance,
             'all_Streams' => $all_Streams,
@@ -579,7 +579,7 @@ class LiveStreamGumletController extends Controller
                 'line_items' => $lineItems,
                 'mode' => 'payment', // use 'subscription' if recurring, but for now 'payment' (one-time logic for simplicity as per request "go to stripe and checkout")
                 'success_url' => route('frontend.live.subscribe.success').'?session_id={CHECKOUT_SESSION_ID}&stream_id='.$stream->id.'&plan='.$plan,
-                'cancel_url' => route('new_frontend.live'),
+                'cancel_url' => route('user.live'),
                 'customer_email' => $user->email,
                 'metadata' => [
                     'user_id' => $user->id,
@@ -634,7 +634,7 @@ class LiveStreamGumletController extends Controller
             if ($session->payment_status === 'paid') {
                 $stream = LiveStreamGumlet::find($streamId);
                 if (! $stream) {
-                    return redirect()->route('new_frontend.live')->with('error', 'Stream not found.');
+                    return redirect()->route('user.live')->with('error', 'Stream not found.');
                 }
 
                 // Record subscription
@@ -668,13 +668,13 @@ class LiveStreamGumletController extends Controller
                     );
                 }
 
-                return redirect()->route('new_frontend.live')->with('success', 'Subscription successful! You can now join the stream.');
+                return redirect()->route('user.live')->with('success', 'Subscription successful! You can now join the stream.');
             }
         } catch (\Exception $e) {
-            return redirect()->route('new_frontend.live')->with('error', 'Payment verification failed.');
+            return redirect()->route('user.live')->with('error', 'Payment verification failed.');
         }
 
-        return redirect()->route('new_frontend.live')->with('error', 'Payment incomplete.');
+        return redirect()->route('user.live')->with('error', 'Payment incomplete.');
     }
 
     // ===== Live realtime API =====
@@ -2266,7 +2266,7 @@ class LiveStreamGumletController extends Controller
 
         $live_stream_categories = LiveStreamCategories::query()->orderBy('category')->get();
 
-        return Inertia::render('User/GoLive/GoLiveNetwork', [
+        return Inertia::render('User/Live/Classic/GoLive/GoLiveNetwork', [
             'all_Streams' => $all_Streams,
             'live_stream_categories' => $live_stream_categories,
         ]);

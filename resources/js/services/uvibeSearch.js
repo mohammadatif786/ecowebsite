@@ -1,7 +1,7 @@
 /**
  * U Vibe search — the one place the website asks the server for people and campuses.
  *
- * Same endpoint the mobile app uses (web route `new_frontend.uvibe.search`, API route
+ * Same endpoint the mobile app uses (web route `user.uvibe.search`, API route
  * `regularUserAPI.uvibe.search`): who shows up and in what order is decided by the server.
  */
 import axios from 'axios';
@@ -11,4 +11,4 @@ import axios from 'axios';
  * Resolves to {q, people:[{user_id,name,handle,avatar,campus,posts,orgs}], campuses:[…]}.
  */
 export const searchUVibe = (q = '') =>
-    axios.get(route('new_frontend.uvibe.search'), { params: { q } }).then((r) => r.data);
+    axios.get(route('user.uvibe.search'), { params: { q } }).then((r) => r.data);

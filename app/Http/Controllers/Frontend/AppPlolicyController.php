@@ -14,11 +14,11 @@ class AppPlolicyController extends Controller
     {
         $alldescriptions = Settings::whereIn('key', [$key])->get();
         if ($alldescriptions->isEmpty()) {
-            return Inertia::render("User/AppSetting");
+            return Inertia::render("User/Settings/AppSetting");
         }
 
 
-        return Inertia::render("User/AppSetting", [
+        return Inertia::render("User/Settings/AppSetting", [
             'app_setting' => $alldescriptions
         ]);
     }

@@ -1,29 +1,29 @@
 /**
  * U Vibe — the one place the website talks to the U Vibe backend.
  *
- * These are the same endpoints the mobile app uses (the web routes `new_frontend.uvibe.*` and
+ * These are the same endpoints the mobile app uses (the web routes `user.uvibe.*` and
  * the API routes `regularUserAPI.uvibe.*` point at the same controllers), so a post made here
  * is validated and saved by exactly the same code as a post made in the app.
  */
 import axios from 'axios';
 
 /** Look-and-feel choices (post types, organization types, text-card looks, limits). */
-export const fetchOptions = () => axios.get(route('new_frontend.uvibe.options')).then((r) => r.data);
+export const fetchOptions = () => axios.get(route('user.uvibe.options')).then((r) => r.data);
 
 /** The organizations this member has added to post for. */
 export const fetchOrganizations = () =>
-    axios.get(route('new_frontend.uvibe.organizations.index')).then((r) => r.data.organizations);
+    axios.get(route('user.uvibe.organizations.index')).then((r) => r.data.organizations);
 
 /** Add an organization. Adding the same name again returns the existing one (`created: false`). */
 export const addOrganization = ({ name, orgType }) =>
     axios
-        .post(route('new_frontend.uvibe.organizations.store'), { name, org_type: orgType })
+        .post(route('user.uvibe.organizations.store'), { name, org_type: orgType })
         .then((r) => r.data);
 
 /** Publish a post. `form` is a FormData built by `buildPostForm`. */
 export const createPost = (form) =>
     axios
-        .post(route('new_frontend.uvibe.posts.store'), form, { headers: { 'Content-Type': 'multipart/form-data' } })
+        .post(route('user.uvibe.posts.store'), form, { headers: { 'Content-Type': 'multipart/form-data' } })
         .then((r) => r.data);
 
 /**

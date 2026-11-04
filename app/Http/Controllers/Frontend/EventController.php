@@ -28,7 +28,7 @@ class EventController extends Controller
     {
         $filters = EventIndexFilters::fromRequest($request);
 
-        return Inertia::render('User/Event/Index', $action->handle(Auth::user(), $filters));
+        return Inertia::render('User/Events/Classic/Event/Index', $action->handle(Auth::user(), $filters));
     }
 
 
@@ -36,20 +36,20 @@ class EventController extends Controller
     {
         $criteria = EventFilterCriteria::fromRequest($request);
 
-        return Inertia::render('User/Event/Index', $action->handle($criteria));
+        return Inertia::render('User/Events/Classic/Event/Index', $action->handle($criteria));
     }
 
     public function create()
     {
         $categories = EventCategory::all();
-        return Inertia::render('User/Event/CreateEvent', [
+        return Inertia::render('User/Events/Classic/Event/CreateEvent', [
             'categories' => $categories
         ]);
     }
 
     public function show(LinkUpEvent $event, ShowEventAction $action)
     {
-        return Inertia::render('User/Event/Show', $action->handle($event));
+        return Inertia::render('User/Events/Classic/Event/Show', $action->handle($event));
     }
 
 
@@ -81,7 +81,7 @@ class EventController extends Controller
             'no_state_sales_tax' => $taxRules['no_state_sales_tax'] ?? false
         ];
 
-        return Inertia::render('User/Event/Tickets', [
+        return Inertia::render('User/Events/Classic/Event/Tickets', [
             'tickets' => $tickets,
             'coupons' => $event->coupons()->active()->get(),
             'fee' => floatval(Settings::where('key', 'eventFee')->first()?->value),
@@ -117,7 +117,7 @@ class EventController extends Controller
     {
         $events = Auth::user()->favoriteEvents()->with('authUserFavorite')->get();
 
-        return Inertia::render('User/Event/Favorite', [
+        return Inertia::render('User/Events/Classic/Event/Favorite', [
             'events' => $events,
         ]);
     }
@@ -133,7 +133,7 @@ class EventController extends Controller
             default => $eventsQuery
         };
         $allCategories = EventCategory::get();
-        return Inertia::render('User/Event/Index', [
+        return Inertia::render('User/Events/Classic/Event/Index', [
             'events' => $eventsQuery->get(),
             'search' => true,
             'allCategories' => $allCategories

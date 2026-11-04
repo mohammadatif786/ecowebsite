@@ -29,7 +29,7 @@ class FriendController extends Controller
             return $user;
         });
 
-        return Inertia::render('User/Friend/Index', [
+        return Inertia::render('User/Linkup/Classic/Friend/Index', [
             'users' => $friends,
             'currentUser' => $userLoggedin,
             'google_api_key' => env('GOOGLE_MAPS_API_KEY'),

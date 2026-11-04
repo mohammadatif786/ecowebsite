@@ -42,7 +42,7 @@
                     <h4 class="text-xs font-black text-slate-900 uppercase tracking-widest mb-6">Connect</h4>
                     <ul class="space-y-4 mb-8">
                         <li v-if="$page.props.legalPagesStatus?.['contact-and-customer-support'] !== false"><Link :href="route('legal.support')" class="text-sm font-bold text-slate-500 hover:text-lkink transition">Contact & Support</Link></li>
-                        <li><Link :href="route('new_frontend.home')" class="text-sm font-bold text-slate-500 hover:text-lkink transition">Back to Home</Link></li>
+                        <li><Link :href="route('user.feed')" class="text-sm font-bold text-slate-500 hover:text-lkink transition">Back to Home</Link></li>
                     </ul>
                     <!-- <div class="flex justify-center md:justify-start space-x-6">
                         <a href="#" class="text-slate-400 hover:text-lkink transition" aria-label="Facebook"><Facebook class="w-5 h-5" /></a>

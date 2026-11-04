@@ -203,7 +203,7 @@ Route::middleware(['auth', 'otp.verified', 'isWizardComplete'])->group(function 
 
         // Public Chat Routes
         Route::get('/public-chat', function () {
-            return inertia('User/Chat');
+            return inertia('User/Linkup/Classic/Chat/ChatPage');
         })->name('public.chat');
         Route::post('/chat/send', [ChatController::class, 'sendMessage'])->name('chat.send');
         Route::get('/chat/recent', [ChatController::class, 'getRecentMessages'])->name('chat.recent');
@@ -411,6 +411,6 @@ Route::get('/test-hide-debug', function () {
 require __DIR__.'/web/auth.php';
 require __DIR__.'/admin/index.php';
 require __DIR__.'/web/organizer.php';
-require __DIR__.'/web/member.php';
+require __DIR__.'/web/user.php';
 
 Route::get('/{slug}', [App\Http\Controllers\LegalPageController::class, 'show'])->name('legal.dynamic');

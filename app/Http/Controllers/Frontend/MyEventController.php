@@ -18,7 +18,7 @@ class MyEventController extends Controller
     public function index()
     {
         $events = LinkUpEvent::where('user_id', Auth::user()->id)->get();
-        return Inertia::render('User/MyEvent/Index', [
+        return Inertia::render('User/Events/MyEvents/Index', [
             'events' => $events
         ]);
     }
@@ -28,7 +28,7 @@ class MyEventController extends Controller
     public function create()
     {
         $categories = EventCategory::all();
-        return Inertia::render('User/MyEvent/CreateEvent', [
+        return Inertia::render('User/Events/MyEvents/CreateEvent', [
             'categories' => $categories
         ]);
     }
@@ -65,7 +65,7 @@ class MyEventController extends Controller
     {
 
         $categories = EventCategory::all();
-        return Inertia::render('User/MyEvent/EditEvent', [
+        return Inertia::render('User/Events/MyEvents/EditEvent', [
             'categories' => $categories,
             'event' => $myevent
         ]);

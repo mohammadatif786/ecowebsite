@@ -12,6 +12,6 @@ class TicketTypesController extends Controller
 
     public function ticketTypes()
     {
-        return Inertia::render('User/TicketType');
+        return Inertia::render('User/Events/Tickets/TicketType');
     }
 }

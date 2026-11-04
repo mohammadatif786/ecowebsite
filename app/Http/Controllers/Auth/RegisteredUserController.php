@@ -50,6 +50,6 @@ class RegisteredUserController extends Controller
         $this->registeredAction->execute($validated);
 
         // return redirect(route('frontend.home.matches', absolute: false));
-        return redirect(route('new_frontend.home', absolute: false));
+        return redirect(route('user.feed', absolute: false));
     }
 }

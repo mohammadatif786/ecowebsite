@@ -199,7 +199,7 @@ import { nextTick, onMounted, ref } from 'vue'
 import axios from 'axios'
 import AppLayout from '@/layouts/organizer/AppLayout.vue'
 import { route } from 'ziggy-js'
-import TicketDetailModal from '@/components/new_frontend/modals/TicketDetailModal.vue'
+import TicketDetailModal from '@/components/User/modals/TicketDetailModal.vue'
 
 const loading = ref(false)
 const error = ref('')

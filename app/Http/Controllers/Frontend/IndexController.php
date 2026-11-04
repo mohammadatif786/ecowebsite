@@ -36,7 +36,7 @@ class IndexController extends Controller
 
     public function index()
     {
-        return Inertia::render('User/Landing2', [
+        return Inertia::render('User/Landing/Index', [
             'canLogin'       => Route::has('login'),
             'canRegister'    => Route::has('register'),
             'laravelVersion' => Application::VERSION,
@@ -61,7 +61,7 @@ class IndexController extends Controller
                 ]],
             ]
         );
-        return Inertia::render('User/Landing2');
+        return Inertia::render('User/Landing/Index');
     }
 
     public function homematches()
@@ -149,7 +149,7 @@ class IndexController extends Controller
         ]];
 
 
-        return Inertia::render('User/FindMatch/home', [
+        return Inertia::render('User/Linkup/Classic/FindMatch/home', [
             'users'            => $response['responseUsers'],
             'currentUser'      => Auth::user(),
             'google_api_key'   => env('GOOGLE_MAPS_API_KEY'),
@@ -267,7 +267,7 @@ class IndexController extends Controller
             'verificationStatus',
         ]);
 
-        return Inertia::render('User/FindMatch/Index', [
+        return Inertia::render('User/Linkup/Classic/FindMatch/Index', [
             'users'            => $users,
             'filters'          => $filters,
             'currentUser'      => Auth::user(),
@@ -327,7 +327,7 @@ class IndexController extends Controller
 
             return $user;
         });
-        return Inertia::render('User/Match/Index', [
+        return Inertia::render('User/Linkup/Classic/Match/Index', [
             'users' => $mutualMatches,
             'currentUser' => $userLoggedin,
             'google_api_key' => env('GOOGLE_MAPS_API_KEY'),
@@ -359,7 +359,7 @@ class IndexController extends Controller
 
             return $user;
         });
-        return Inertia::render('User/Likes/Index', [
+        return Inertia::render('User/Linkup/Classic/Likes/Index', [
             'users' => $likedByUsers,
             'currentUser'      => Auth::user(),
             'google_api_key'   => env('GOOGLE_MAPS_API_KEY'),
@@ -371,7 +371,7 @@ class IndexController extends Controller
     {
         $user = $this->indexAction->userDetail($user);
 
-        return Inertia::render('User/Profile/OtherProfile', [
+        return Inertia::render('User/Profile/Classic/OtherProfile', [
             'userdata'               => $user['userdata'],
             'isFriends'              => $user['isFriends'],
             'isFriendRequestSent'    => $user['isFriendRequestSent'],

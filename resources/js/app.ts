@@ -42,8 +42,8 @@ for (const [path, resolver] of Object.entries(pages)) {
 }
 
 Object.assign(pages, {
-    './pages/new_front/live/Index.vue': () => import('./pages/new_front/live/Index.vue'),
-    './pages/new_front/live/Watch.vue': () => import('./pages/new_front/live/Watch.vue'),
+    './pages/User/Live/Index.vue': () => import('./pages/User/Live/Index.vue'),
+    './pages/User/Live/Watch.vue': () => import('./pages/User/Live/Watch.vue'),
     './pages/admin/taxes/TaxManagement.vue': () => import('./pages/admin/taxes/TaxManagement.vue'),
     './pages/admin/taxes/TaxDashboard.vue': () => import('./pages/admin/taxes/TaxDashboard.vue'),
     './pages/admin/taxes/TaxAuthorityApis.vue': () => import('./pages/admin/taxes/TaxAuthorityApis.vue'),

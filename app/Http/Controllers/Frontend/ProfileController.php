@@ -100,7 +100,7 @@ class ProfileController extends Controller
         // Get user's wallet balance
         $walletBalance = (float) ($user->balance('USD')->value->get() ?? 0);
 
-        return Inertia::render('User/Profile/view/Index', [
+        return Inertia::render('User/Profile/Classic/view/Index', [
             'user' => $user,
             'purchased_tickets' => $purchased_tickets,
             'cancelled_tickets' => $cancelled_tickets,
@@ -125,7 +125,7 @@ class ProfileController extends Controller
         $user = Auth::user();
         $morePhotos = $user->more_photos;
         $caribbeanIslandList = CaribbeanIsland::select(['name', 'name as value'])->get();
-        return Inertia::render('User/Profile/EditProfile', [
+        return Inertia::render('User/Profile/Classic/EditProfile', [
             'user' => $user,
             'UserMorePhotos' => $morePhotos,
             'caribbeanIsland' => $caribbeanIslandList,

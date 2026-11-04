@@ -264,9 +264,9 @@ test('the website’s old purchase call is now a priced order, and events go to 
     $this->actingAs($buyer);
 
     // A client-sent price is ignored.
-    $this->postJson("/new_frontend/vibes/{$vibe->id}/purchase", ['kind' => 'product', 'id' => $product->id, 'price' => 0.01, 'shipping_method' => 'pickup'])
+    $this->postJson("/user/vibes/{$vibe->id}/purchase", ['kind' => 'product', 'id' => $product->id, 'price' => 0.01, 'shipping_method' => 'pickup'])
         ->assertCreated()->assertJsonPath('total', 10);
-    $this->postJson("/new_frontend/vibes/{$vibe->id}/purchase", ['kind' => 'event', 'id' => 1])->assertUnprocessable();
+    $this->postJson("/user/vibes/{$vibe->id}/purchase", ['kind' => 'event', 'id' => 1])->assertUnprocessable();
 });
 
 test('tickets bought from a Vibe pay the poster the ticket commission', function () {
@@ -384,7 +384,7 @@ test('the website feed hides posts you hid and opens a shared post first', funct
     $this->withoutVite();
     $this->actingAs($viewer);
 
-    $this->get("/new_frontend/vibes?id={$older->id}")->assertOk()
+    $this->get("/user/vibes?id={$older->id}")->assertOk()
         ->assertInertia(fn ($page) => $page
             ->where('vibes.0.id', $older->id)
             ->where('vibes', fn ($vibes) => collect($vibes)->pluck('id')->doesntContain($hidden->id)));

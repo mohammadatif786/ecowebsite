@@ -56,6 +56,6 @@ class ConnectyCubeController extends Controller
 
     public function videoCall()
     {
-        return Inertia::render('User/VideoCall');
+        return Inertia::render('User/Linkup/Classic/Chat/VideoCall');
     }
 }

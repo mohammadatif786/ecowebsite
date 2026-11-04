@@ -70,7 +70,7 @@ class OrderController extends Controller
             return response()->json(['orders' => $orders], 200);
         }
 
-        return Inertia::render('User/LinkUpShop/Orders/Index', [
+        return Inertia::render('User/Marketplace/Classic/LinkUpShop/Orders/Index', [
             'orders' => $orders,
         ]);
     }
