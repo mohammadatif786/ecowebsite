@@ -279,7 +279,7 @@ class WalletController extends Controller
                 ];
             });
 
-        return Inertia::render('User/UserWallet/Index', [
+        return Inertia::render('User/Wallet/Classic/UserWallet/Index', [
             'currentBalance' => $balance,
             'transactions' => $transactions,
             'users' => $users,
@@ -302,7 +302,7 @@ class WalletController extends Controller
         $user = auth()->user();
         // dd($user);
         $balance = $user->balance('USD')->value->get();
-        return Inertia::render('User/Wallet/SelectAmount', [
+        return Inertia::render('User/Wallet/Classic/Wallet/SelectAmount', [
             'currentBalance' => $balance
         ]);
     }
@@ -327,7 +327,7 @@ class WalletController extends Controller
     {
         $user = Auth::user();
         $coin = $user->coins ?? 0;
-        return Inertia::render('User/Wallet/SelectCoin', [
+        return Inertia::render('User/Wallet/Classic/Wallet/SelectCoin', [
             'currentCoin' => $coin
         ]);
     }
@@ -1490,7 +1490,7 @@ class WalletController extends Controller
             ]);
         }
 
-        return Inertia::render('User/Event/SuccessPurchase', [
+        return Inertia::render('User/Events/Classic/Event/SuccessPurchase', [
             'stripe_id' => $walletOrderId,
             'fees_summary' => $feesSummary,
             'ticketSale' => TicketSale::where('stripe_id', $walletOrderId)->get(),
@@ -1501,7 +1501,7 @@ class WalletController extends Controller
 
     public function coinSystemhead()
     {
-        return Inertia::render('User/Wallet/Coin');
+        return Inertia::render('User/Wallet/Classic/Wallet/Coin');
     }
 
 
@@ -1777,7 +1777,7 @@ class WalletController extends Controller
 
     public function kyc()
     {
-        return Inertia::render('User/UserWallet/WalletKyc');
+        return Inertia::render('User/Wallet/Classic/UserWallet/WalletKyc');
     }
 
     public function storeKyc(Request $request)
@@ -2137,7 +2137,7 @@ class WalletController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return Inertia::render('User/UserWallet/components/MoneyRequestList', [
+        return Inertia::render('User/Wallet/Classic/UserWallet/components/MoneyRequestList', [
             'moneyRequests' => $moneyRequests,
             'currentBalance' => $balance,
             'transactions' => $transactions,

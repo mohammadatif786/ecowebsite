@@ -32,7 +32,7 @@
 </template>
 
 <script setup lang="ts">
-import AuthenticatedLayout from "@/layouts/AuthenticatedLayout.vue";
+import AuthenticatedLayout from "@/layouts/User/Classic/AuthenticatedLayout.vue";
 import { Head, router } from "@inertiajs/vue3";
 
 const goToDashboard = () => {

@@ -18,7 +18,7 @@ Laravel registers only `web.php`, `api.php`, `console.php` and `channels.php`. E
 
 - `routes/web.php` - public routes, legal pages, `/proxy/*`; loads the web areas below (keep their `require`s above the `/{slug}` catch-all at the bottom)
 - `routes/web/auth.php` - login, register, OTP, password reset
-- `routes/web/member.php` - member app under `/new_frontend`
+- `routes/web/user.php` - member app under `/user`
 - `routes/web/organizer.php` - event organizer area
 - `routes/admin/index.php` - loads every `/admin/*` file: `settings`, `core`, `ads`, `subscriptions`, `dashboards`
 - `routes/api.php` - API v1; loads `routes/api/mobile.php` (mobile app API under `/api/regular-user`)
@@ -49,6 +49,8 @@ Laravel registers only `web.php`, `api.php`, `console.php` and `channels.php`. E
 - `resources/js/services/` - Frontend service layer
 - `resources/js/types/` - TypeScript type definitions
 - `resources/js/lib/` - Utility libraries
+
+**Member app (`User`):** one folder per area. Pages live in `resources/js/pages/User/<Feature>/` (`Home`, `Linkup`, `Wallet`, `Events`, `Live`, `Marketplace`, ...), their page-only pieces in `<Feature>/components/` and `<Feature>/modals/`, and the original screens that a newer page replaced in `<Feature>/Classic/` (still routed; retire one feature at a time). Shared member components are in `resources/js/components/User/`, the layout in `resources/js/layouts/User/`, PHP controllers in `app/Http/Controllers/User/`, routes in `routes/web/user.php` (URL prefix `/user`, route names `user.*`; old `/new_frontend/*` addresses redirect).
 
 ## Development Commands
 

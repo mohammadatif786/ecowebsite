@@ -68,44 +68,65 @@ class IndexControllerAction
         return $response;
     }
 
-    public function sendGift(object $request)
+    /**
+     * Send a gift (a "Vibe") to someone. Coins move in one guarded statement (CoinGiftService),
+     * so a double tap can't spend the same coins twice; a free gift (0 coins) is just recorded.
+     *
+     * @return int The sender's coin balance afterwards.
+     *
+     * @throws \Illuminate\Validation\ValidationException not enough coins, a self-gift or a blocked user
+     */
+    public function sendGift(object $request): int
     {
         $sender = $request->user();
-        $receiver = User::find($request->receiver_id);
+        $receiver = User::findOrFail($request->receiver_id);
+        $coins = max(0, (int) $request->coins);
+        $giftName = mb_substr(trim((string) $request->gift_name), 0, 60);
 
-
-        if ($sender->coins < $request->coins) {
-            return back()->with('error', 'Insufficient coins');
+        if ((int) $sender->id === (int) $receiver->id) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['receiver_id' => 'You can’t send a gift to yourself.']);
+        }
+        if (BlockedUser::query()->where('is_blocked', true)->where(fn ($q) => $q
+            ->where(fn ($a) => $a->where('user_id', $sender->id)->where('blocked_user_id', $receiver->id))
+            ->orWhere(fn ($b) => $b->where('user_id', $receiver->id)->where('blocked_user_id', $sender->id)))->exists()) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['receiver_id' => 'You can’t send a gift to this person.']);
         }
 
-        DB::transaction(function () use ($sender, $receiver, $request) {
-            $sender->decrement('coins', $request->coins);
-
-            $receiver->increment('coins', $request->coins);
-
+        $record = function () use ($sender, $receiver, $coins, $giftName) {
             GiftCoins::create([
                 'sender_id' => $sender->id,
                 'recieved_id' => $receiver->id,
-                'name' => $request->gift_name,
-                'coins' => $request->coins,
+                'name' => $giftName,
+                'coins' => $coins,
             ]);
 
             Notification::create([
                 'title'    => 'You received a gift!',
-                'message'  => "{$sender->name} has sent you {$request->gift_name} ({$request->coins} coins).",
+                'message'  => $coins > 0
+                    ? "{$sender->name} has sent you {$giftName} ({$coins} coins)."
+                    : "{$sender->name} has sent you {$giftName}.",
                 'send_by'  => $sender->id,
                 'user_id'  => $receiver->id,
                 'type'     => 'gift',
                 'context'  => 'coins_transfer',
                 'unread'   => true,
                 'avatar'   => $sender->avatar ?? null,
-                'metadata' => json_encode([
-                    'amount'     => $request->coins,
+                'metadata' => [
+                    'amount'     => $coins,
+                    'gift_name'  => $giftName,
                     'sender_id'  => $sender->id,
                     'sender_name' => $sender->name,
-                ]),
+                ],
             ]);
-        });
+        };
+
+        if ($coins === 0) {
+            DB::transaction($record);
+
+            return (int) $sender->fresh()->coins;
+        }
+
+        return app(\App\Services\CoinGiftService::class)->send($sender, $receiver, $coins, $record);
     }
 
     public function userDetail(string $user)

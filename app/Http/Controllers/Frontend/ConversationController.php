@@ -89,7 +89,7 @@ class ConversationController extends Controller
             ->values()   // reindex to 0..n so the frontend receives a real array
             ->toArray();
         $receiver = User::findOrFail($toUserId);
-        return Inertia::render('User/Chat/Chat', [
+        return Inertia::render('User/Linkup/Classic/Chat/Chat', [
             'chatmessages' => $messages,
             'receiver' => $receiver,
             'auth' => ['user' => auth()->user()],

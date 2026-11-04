@@ -24,7 +24,7 @@ class SellerOrderController extends Controller
         $filters = $request->only(['search', 'status']);
         $orders  = $this->service->getPagedOrders(Auth::id(), $filters);
 
-        return Inertia::render('User/LinkUpShop/SellerDashboard/Order', [
+        return Inertia::render('User/Marketplace/Classic/LinkUpShop/SellerDashboard/Order', [
             'orders'  => $orders,
             'filters' => $filters,
         ]);

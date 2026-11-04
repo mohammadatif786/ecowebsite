@@ -6,4 +6,4 @@ import axios from 'axios';
 
 /** [{user_id, name, handle, avatar, last_message, last_message_at}] */
 export const fetchConversations = () =>
-    axios.get(route('new_frontend.vibes.chats.conversations')).then((r) => r.data?.conversations || []);
+    axios.get(route('user.vibes.chats.conversations')).then((r) => r.data?.conversations || []);

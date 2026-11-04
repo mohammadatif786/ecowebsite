@@ -87,7 +87,7 @@ class ProductController extends Controller
         $favoriteSellerIds = Auth::user()->favoriteSellers()->pluck('seller_id')->toArray();
 
 
-        return Inertia::render('User/LinkUpShop/Products/Index', [
+        return Inertia::render('User/Marketplace/Classic/LinkUpShop/Products/Index', [
             'products' => $products,
             'userProducts' => $userProducts,
             'category' => $categories,
@@ -113,17 +113,17 @@ class ProductController extends Controller
      */
     public function show(Product $product)
     {
-        return redirect()->route('new_frontend.marketplace');
+        return redirect()->route('user.marketplace');
     }
 
     public function create()
     {
-        return redirect()->route('new_frontend.marketplace');
+        return redirect()->route('user.marketplace');
     }
 
     public function edit(Product $product)
     {
-        return redirect()->route('new_frontend.marketplace');
+        return redirect()->route('user.marketplace');
     }
 
     public function search(Request $request)

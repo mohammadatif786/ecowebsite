@@ -33,7 +33,7 @@ class SellerStoreController extends Controller
         $merchants = Merchants::where('user_id', Auth::id())->where('is_active', 1)->get();
         $categories = ProductCategory::where('status', 1)->get();
 
-        return Inertia::render('User/LinkUpShop/SellerDashboard/Store', [
+        return Inertia::render('User/Marketplace/Classic/LinkUpShop/SellerDashboard/Store', [
             'products' => $products,
             'merchants' => $merchants,
             'categories' => $categories,

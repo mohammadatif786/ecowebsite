@@ -191,10 +191,18 @@ class User extends Authenticatable implements Payable
         return $this->hasMany(Message::class, 'from_user_id');
     }
 
+    /** The "Reset your password" email, in LinkUp's own style. */
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new \App\Notifications\User\Signup\ResetPasswordNotification($token));
+    }
+
     /**
      * The same persisted completion contract used by the web/mobile wizard.
-     * Keep this SQL scope in sync with WizardUpdateFormRequest: discovery must
-     * never hydrate incomplete candidates and filter them in PHP.
+     * Keep this SQL scope in sync with the wizards: discovery must never hydrate
+     * incomplete candidates and filter them in PHP. Bio, job, university and
+     * interests are optional in the website wizard ("Skip for now"), so they are
+     * not required here.
      */
     public function scopeEligibleForLinkup($query)
     {
@@ -209,14 +217,10 @@ class User extends Authenticatable implements Payable
             ->whereNotNull('age_filter')
             ->whereNotNull('distance_filter')
             ->whereNotNull('link_me_with_country_name')->where('link_me_with_country_name', '!=', '')
-            ->whereNotNull('about_me')->where('about_me', '!=', '')
-            ->whereNotNull('job')->where('job', '!=', '')
-            ->whereNotNull('university')->where('university', '!=', '')
             ->whereNotNull('whyare')->where('whyare', '!=', '')
             ->whereNotNull('phone_number')->where('phone_number', '!=', '')
             ->whereNotNull('language')->where('language', '!=', '')
             ->whereNotNull('caribbean_interest')->where('caribbean_interest', '!=', '')
-            ->whereNotNull('interests')->where('interests', '!=', '[]')
             ->whereNotNull('more_photos')->where('more_photos', '!=', '[]');
     }
 

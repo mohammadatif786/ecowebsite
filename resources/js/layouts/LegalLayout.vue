@@ -17,5 +17,5 @@
 <script setup>
 import LegalHeader from '@/components/Legal/LegalHeader.vue';
 import Footer1 from '@/components/footer1.vue';
-import '@/layouts/new_front_layout/new_front.css';
+import '@/layouts/User/user.css';
 </script>

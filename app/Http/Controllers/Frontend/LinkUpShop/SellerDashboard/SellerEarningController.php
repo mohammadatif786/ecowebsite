@@ -25,7 +25,7 @@ class SellerEarningController extends Controller
 
         $data = $this->service->getEarningsData(Auth::user(), $period, $customStart, $customEnd);
 
-        return Inertia::render('User/LinkUpShop/SellerDashboard/Earnings', $data);
+        return Inertia::render('User/Marketplace/Classic/LinkUpShop/SellerDashboard/Earnings', $data);
     }
 
     /**

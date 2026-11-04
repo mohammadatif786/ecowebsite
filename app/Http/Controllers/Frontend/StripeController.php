@@ -1749,7 +1749,7 @@ class StripeController extends Controller
             }
         }
 
-        return Inertia::render('User/Event/SuccessPurchase', [
+        return Inertia::render('User/Events/Classic/Event/SuccessPurchase', [
             'event' => $event,
             'ticketSale' => $ticketSales,
             'otherEvents' => $otherEvents,

@@ -149,7 +149,7 @@
 
 
 <script setup lang="ts">
-import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue'
+import AuthenticatedLayout from '@/layouts/User/Classic/AuthenticatedLayout.vue'
 import { Head, usePage, router } from '@inertiajs/vue3'
 import { ref } from 'vue';
 const mode = ref('gifts');

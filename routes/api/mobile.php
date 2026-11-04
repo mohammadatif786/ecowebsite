@@ -2,22 +2,22 @@
 
 use App\Http\Controllers\Api\UserWizardController;
 use App\Http\Controllers\Frontend\LiveStreamGumletController;
-use App\Http\Controllers\NewFrontend\NightLifeController;
-use App\Http\Controllers\NewFrontend\UniversityController;
-use App\Http\Controllers\NewFrontend\UVibeController;
-use App\Http\Controllers\NewFrontend\UVibeOrganizationController;
-use App\Http\Controllers\NewFrontend\UVibePostController;
-use App\Http\Controllers\NewFrontend\UVibeSearchController;
-use App\Http\Controllers\NewFrontend\UVibeThankYouController;
-use App\Http\Controllers\NewFrontend\VibeComposeController;
-use App\Http\Controllers\NewFrontend\VibeController;
-use App\Http\Controllers\NewFrontend\VibeExploreController;
-use App\Http\Controllers\NewFrontend\VibeShopController;
-use App\Http\Controllers\NewFrontend\VibeInteractionController;
-use App\Http\Controllers\NewFrontend\VibeChatController;
-use App\Http\Controllers\NewFrontend\DashboardController;
-use App\Http\Controllers\NewFrontend\ReelController;
-use App\Http\Controllers\NewFrontend\ReelInteractionController;
+use App\Http\Controllers\User\NightLifeController;
+use App\Http\Controllers\User\UniversityController;
+use App\Http\Controllers\User\UVibeController;
+use App\Http\Controllers\User\UVibeOrganizationController;
+use App\Http\Controllers\User\UVibePostController;
+use App\Http\Controllers\User\UVibeSearchController;
+use App\Http\Controllers\User\UVibeThankYouController;
+use App\Http\Controllers\User\VibeComposeController;
+use App\Http\Controllers\User\VibeController;
+use App\Http\Controllers\User\VibeExploreController;
+use App\Http\Controllers\User\VibeShopController;
+use App\Http\Controllers\User\VibeInteractionController;
+use App\Http\Controllers\User\VibeChatController;
+use App\Http\Controllers\User\DashboardController;
+use App\Http\Controllers\User\ReelController;
+use App\Http\Controllers\User\ReelInteractionController;
 use App\Http\Controllers\V1\AppWalletController;
 use App\Http\Controllers\V1\ChatController;
 use App\Http\Controllers\V1\EventController;
@@ -47,7 +47,7 @@ Route::middleware('auth:sanctum')->group(function () {
         ->name('regularUserAPI.')
         ->group(function () {
 
-            // U Vibe campuses (same controller as the web routes in routes/web/member.php)
+            // U Vibe campuses (same controller as the web routes in routes/web/user.php)
             Route::prefix('universities')->name('universities.')->controller(UniversityController::class)->group(function () {
                 Route::get('state', 'state')->name('state');
                 Route::post('mine', 'addMine')->middleware('throttle:20,1')->name('mine.store');
@@ -58,7 +58,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::delete('{university}/follow', 'unfollow')->name('unfollow');
             });
 
-            // U Vibe campus feed + "Post to U Vibe" (same controller as the web routes in routes/web/member.php)
+            // U Vibe campus feed + "Post to U Vibe" (same controller as the web routes in routes/web/user.php)
             Route::get('uvibe/posts', [UVibeController::class, 'index'])->middleware('throttle:60,1')->name('uvibe.posts.index');
             Route::post('uvibe/posts', [UVibeController::class, 'store'])->middleware('throttle:10,1')->name('uvibe.posts.store');
             Route::get('uvibe/options', [UVibeController::class, 'options'])->name('uvibe.options');

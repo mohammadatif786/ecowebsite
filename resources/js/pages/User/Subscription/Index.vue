@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import AuthenticatedLayout from '@/layouts/AuthenticatedLayout.vue'
+import AuthenticatedLayout from '@/layouts/User/Classic/AuthenticatedLayout.vue'
 import { Head, useForm } from '@inertiajs/vue3'
 import { computed } from 'vue'
 

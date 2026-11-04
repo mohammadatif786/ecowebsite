@@ -4,7 +4,7 @@ The goal is to replace the current simplified `CreateEventModal` in the new fron
 
 ## Proposed Changes
 
-### [Backend] [EventController.php](file:///D:/atif projects/LinkupFinal/app/Http/Controllers/NewFrontend/EventController.php)
+### [Backend] [EventController.php](file:///D:/atif projects/LinkupFinal/app/Http/Controllers/User/EventController.php)
 
 - Update the `events` method to provide additional data required by the full event creation form (`caribbeans`, `scanners`, `allEvents`, etc.) when the authenticated user is an organizer.
 
@@ -28,7 +28,7 @@ The goal is to replace the current simplified `CreateEventModal` in the new fron
 
 ### Manual Verification
 1.  **Login as an Organizer**.
-2.  Navigate to the **New Frontend Events Index** (`/new_frontend/events`).
+2.  Navigate to the **New Frontend Events Index** (`/user/events`).
 3.  Click the **"Create Event"** button.
 4.  Verify that the full event creation modal (from the organizer dashboard) opens.
 5.  Verify that all form fields (Media, Location, Social Media, etc.) are correctly populated and functional.

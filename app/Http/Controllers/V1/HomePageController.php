@@ -38,17 +38,18 @@ class HomePageController extends Controller
     {
         $request->validate([
             'receiver_id' => 'required|exists:users,id',
-            'gift_name' => 'required|string',
-            'coins' => 'required|integer|min:0',
+            'gift_name' => 'required|string|max:60',
+            'coins' => 'required|integer|min:0|max:1000000',
         ]);
 
+        // The balance is checked again, atomically, when the coins move.
         if ($request->user()->coins < $request->coins) {
             return response()->json(['status' => false,  'message' => 'Insufficient coins'], 402);
         }
 
-        $this->indexAction->sendGift($request);
+        $balance = $this->indexAction->sendGift($request);
 
-        return response()->json(['status' => true, 'message' => 'Gift sent successfully!'], 200);
+        return response()->json(['status' => true, 'message' => 'Gift sent successfully!', 'user_coins' => $balance, 'coins' => $balance], 200);
     }
 
     public function likeUser(User $user, LikeUserAction $likeUserAction)

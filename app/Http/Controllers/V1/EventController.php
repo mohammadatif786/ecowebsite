@@ -798,6 +798,8 @@ class EventController extends Controller
 
         $orderId = 'WALLET-' . (string) Str::uuid();
         $result = DB::transaction(fn () => $finalize->handle($cart, $user->id, $orderId, 'cash', 'Wallet'));
+        app(\App\Services\VibeTicketCommissionService::class)
+            ->record($validated['vibe_id'] ?? null, $result['event'], (int) $user->id, $cart, $result['ticket_sales']);
 
         $this->sendTicketPurchaseEmails($result['ticket_sales'], $result['event'], $user);
 
@@ -876,6 +878,7 @@ class EventController extends Controller
                     'cart' => $this->serializeCartForCache($cart),
                     'user_id' => $user->id,
                     'payment_intent_id' => $paymentIntent->id,
+                    'vibe_id' => $validated['vibe_id'] ?? null,
                 ],
                 now()->addHours(2)
             );
@@ -931,6 +934,8 @@ class EventController extends Controller
         $user = User::find($cached['user_id']);
 
         $result = DB::transaction(fn () => $finalize->handle($cart, $user->id, $paymentIntentId, 'card', 'Stripe'));
+        app(\App\Services\VibeTicketCommissionService::class)
+            ->record($cached['vibe_id'] ?? null, $result['event'], (int) $user->id, $cart, $result['ticket_sales']);
 
         $this->sendTicketPurchaseEmails($result['ticket_sales'], $result['event'], $user);
 
@@ -987,6 +992,8 @@ class EventController extends Controller
 
         $cart = $this->deserializeCartFromCache($cached['cart']);
         $result = DB::transaction(fn () => $finalize->handle($cart, $cached['user_id'], $sessionId, 'card', 'Stripe'));
+        app(\App\Services\VibeTicketCommissionService::class)
+            ->record($cached['vibe_id'] ?? null, $result['event'], (int) $cached['user_id'], $cart, $result['ticket_sales']);
 
         $user = User::find($cached['user_id']);
         $this->sendTicketPurchaseEmails($result['ticket_sales'], $result['event'], $user);
@@ -1003,6 +1010,8 @@ class EventController extends Controller
     private function ticketCartValidationRules(): array
     {
         return [
+            // The Vibe whose "Get Tickets" led here: its poster earns the ticket commission.
+            'vibe_id' => 'nullable|integer',
             'items' => 'array',
             'items.*.ticketId' => 'integer',
             'items.*.qty' => 'integer|min:0',

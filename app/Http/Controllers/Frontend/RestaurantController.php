@@ -61,7 +61,7 @@ class RestaurantController extends Controller
             ->where('category', 'restaurant')
             ->get();
 
-        return Inertia::render('User/Restaurants/Index', [
+        return Inertia::render('User/Eats/Classic/Restaurants/Index', [
             'restaurants' => $restaurants,
             'swipeAds'    => $swipeAds,
         ]);
@@ -102,7 +102,7 @@ class RestaurantController extends Controller
             abort(404);
         }
 
-        return Inertia::render('User/Restaurants/Show', [
+        return Inertia::render('User/Eats/Classic/Restaurants/Show', [
             'restaurant' => $restaurant,
         ]);
     }

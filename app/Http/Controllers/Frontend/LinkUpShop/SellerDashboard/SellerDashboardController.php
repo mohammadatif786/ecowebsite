@@ -29,7 +29,7 @@ class SellerDashboardController extends Controller
         // $walletBalance = $user->balance('USD')->value->get();
         $walletBalance = $user->balance('USD')->value->get();
 
-        return Inertia::render('User/LinkUpShop/SellerDashboard/Index', [
+        return Inertia::render('User/Marketplace/Classic/LinkUpShop/SellerDashboard/Index', [
             'summary'       => $data['summary'],
             'salesTrend'    => $data['salesTrend'],
             'topProducts'   => $data['topProducts'],

@@ -1,0 +1,1676 @@
+{
+ "moves": {
+  "app/Actions/NewFrontend/GetEventIndexDataAction.php": "app/Actions/User/GetEventIndexDataAction.php",
+  "app/DTOs/NewFrontend/EventIndexFilters.php": "app/DTOs/User/EventIndexFilters.php",
+  "app/Http/Controllers/NewFrontend/ChatAttachmentController.php": "app/Http/Controllers/User/ChatAttachmentController.php",
+  "app/Http/Controllers/NewFrontend/ChatController.php": "app/Http/Controllers/User/ChatController.php",
+  "app/Http/Controllers/NewFrontend/DashboardController.php": "app/Http/Controllers/User/DashboardController.php",
+  "app/Http/Controllers/NewFrontend/EventController.php": "app/Http/Controllers/User/EventController.php",
+  "app/Http/Controllers/NewFrontend/LinkupController.php": "app/Http/Controllers/User/LinkupController.php",
+  "app/Http/Controllers/NewFrontend/LiveStreamController.php": "app/Http/Controllers/User/LiveStreamController.php",
+  "app/Http/Controllers/NewFrontend/MarketplaceAffiliateController.php": "app/Http/Controllers/User/MarketplaceAffiliateController.php",
+  "app/Http/Controllers/NewFrontend/NightLifeController.php": "app/Http/Controllers/User/NightLifeController.php",
+  "app/Http/Controllers/NewFrontend/ProfileSecurityController.php": "app/Http/Controllers/User/ProfileSecurityController.php",
+  "app/Http/Controllers/NewFrontend/ReelController.php": "app/Http/Controllers/User/ReelController.php",
+  "app/Http/Controllers/NewFrontend/ReelInteractionController.php": "app/Http/Controllers/User/ReelInteractionController.php",
+  "app/Http/Controllers/NewFrontend/TicketPurchaseController.php": "app/Http/Controllers/User/TicketPurchaseController.php",
+  "app/Http/Controllers/NewFrontend/UniversityController.php": "app/Http/Controllers/User/UniversityController.php",
+  "app/Http/Controllers/NewFrontend/UVibeController.php": "app/Http/Controllers/User/UVibeController.php",
+  "app/Http/Controllers/NewFrontend/UVibeOrganizationController.php": "app/Http/Controllers/User/UVibeOrganizationController.php",
+  "app/Http/Controllers/NewFrontend/UVibePostController.php": "app/Http/Controllers/User/UVibePostController.php",
+  "app/Http/Controllers/NewFrontend/UVibeSearchController.php": "app/Http/Controllers/User/UVibeSearchController.php",
+  "app/Http/Controllers/NewFrontend/UVibeThankYouController.php": "app/Http/Controllers/User/UVibeThankYouController.php",
+  "app/Http/Controllers/NewFrontend/VibeChatController.php": "app/Http/Controllers/User/VibeChatController.php",
+  "app/Http/Controllers/NewFrontend/VibeComposeController.php": "app/Http/Controllers/User/VibeComposeController.php",
+  "app/Http/Controllers/NewFrontend/VibeController.php": "app/Http/Controllers/User/VibeController.php",
+  "app/Http/Controllers/NewFrontend/VibeExploreController.php": "app/Http/Controllers/User/VibeExploreController.php",
+  "app/Http/Controllers/NewFrontend/VibeInteractionController.php": "app/Http/Controllers/User/VibeInteractionController.php",
+  "app/Http/Controllers/NewFrontend/VibeShopController.php": "app/Http/Controllers/User/VibeShopController.php",
+  "app/Http/Controllers/NewFrontend/WalletController.php": "app/Http/Controllers/User/WalletController.php",
+  "app/Http/Requests/NewFrontend/EventIndexRequest.php": "app/Http/Requests/User/EventIndexRequest.php",
+  "app/Repositories/NewFrontend/EventRepository.php": "app/Repositories/User/EventRepository.php",
+  "resources/js/components/front/ActionButton.vue": "resources/js/components/User/Classic/ActionButton.vue",
+  "resources/js/components/front/BookedEventCard.vue": "resources/js/components/User/Classic/BookedEventCard.vue",
+  "resources/js/components/front/Card.vue": "resources/js/components/User/Classic/Card.vue",
+  "resources/js/components/front/ClubCard.vue": "resources/js/components/User/Classic/ClubCard.vue",
+  "resources/js/components/front/ConfirmDeleteDialog.vue": "resources/js/components/User/Classic/ConfirmDeleteDialog.vue",
+  "resources/js/components/front/DefaultUserAvatar.vue": "resources/js/components/User/Classic/DefaultUserAvatar.vue",
+  "resources/js/components/front/EventCard.vue": "resources/js/components/User/Classic/EventCard.vue",
+  "resources/js/components/front/EventCouponCard.vue": "resources/js/components/User/Classic/EventCouponCard.vue",
+  "resources/js/components/front/filter2.vue": "resources/js/components/User/Classic/filter2.vue",
+  "resources/js/components/front/FilterDialog.vue": "resources/js/components/User/Classic/FilterDialog.vue",
+  "resources/js/components/front/GenralDialog.vue": "resources/js/components/User/Classic/GeneralDialog.vue",
+  "resources/js/components/front/GiftDialog.vue": "resources/js/components/User/Classic/GiftDialog.vue",
+  "resources/js/components/front/GoogleTranslateSelect.vue": "resources/js/components/User/Classic/GoogleTranslateSelect.vue",
+  "resources/js/components/front/GroupedEventCard.vue": "resources/js/components/User/Classic/GroupedEventCard.vue",
+  "resources/js/components/front/Header.vue": "resources/js/components/User/Classic/Header.vue",
+  "resources/js/components/front/ImagePreview.vue": "resources/js/components/User/Classic/ImagePreview.vue",
+  "resources/js/components/front/Input.vue": "resources/js/components/User/Classic/Input.vue",
+  "resources/js/components/front/Invitation.vue": "resources/js/components/User/Classic/Invitation.vue",
+  "resources/js/components/front/LanguageDropdown.vue": "resources/js/components/User/Classic/LanguageDropdown.vue",
+  "resources/js/components/front/LinkUpLiveDialog.vue": "resources/js/components/User/Classic/LinkUpLiveDialog.vue",
+  "resources/js/components/front/Modal.vue": "resources/js/components/User/Classic/Modal.vue",
+  "resources/js/components/front/MyEventCard.vue": "resources/js/components/User/Classic/MyEventCard.vue",
+  "resources/js/components/front/NavLink.vue": "resources/js/components/User/Classic/NavLink.vue",
+  "resources/js/components/front/ProfileHeader.vue": "resources/js/components/User/Classic/ProfileHeader.vue",
+  "resources/js/components/front/RestaurantCard.vue": "resources/js/components/User/Classic/RestaurantCard.vue",
+  "resources/js/components/front/Sidebar.vue": "resources/js/components/User/Classic/Sidebar.vue",
+  "resources/js/components/front/SponsoredAdCard.vue": "resources/js/components/User/Classic/SponsoredAdCard.vue",
+  "resources/js/components/front/TicketAddonSelector.vue": "resources/js/components/User/Classic/TicketAddonSelector.vue",
+  "resources/js/components/front/TicketCard.vue": "resources/js/components/User/Classic/TicketCard.vue",
+  "resources/js/components/front/ui/button/Button.vue": "resources/js/components/User/Classic/ui/button/Button.vue",
+  "resources/js/components/front/ui/button/index.ts": "resources/js/components/User/Classic/ui/button/index.ts",
+  "resources/js/components/front/ui/card/Card.vue": "resources/js/components/User/Classic/ui/card/Card.vue",
+  "resources/js/components/front/ui/card/CardAction.vue": "resources/js/components/User/Classic/ui/card/CardAction.vue",
+  "resources/js/components/front/ui/card/CardContent.vue": "resources/js/components/User/Classic/ui/card/CardContent.vue",
+  "resources/js/components/front/ui/card/CardDescription.vue": "resources/js/components/User/Classic/ui/card/CardDescription.vue",
+  "resources/js/components/front/ui/card/CardFooter.vue": "resources/js/components/User/Classic/ui/card/CardFooter.vue",
+  "resources/js/components/front/ui/card/CardHeader.vue": "resources/js/components/User/Classic/ui/card/CardHeader.vue",
+  "resources/js/components/front/ui/card/CardTitle.vue": "resources/js/components/User/Classic/ui/card/CardTitle.vue",
+  "resources/js/components/front/ui/card/index.ts": "resources/js/components/User/Classic/ui/card/index.ts",
+  "resources/js/components/front/ui/carousel/Carousel.vue": "resources/js/components/User/Classic/ui/carousel/Carousel.vue",
+  "resources/js/components/front/ui/carousel/CarouselContent.vue": "resources/js/components/User/Classic/ui/carousel/CarouselContent.vue",
+  "resources/js/components/front/ui/carousel/CarouselItem.vue": "resources/js/components/User/Classic/ui/carousel/CarouselItem.vue",
+  "resources/js/components/front/ui/carousel/CarouselNext.vue": "resources/js/components/User/Classic/ui/carousel/CarouselNext.vue",
+  "resources/js/components/front/ui/carousel/CarouselPrevious.vue": "resources/js/components/User/Classic/ui/carousel/CarouselPrevious.vue",
+  "resources/js/components/front/ui/carousel/index.ts": "resources/js/components/User/Classic/ui/carousel/index.ts",
+  "resources/js/components/front/ui/carousel/interface.ts": "resources/js/components/User/Classic/ui/carousel/interface.ts",
+  "resources/js/components/front/ui/carousel/useCarousel.ts": "resources/js/components/User/Classic/ui/carousel/useCarousel.ts",
+  "resources/js/components/front/ui/dialog/Dialog.vue": "resources/js/components/User/Classic/ui/dialog/Dialog.vue",
+  "resources/js/components/front/ui/dialog/DialogClose.vue": "resources/js/components/User/Classic/ui/dialog/DialogClose.vue",
+  "resources/js/components/front/ui/dialog/DialogContent.vue": "resources/js/components/User/Classic/ui/dialog/DialogContent.vue",
+  "resources/js/components/front/ui/dialog/DialogDescription.vue": "resources/js/components/User/Classic/ui/dialog/DialogDescription.vue",
+  "resources/js/components/front/ui/dialog/DialogFooter.vue": "resources/js/components/User/Classic/ui/dialog/DialogFooter.vue",
+  "resources/js/components/front/ui/dialog/DialogHeader.vue": "resources/js/components/User/Classic/ui/dialog/DialogHeader.vue",
+  "resources/js/components/front/ui/dialog/DialogOverlay.vue": "resources/js/components/User/Classic/ui/dialog/DialogOverlay.vue",
+  "resources/js/components/front/ui/dialog/DialogScrollContent.vue": "resources/js/components/User/Classic/ui/dialog/DialogScrollContent.vue",
+  "resources/js/components/front/ui/dialog/DialogTitle.vue": "resources/js/components/User/Classic/ui/dialog/DialogTitle.vue",
+  "resources/js/components/front/ui/dialog/DialogTrigger.vue": "resources/js/components/User/Classic/ui/dialog/DialogTrigger.vue",
+  "resources/js/components/front/ui/dialog/index.ts": "resources/js/components/User/Classic/ui/dialog/index.ts",
+  "resources/js/components/front/ui/input/index.ts": "resources/js/components/User/Classic/ui/input/index.ts",
+  "resources/js/components/front/ui/input/Input.vue": "resources/js/components/User/Classic/ui/input/Input.vue",
+  "resources/js/components/front/ui/label/index.ts": "resources/js/components/User/Classic/ui/label/index.ts",
+  "resources/js/components/front/ui/label/Label.vue": "resources/js/components/User/Classic/ui/label/Label.vue",
+  "resources/js/components/front/ui/select/index.ts": "resources/js/components/User/Classic/ui/select/index.ts",
+  "resources/js/components/front/ui/select/Select.vue": "resources/js/components/User/Classic/ui/select/Select.vue",
+  "resources/js/components/front/ui/select/SelectContent.vue": "resources/js/components/User/Classic/ui/select/SelectContent.vue",
+  "resources/js/components/front/ui/select/SelectGroup.vue": "resources/js/components/User/Classic/ui/select/SelectGroup.vue",
+  "resources/js/components/front/ui/select/SelectItem.vue": "resources/js/components/User/Classic/ui/select/SelectItem.vue",
+  "resources/js/components/front/ui/select/SelectItemText.vue": "resources/js/components/User/Classic/ui/select/SelectItemText.vue",
+  "resources/js/components/front/ui/select/SelectLabel.vue": "resources/js/components/User/Classic/ui/select/SelectLabel.vue",
+  "resources/js/components/front/ui/select/SelectScrollDownButton.vue": "resources/js/components/User/Classic/ui/select/SelectScrollDownButton.vue",
+  "resources/js/components/front/ui/select/SelectScrollUpButton.vue": "resources/js/components/User/Classic/ui/select/SelectScrollUpButton.vue",
+  "resources/js/components/front/ui/select/SelectSeparator.vue": "resources/js/components/User/Classic/ui/select/SelectSeparator.vue",
+  "resources/js/components/front/ui/select/SelectTrigger.vue": "resources/js/components/User/Classic/ui/select/SelectTrigger.vue",
+  "resources/js/components/front/ui/select/SelectValue.vue": "resources/js/components/User/Classic/ui/select/SelectValue.vue",
+  "resources/js/components/front/ui/sonner/index.ts": "resources/js/components/User/Classic/ui/sonner/index.ts",
+  "resources/js/components/front/ui/sonner/Sonner.vue": "resources/js/components/User/Classic/ui/sonner/Sonner.vue",
+  "resources/js/components/front/University.vue": "resources/js/components/User/Classic/University.vue",
+  "resources/js/components/front/UserChatCard.vue": "resources/js/components/User/Classic/UserChatCard.vue",
+  "resources/js/components/front/UserProfileCard.vue": "resources/js/components/User/Classic/UserProfileCard.vue",
+  "resources/js/components/front/UserProfileCardHome.vue": "resources/js/components/User/Classic/UserProfileCardHome.vue",
+  "resources/js/components/front/wizardHeader.vue": "resources/js/components/User/Classic/wizardHeader.vue",
+  "resources/js/components/new_frontend/CampusLogo.vue": "resources/js/components/User/CampusLogo.vue",
+  "resources/js/components/new_frontend/cards/EventCard.vue": "resources/js/components/User/cards/EventCard.vue",
+  "resources/js/components/new_frontend/cards/FeatureCard.vue": "resources/js/components/User/cards/FeatureCard.vue",
+  "resources/js/components/new_frontend/cards/LiveMiniCard.vue": "resources/js/components/User/cards/LiveMiniCard.vue",
+  "resources/js/components/new_frontend/cards/TicketCard.vue": "resources/js/components/User/cards/TicketCard.vue",
+  "resources/js/components/new_frontend/cards/VibeCard.vue": "resources/js/components/User/cards/VibeCard.vue",
+  "resources/js/components/new_frontend/cards/VibeCommentItem.vue": "resources/js/components/User/cards/VibeCommentItem.vue",
+  "resources/js/components/new_frontend/components/WellnessServices.vue": "resources/js/components/User/components/WellnessServices.vue",
+  "resources/js/components/new_frontend/linkupProfile.js": "resources/js/components/User/linkupProfile.js",
+  "resources/js/components/new_frontend/live/LiveGiftModal.vue": "resources/js/components/User/live/LiveGiftModal.vue",
+  "resources/js/components/new_frontend/live/LiveOverlay.vue": "resources/js/components/User/live/LiveOverlay.vue",
+  "resources/js/components/new_frontend/live/LiveViewerOverlay.vue": "resources/js/components/User/live/LiveViewerOverlay.vue",
+  "resources/js/components/new_frontend/LkPageShell.vue": "resources/js/components/User/LkPageShell.vue",
+  "resources/js/components/new_frontend/LkProfileDetail.vue": "resources/js/components/User/LkProfileDetail.vue",
+  "resources/js/components/new_frontend/MockDataStore.js": "resources/js/components/User/MockDataStore.js",
+  "resources/js/components/new_frontend/modals/AffiliateHubModal.vue": "resources/js/components/User/modals/AffiliateHubModal.vue",
+  "resources/js/components/new_frontend/modals/CampusExplorerModal.vue": "resources/js/components/User/modals/CampusExplorerModal.vue",
+  "resources/js/components/new_frontend/modals/CancelTicketConfirmModal.vue": "resources/js/components/User/modals/CancelTicketConfirmModal.vue",
+  "resources/js/components/new_frontend/modals/CoHostInviteModal.vue": "resources/js/components/User/modals/CoHostInviteModal.vue",
+  "resources/js/components/new_frontend/modals/ComposeUVibeModal.vue": "resources/js/components/User/modals/ComposeUVibeModal.vue",
+  "resources/js/components/new_frontend/modals/ComposeVibeModal.vue": "resources/js/components/User/modals/ComposeVibeModal.vue",
+  "resources/js/components/new_frontend/modals/ContactPromoterModal.vue": "resources/js/components/User/modals/ContactPromoterModal.vue",
+  "resources/js/components/new_frontend/modals/CreateEventModal.vue": "resources/js/components/User/modals/CreateEventModal.vue",
+  "resources/js/components/new_frontend/modals/EatsCartModal.vue": "resources/js/components/User/modals/EatsCartModal.vue",
+  "resources/js/components/new_frontend/modals/EatsItemModal.vue": "resources/js/components/User/modals/EatsItemModal.vue",
+  "resources/js/components/new_frontend/modals/EditVibeModal.vue": "resources/js/components/User/modals/EditVibeModal.vue",
+  "resources/js/components/new_frontend/modals/EventDetailModal.vue": "resources/js/components/User/modals/EventDetailModal.vue",
+  "resources/js/components/new_frontend/modals/GiftDialog.vue": "resources/js/components/User/modals/GiftDialog.vue",
+  "resources/js/components/new_frontend/modals/GlobalAffiliateHub.vue": "resources/js/components/User/modals/GlobalAffiliateHub.vue",
+  "resources/js/components/new_frontend/modals/GlobalCreateModal.vue": "resources/js/components/User/modals/GlobalCreateModal.vue",
+  "resources/js/components/new_frontend/modals/GlobalSellerHub.vue": "resources/js/components/User/modals/GlobalSellerHub.vue",
+  "resources/js/components/new_frontend/modals/GoLiveModal.vue": "resources/js/components/User/modals/GoLiveModal.vue",
+  "resources/js/components/new_frontend/modals/InviteGuestsModal.vue": "resources/js/components/User/modals/InviteGuestsModal.vue",
+  "resources/js/components/new_frontend/modals/KeepVibesCleanModal.vue": "resources/js/components/User/modals/KeepVibesCleanModal.vue",
+  "resources/js/components/new_frontend/modals/LiveAnalyticsModal.vue": "resources/js/components/User/modals/LiveAnalyticsModal.vue",
+  "resources/js/components/new_frontend/modals/LiveEndedSummaryModal.vue": "resources/js/components/User/modals/LiveEndedSummaryModal.vue",
+  "resources/js/components/new_frontend/modals/LiveEndModal.vue": "resources/js/components/User/modals/LiveEndModal.vue",
+  "resources/js/components/new_frontend/modals/LiveGiftModal.vue": "resources/js/components/User/modals/LiveGiftModal.vue",
+  "resources/js/components/new_frontend/modals/LiveShopModal.vue": "resources/js/components/User/modals/LiveShopModal.vue",
+  "resources/js/components/new_frontend/modals/LiveStreamModal.vue": "resources/js/components/User/modals/LiveStreamModal.vue",
+  "resources/js/components/new_frontend/modals/LkFiltersModal.vue": "resources/js/components/User/modals/LkFiltersModal.vue",
+  "resources/js/components/new_frontend/modals/LocationSelectorModal.vue": "resources/js/components/User/modals/LocationSelectorModal.vue",
+  "resources/js/components/new_frontend/modals/MyUniversitiesModal.vue": "resources/js/components/User/modals/MyUniversitiesModal.vue",
+  "resources/js/components/new_frontend/modals/NewReelModal.vue": "resources/js/components/User/modals/NewReelModal.vue",
+  "resources/js/components/new_frontend/modals/ReelViewModal.vue": "resources/js/components/User/modals/ReelViewModal.vue",
+  "resources/js/components/new_frontend/modals/ReservationsModal.vue": "resources/js/components/User/modals/ReservationsModal.vue",
+  "resources/js/components/new_frontend/modals/SayThankYouModal.vue": "resources/js/components/User/modals/SayThankYouModal.vue",
+  "resources/js/components/new_frontend/modals/SendVibeModal.vue": "resources/js/components/User/modals/SendVibeModal.vue",
+  "resources/js/components/new_frontend/modals/TagPickerModal.vue": "resources/js/components/User/modals/TagPickerModal.vue",
+  "resources/js/components/new_frontend/modals/TicketCheckoutModal.vue": "resources/js/components/User/modals/TicketCheckoutModal.vue",
+  "resources/js/components/new_frontend/modals/TicketDetailModal.vue": "resources/js/components/User/modals/TicketDetailModal.vue",
+  "resources/js/components/new_frontend/modals/TicketQRModal.vue": "resources/js/components/User/modals/TicketQRModal.vue",
+  "resources/js/components/new_frontend/modals/UserProfileModal.vue": "resources/js/components/User/modals/UserProfileModal.vue",
+  "resources/js/components/new_frontend/modals/VenueModal.vue": "resources/js/components/User/modals/VenueModal.vue",
+  "resources/js/components/new_frontend/modals/VibeBigUpModal.vue": "resources/js/components/User/modals/VibeBigUpModal.vue",
+  "resources/js/components/new_frontend/modals/VibeCommentsModal.vue": "resources/js/components/User/modals/VibeCommentsModal.vue",
+  "resources/js/components/new_frontend/modals/VibeOptionsModal.vue": "resources/js/components/User/modals/VibeOptionsModal.vue",
+  "resources/js/components/new_frontend/modals/VibesChatModal.vue": "resources/js/components/User/modals/VibesChatModal.vue",
+  "resources/js/components/new_frontend/modals/VibesMessagesModal.vue": "resources/js/components/User/modals/VibesMessagesModal.vue",
+  "resources/js/components/new_frontend/modals/VibeTagModal.vue": "resources/js/components/User/modals/VibeTagModal.vue",
+  "resources/js/components/new_frontend/modals/VibeTagProductModal.vue": "resources/js/components/User/modals/VibeTagProductModal.vue",
+  "resources/js/components/new_frontend/modals/WalletTopUpModal.vue": "resources/js/components/User/modals/WalletTopUpModal.vue",
+  "resources/js/components/new_frontend/SearchOverlay.vue": "resources/js/components/User/SearchOverlay.vue",
+  "resources/js/components/new_frontend/tickets/AddDrinksModal.vue": "resources/js/components/User/tickets/AddDrinksModal.vue",
+  "resources/js/components/new_frontend/tickets/ticketCheckoutMath.js": "resources/js/components/User/tickets/ticketCheckoutMath.js",
+  "resources/js/components/new_frontend/tickets/ticketDrinkAddons.js": "resources/js/components/User/tickets/ticketDrinkAddons.js",
+  "resources/js/components/new_frontend/tickets/TicketPackageDetails.vue": "resources/js/components/User/tickets/TicketPackageDetails.vue",
+  "resources/js/components/new_frontend/tickets/ticketPackages.js": "resources/js/components/User/tickets/ticketPackages.js",
+  "resources/js/components/new_frontend/tickets/ViewPackageModal.vue": "resources/js/components/User/tickets/ViewPackageModal.vue",
+  "resources/js/components/new_frontend/ui/Modal.vue": "resources/js/components/User/ui/Modal.vue",
+  "resources/js/components/new_frontend/ui/SettingRow.vue": "resources/js/components/User/ui/SettingRow.vue",
+  "resources/js/components/new_frontend/ui/SettingToggleRow.vue": "resources/js/components/User/ui/SettingToggleRow.vue",
+  "resources/js/components/new_frontend/ui/Toast.vue": "resources/js/components/User/ui/Toast.vue",
+  "resources/js/components/new_frontend/ui/Toggle.vue": "resources/js/components/User/ui/Toggle.vue",
+  "resources/js/components/new_frontend/uvibe/categories/UVibeCategoriesCard.vue": "resources/js/components/User/uvibe/categories/UVibeCategoriesCard.vue",
+  "resources/js/components/new_frontend/uvibe/categories/UVibeCategoryTabs.vue": "resources/js/components/User/uvibe/categories/UVibeCategoryTabs.vue",
+  "resources/js/components/new_frontend/uvibe/chat/UVibeChat.vue": "resources/js/components/User/uvibe/chat/UVibeChat.vue",
+  "resources/js/components/new_frontend/uvibe/compose/PostAsPicker.vue": "resources/js/components/User/uvibe/compose/PostAsPicker.vue",
+  "resources/js/components/new_frontend/uvibe/compose/PostBoostToggle.vue": "resources/js/components/User/uvibe/compose/PostBoostToggle.vue",
+  "resources/js/components/new_frontend/uvibe/compose/PostCleanNote.vue": "resources/js/components/User/uvibe/compose/PostCleanNote.vue",
+  "resources/js/components/new_frontend/uvibe/compose/PostCrossPostToggle.vue": "resources/js/components/User/uvibe/compose/PostCrossPostToggle.vue",
+  "resources/js/components/new_frontend/uvibe/compose/PostDescription.vue": "resources/js/components/User/uvibe/compose/PostDescription.vue",
+  "resources/js/components/new_frontend/uvibe/compose/PostEmojiPicker.vue": "resources/js/components/User/uvibe/compose/PostEmojiPicker.vue",
+  "resources/js/components/new_frontend/uvibe/compose/PostEventLink.vue": "resources/js/components/User/uvibe/compose/PostEventLink.vue",
+  "resources/js/components/new_frontend/uvibe/compose/PostPhotoPicker.vue": "resources/js/components/User/uvibe/compose/PostPhotoPicker.vue",
+  "resources/js/components/new_frontend/uvibe/compose/PostPriceField.vue": "resources/js/components/User/uvibe/compose/PostPriceField.vue",
+  "resources/js/components/new_frontend/uvibe/compose/PostTagSection.vue": "resources/js/components/User/uvibe/compose/PostTagSection.vue",
+  "resources/js/components/new_frontend/uvibe/compose/PostTextCardEditor.vue": "resources/js/components/User/uvibe/compose/PostTextCardEditor.vue",
+  "resources/js/components/new_frontend/uvibe/compose/PostTextCardToggle.vue": "resources/js/components/User/uvibe/compose/PostTextCardToggle.vue",
+  "resources/js/components/new_frontend/uvibe/compose/PostTitleField.vue": "resources/js/components/User/uvibe/compose/PostTitleField.vue",
+  "resources/js/components/new_frontend/uvibe/compose/PostToCampus.vue": "resources/js/components/User/uvibe/compose/PostToCampus.vue",
+  "resources/js/components/new_frontend/uvibe/compose/PostTypeSelect.vue": "resources/js/components/User/uvibe/compose/PostTypeSelect.vue",
+  "resources/js/components/new_frontend/uvibe/earnings/UVibeEarningsCard.vue": "resources/js/components/User/uvibe/earnings/UVibeEarningsCard.vue",
+  "resources/js/components/new_frontend/uvibe/feed/GigApplicantsModal.vue": "resources/js/components/User/uvibe/feed/GigApplicantsModal.vue",
+  "resources/js/components/new_frontend/uvibe/feed/PostBoostButton.vue": "resources/js/components/User/uvibe/feed/PostBoostButton.vue",
+  "resources/js/components/new_frontend/uvibe/feed/PostBoostModal.vue": "resources/js/components/User/uvibe/feed/PostBoostModal.vue",
+  "resources/js/components/new_frontend/uvibe/feed/PostCampusPill.vue": "resources/js/components/User/uvibe/feed/PostCampusPill.vue",
+  "resources/js/components/new_frontend/uvibe/feed/PostEditModal.vue": "resources/js/components/User/uvibe/feed/PostEditModal.vue",
+  "resources/js/components/new_frontend/uvibe/feed/PostGigRow.vue": "resources/js/components/User/uvibe/feed/PostGigRow.vue",
+  "resources/js/components/new_frontend/uvibe/feed/PostMedia.vue": "resources/js/components/User/uvibe/feed/PostMedia.vue",
+  "resources/js/components/new_frontend/uvibe/feed/PostMenuButton.vue": "resources/js/components/User/uvibe/feed/PostMenuButton.vue",
+  "resources/js/components/new_frontend/uvibe/feed/PostMenuModal.vue": "resources/js/components/User/uvibe/feed/PostMenuModal.vue",
+  "resources/js/components/new_frontend/uvibe/feed/PostPoster.vue": "resources/js/components/User/uvibe/feed/PostPoster.vue",
+  "resources/js/components/new_frontend/uvibe/feed/PostReportLink.vue": "resources/js/components/User/uvibe/feed/PostReportLink.vue",
+  "resources/js/components/new_frontend/uvibe/feed/PostReportModal.vue": "resources/js/components/User/uvibe/feed/PostReportModal.vue",
+  "resources/js/components/new_frontend/uvibe/feed/PostRepostButton.vue": "resources/js/components/User/uvibe/feed/PostRepostButton.vue",
+  "resources/js/components/new_frontend/uvibe/feed/PostShareButton.vue": "resources/js/components/User/uvibe/feed/PostShareButton.vue",
+  "resources/js/components/new_frontend/uvibe/feed/PostTagCard.vue": "resources/js/components/User/uvibe/feed/PostTagCard.vue",
+  "resources/js/components/new_frontend/uvibe/feed/PostTicketsButton.vue": "resources/js/components/User/uvibe/feed/PostTicketsButton.vue",
+  "resources/js/components/new_frontend/uvibe/feed/UVibePostCard.vue": "resources/js/components/User/uvibe/feed/UVibePostCard.vue",
+  "resources/js/components/new_frontend/uvibe/quicklinks/UVibeQuickLinks.vue": "resources/js/components/User/uvibe/quicklinks/UVibeQuickLinks.vue",
+  "resources/js/components/new_frontend/uvibe/search/UVibeSearch.vue": "resources/js/components/User/uvibe/search/UVibeSearch.vue",
+  "resources/js/components/new_frontend/uvibe/thanks/UVibeThankYou.vue": "resources/js/components/User/uvibe/thanks/UVibeThankYou.vue",
+  "resources/js/components/new_frontend/uvibe/UVibeTextCard.vue": "resources/js/components/User/uvibe/UVibeTextCard.vue",
+  "resources/js/components/ProfileTabComponents/AboutTab.vue": "resources/js/components/User/Profile/Tabs/AboutTab.vue",
+  "resources/js/components/ProfileTabComponents/BillPaymentTab.vue": "resources/js/components/User/Profile/Tabs/BillPaymentTab.vue",
+  "resources/js/components/ProfileTabComponents/EventAndTicketTab.vue": "resources/js/components/User/Profile/Tabs/EventAndTicketTab.vue",
+  "resources/js/components/ProfileTabComponents/GiftsTab.vue": "resources/js/components/User/Profile/Tabs/GiftsTab.vue",
+  "resources/js/components/ProfileTabComponents/Header.vue": "resources/js/components/User/Profile/Tabs/Header.vue",
+  "resources/js/components/ProfileTabComponents/LinkUpCoinTab.vue": "resources/js/components/User/Profile/Tabs/LinkUpCoinTab.vue",
+  "resources/js/components/ProfileTabComponents/LinkUpLive.vue": "resources/js/components/User/Profile/Tabs/LinkUpLive.vue",
+  "resources/js/components/ProfileTabComponents/MarketPlaceTab.vue": "resources/js/components/User/Profile/Tabs/MarketPlaceTab.vue",
+  "resources/js/components/ProfileTabComponents/MatchesTab.vue": "resources/js/components/User/Profile/Tabs/MatchesTab.vue",
+  "resources/js/components/ProfileTabComponents/NewsTab.vue": "resources/js/components/User/Profile/Tabs/NewsTab.vue",
+  "resources/js/components/ProfileTabComponents/OrganizerTab.vue": "resources/js/components/User/Profile/Tabs/OrganizerTab.vue",
+  "resources/js/components/ProfileTabComponents/SubscriptionTab.vue": "resources/js/components/User/Profile/Tabs/SubscriptionTab.vue",
+  "resources/js/components/ProfileTabComponents/WalletTab.vue": "resources/js/components/User/Profile/Tabs/WalletTab.vue",
+  "resources/js/layouts/AuthenticatedLayout.vue": "resources/js/layouts/User/Classic/AuthenticatedLayout.vue",
+  "resources/js/layouts/AuthenticatedLayoutBackup.vue": "resources/js/layouts/User/Classic/AuthenticatedLayoutBackup.vue",
+  "resources/js/layouts/new_front_layout/MainLayout.vue": "resources/js/layouts/User/MainLayout.vue",
+  "resources/js/layouts/new_front_layout/new_front.css": "resources/js/layouts/User/user.css",
+  "resources/js/pages/new_front/caribbean360/Index.vue": "resources/js/pages/User/Caribbean360/Index.vue",
+  "resources/js/pages/new_front/eats/Index.vue": "resources/js/pages/User/Eats/Index.vue",
+  "resources/js/pages/new_front/events/Index.vue": "resources/js/pages/User/Events/Index.vue",
+  "resources/js/pages/new_front/home/Index.vue": "resources/js/pages/User/Home/Index.vue",
+  "resources/js/pages/new_front/linkup/Chats.vue": "resources/js/pages/User/Linkup/Chats.vue",
+  "resources/js/pages/new_front/linkup/Find.vue": "resources/js/pages/User/Linkup/Find.vue",
+  "resources/js/pages/new_front/linkup/Friends.vue": "resources/js/pages/User/Linkup/Friends.vue",
+  "resources/js/pages/new_front/linkup/Index.vue": "resources/js/pages/User/Linkup/Index.vue",
+  "resources/js/pages/new_front/linkup/Likes.vue": "resources/js/pages/User/Linkup/Likes.vue",
+  "resources/js/pages/new_front/linkup/Matches.vue": "resources/js/pages/User/Linkup/Matches.vue",
+  "resources/js/pages/new_front/linkup/Requests.vue": "resources/js/pages/User/Linkup/Requests.vue",
+  "resources/js/pages/new_front/live/Components/StudioView.vue": "resources/js/pages/User/Live/components/StudioView.vue",
+  "resources/js/pages/new_front/live/Index.vue": "resources/js/pages/User/Live/Index.vue",
+  "resources/js/pages/new_front/live/Watch.vue": "resources/js/pages/User/Live/Watch.vue",
+  "resources/js/pages/new_front/marketplace/Index.vue": "resources/js/pages/User/Marketplace/Index.vue",
+  "resources/js/pages/new_front/night_life/Index.vue": "resources/js/pages/User/NightLife/Index.vue",
+  "resources/js/pages/new_front/notifications/Index.vue": "resources/js/pages/User/Notifications/Index.vue",
+  "resources/js/pages/new_front/profile/EditProfileModal.vue": "resources/js/pages/User/Profile/modals/EditProfileModal.vue",
+  "resources/js/pages/new_front/profile/Index.vue": "resources/js/pages/User/Profile/Index.vue",
+  "resources/js/pages/new_front/profile/settings/AddPaymentMethodModal.vue": "resources/js/pages/User/Profile/modals/settings/AddPaymentMethodModal.vue",
+  "resources/js/pages/new_front/profile/settings/AdvertiseBusinessModal.vue": "resources/js/pages/User/Profile/modals/settings/AdvertiseBusinessModal.vue",
+  "resources/js/pages/new_front/profile/settings/BlockedAccountsModal.vue": "resources/js/pages/User/Profile/modals/settings/BlockedAccountsModal.vue",
+  "resources/js/pages/new_front/profile/settings/ContactModal.vue": "resources/js/pages/User/Profile/modals/settings/ContactModal.vue",
+  "resources/js/pages/new_front/profile/settings/CurrencyModal.vue": "resources/js/pages/User/Profile/modals/settings/CurrencyModal.vue",
+  "resources/js/pages/new_front/profile/settings/DeleteAccountModal.vue": "resources/js/pages/User/Profile/modals/settings/DeleteAccountModal.vue",
+  "resources/js/pages/new_front/profile/settings/HelpModal.vue": "resources/js/pages/User/Profile/modals/settings/HelpModal.vue",
+  "resources/js/pages/new_front/profile/settings/LanguageModal.vue": "resources/js/pages/User/Profile/modals/settings/LanguageModal.vue",
+  "resources/js/pages/new_front/profile/settings/LegalModal.vue": "resources/js/pages/User/Profile/modals/settings/LegalModal.vue",
+  "resources/js/pages/new_front/profile/settings/LogoutConfirmModal.vue": "resources/js/pages/User/Profile/modals/settings/LogoutConfirmModal.vue",
+  "resources/js/pages/new_front/profile/settings/MessagingPrivacyModal.vue": "resources/js/pages/User/Profile/modals/settings/MessagingPrivacyModal.vue",
+  "resources/js/pages/new_front/profile/settings/NewsRegionModal.vue": "resources/js/pages/User/Profile/modals/settings/NewsRegionModal.vue",
+  "resources/js/pages/new_front/profile/settings/PasswordModal.vue": "resources/js/pages/User/Profile/modals/settings/PasswordModal.vue",
+  "resources/js/pages/new_front/profile/settings/PaymentMethodsModal.vue": "resources/js/pages/User/Profile/modals/settings/PaymentMethodsModal.vue",
+  "resources/js/pages/new_front/profile/settings/RegionModal.vue": "resources/js/pages/User/Profile/modals/settings/RegionModal.vue",
+  "resources/js/pages/new_front/profile/settings/SessionsModal.vue": "resources/js/pages/User/Profile/modals/settings/SessionsModal.vue",
+  "resources/js/pages/new_front/profile/settings/SettingsSubModal.vue": "resources/js/pages/User/Profile/modals/settings/SettingsSubModal.vue",
+  "resources/js/pages/new_front/profile/settings/SubscriptionModal.vue": "resources/js/pages/User/Profile/modals/settings/SubscriptionModal.vue",
+  "resources/js/pages/new_front/profile/settings/TransactionPinModal.vue": "resources/js/pages/User/Profile/modals/settings/TransactionPinModal.vue",
+  "resources/js/pages/new_front/profile/settings/VerificationModal.vue": "resources/js/pages/User/Profile/modals/settings/VerificationModal.vue",
+  "resources/js/pages/new_front/profile/SettingsModal.vue": "resources/js/pages/User/Profile/modals/SettingsModal.vue",
+  "resources/js/pages/new_front/Settings.vue": "resources/js/pages/User/Settings/Index.vue",
+  "resources/js/pages/new_front/u_vibe/Index.vue": "resources/js/pages/User/UVibe/Index.vue",
+  "resources/js/pages/new_front/vibes/Index.vue": "resources/js/pages/User/Vibes/Index.vue",
+  "resources/js/pages/new_front/vibes/UserProfile.vue": "resources/js/pages/User/Vibes/UserProfile.vue",
+  "resources/js/pages/new_front/wallet/Index.vue": "resources/js/pages/User/Wallet/Index.vue",
+  "resources/js/pages/new_front/wallet/LinkUpCoinsCard.vue": "resources/js/pages/User/Wallet/components/LinkUpCoinsCard.vue",
+  "resources/js/pages/new_front/wallet/QuickPayContactModal.vue": "resources/js/pages/User/Wallet/modals/QuickPayContactModal.vue",
+  "resources/js/pages/new_front/wallet/RequestedMoneyModal.vue": "resources/js/pages/User/Wallet/modals/RequestedMoneyModal.vue",
+  "resources/js/pages/new_front/wallet/RequestMoneyModal.vue": "resources/js/pages/User/Wallet/modals/RequestMoneyModal.vue",
+  "resources/js/pages/new_front/wallet/SendMoneyModal.vue": "resources/js/pages/User/Wallet/modals/SendMoneyModal.vue",
+  "resources/js/pages/new_front/wallet/TopUpModal.vue": "resources/js/pages/User/Wallet/modals/TopUpModal.vue",
+  "resources/js/pages/new_front/wallet/WalletActivityModal.vue": "resources/js/pages/User/Wallet/modals/WalletActivityModal.vue",
+  "resources/js/pages/Profile/Edit.vue": "resources/js/pages/User/Profile/Account/Edit.vue",
+  "resources/js/pages/Profile/Partials/DeleteUserForm.vue": "resources/js/pages/User/Profile/Account/Partials/DeleteUserForm.vue",
+  "resources/js/pages/Profile/Partials/UpdatePasswordForm.vue": "resources/js/pages/User/Profile/Account/Partials/UpdatePasswordForm.vue",
+  "resources/js/pages/Profile/Partials/UpdateProfileInformationForm.vue": "resources/js/pages/User/Profile/Account/Partials/UpdateProfileInformationForm.vue",
+  "resources/js/pages/User/AppSetting.vue": "resources/js/pages/User/Settings/AppSetting.vue",
+  "resources/js/pages/User/Bookings/Cancelled.vue": "resources/js/pages/User/Events/Bookings/Cancelled.vue",
+  "resources/js/pages/User/Bookings/Completed.vue": "resources/js/pages/User/Events/Bookings/Completed.vue",
+  "resources/js/pages/User/Bookings/ETicket.vue": "resources/js/pages/User/Events/Bookings/ETicket.vue",
+  "resources/js/pages/User/Bookings/Upcomming.vue": "resources/js/pages/User/Events/Bookings/Upcoming.vue",
+  "resources/js/pages/User/BuyTicket.vue": "resources/js/pages/User/Events/Tickets/BuyTicket.vue",
+  "resources/js/pages/User/Chat/Chat.vue": "resources/js/pages/User/Linkup/Classic/Chat/Chat.vue",
+  "resources/js/pages/User/Chat/components/Emoji.vue": "resources/js/pages/User/Linkup/Classic/Chat/components/Emoji.vue",
+  "resources/js/pages/User/Chat/components/Gif.vue": "resources/js/pages/User/Linkup/Classic/Chat/components/Gif.vue",
+  "resources/js/pages/User/Chat/components/Inbox.vue": "resources/js/pages/User/Linkup/Classic/Chat/components/Inbox.vue",
+  "resources/js/pages/User/Chat/components/Tickets.vue": "resources/js/pages/User/Linkup/Classic/Chat/components/Tickets.vue",
+  "resources/js/pages/User/Chat/Index.vue": "resources/js/pages/User/Linkup/Classic/Chat/Index.vue",
+  "resources/js/pages/User/Chat.vue": "resources/js/pages/User/Linkup/Classic/Chat/ChatPage.vue",
+  "resources/js/pages/User/Clubs/Index.vue": "resources/js/pages/User/NightLife/Clubs/Index.vue",
+  "resources/js/pages/User/Clubs/Show.vue": "resources/js/pages/User/NightLife/Clubs/Show.vue",
+  "resources/js/pages/User/Eticket.vue": "resources/js/pages/User/Events/Tickets/Eticket.vue",
+  "resources/js/pages/User/Event/components/style.css": "resources/js/pages/User/Events/Classic/Event/components/style.css",
+  "resources/js/pages/User/Event/CreateEvent.vue": "resources/js/pages/User/Events/Classic/Event/CreateEvent.vue",
+  "resources/js/pages/User/Event/EditEvent.vue": "resources/js/pages/User/Events/Classic/Event/EditEvent.vue",
+  "resources/js/pages/User/Event/EventForm.vue": "resources/js/pages/User/Events/Classic/Event/EventForm.vue",
+  "resources/js/pages/User/Event/Favorite.vue": "resources/js/pages/User/Events/Classic/Event/Favorite.vue",
+  "resources/js/pages/User/Event/Index.vue": "resources/js/pages/User/Events/Classic/Event/Index.vue",
+  "resources/js/pages/User/Event/Show.vue": "resources/js/pages/User/Events/Classic/Event/Show.vue",
+  "resources/js/pages/User/Event/SuccessPurchase.vue": "resources/js/pages/User/Events/Classic/Event/SuccessPurchase.vue",
+  "resources/js/pages/User/Event/Tickets.vue": "resources/js/pages/User/Events/Classic/Event/Tickets.vue",
+  "resources/js/pages/User/FindMatch/home.vue": "resources/js/pages/User/Linkup/Classic/FindMatch/home.vue",
+  "resources/js/pages/User/FindMatch/Index.vue": "resources/js/pages/User/Linkup/Classic/FindMatch/Index.vue",
+  "resources/js/pages/User/Friend/components/UserCard.vue": "resources/js/pages/User/Linkup/Classic/Friend/components/UserCard.vue",
+  "resources/js/pages/User/Friend/Index.vue": "resources/js/pages/User/Linkup/Classic/Friend/Index.vue",
+  "resources/js/pages/User/FriendRequest/components/UserCard.vue": "resources/js/pages/User/Linkup/Classic/FriendRequest/components/UserCard.vue",
+  "resources/js/pages/User/FriendRequest/Index.vue": "resources/js/pages/User/Linkup/Classic/FriendRequest/Index.vue",
+  "resources/js/pages/User/GoLive/Components/AllLiveStrams.vue": "resources/js/pages/User/Live/Classic/GoLive/components/AllLiveStreams.vue",
+  "resources/js/pages/User/GoLive/Components/AnalyticsModal.vue": "resources/js/pages/User/Live/Classic/GoLive/components/AnalyticsModal.vue",
+  "resources/js/pages/User/GoLive/Components/ChatComponent.vue": "resources/js/pages/User/Live/Classic/GoLive/components/ChatComponent.vue",
+  "resources/js/pages/User/GoLive/Components/GiftsPannel.vue": "resources/js/pages/User/Live/Classic/GoLive/components/GiftsPannel.vue",
+  "resources/js/pages/User/GoLive/Components/liveInterface.ts": "resources/js/pages/User/Live/Classic/GoLive/components/liveInterface.ts",
+  "resources/js/pages/User/GoLive/Components/LiveStreamComponent.vue": "resources/js/pages/User/Live/Classic/GoLive/components/LiveStreamComponent.vue",
+  "resources/js/pages/User/GoLive/Components/Modals/PayAndSub.vue": "resources/js/pages/User/Live/Classic/GoLive/components/modals/PayAndSub.vue",
+  "resources/js/pages/User/GoLive/Components/Modals/ShowHelpModal.vue": "resources/js/pages/User/Live/Classic/GoLive/components/modals/ShowHelpModal.vue",
+  "resources/js/pages/User/GoLive/Components/Modals/WalletModal.vue": "resources/js/pages/User/Live/Classic/GoLive/components/modals/WalletModal.vue",
+  "resources/js/pages/User/GoLive/Components/PollComponent.vue": "resources/js/pages/User/Live/Classic/GoLive/components/PollComponent.vue",
+  "resources/js/pages/User/GoLive/Components/QnaComponent.vue": "resources/js/pages/User/Live/Classic/GoLive/components/QnaComponent.vue",
+  "resources/js/pages/User/GoLive/Components/SubscriptionModal.vue": "resources/js/pages/User/Live/Classic/GoLive/components/SubscriptionModal.vue",
+  "resources/js/pages/User/GoLive/Components/UserStreams.vue": "resources/js/pages/User/Live/Classic/GoLive/components/UserStreams.vue",
+  "resources/js/pages/User/GoLive/GoLiveNetwork.vue": "resources/js/pages/User/Live/Classic/GoLive/GoLiveNetwork.vue",
+  "resources/js/pages/User/GoLive/Index.vue": "resources/js/pages/User/Live/Classic/GoLive/Index.vue",
+  "resources/js/pages/User/GoLive/style.css": "resources/js/pages/User/Live/Classic/GoLive/style.css",
+  "resources/js/pages/User/Index.vue": "resources/js/pages/User/Home/Classic/Index.vue",
+  "resources/js/pages/User/Landing.vue": "resources/js/pages/User/Landing/Classic/Landing.vue",
+  "resources/js/pages/User/Landing2.vue": "resources/js/pages/User/Landing/Index.vue",
+  "resources/js/pages/User/Likes/Index.vue": "resources/js/pages/User/Linkup/Classic/Likes/Index.vue",
+  "resources/js/pages/User/LinkUpShop/Checkout/Index.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/Checkout/Index.vue",
+  "resources/js/pages/User/LinkUpShop/components/DeleteModal.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/components/DeleteModal.vue",
+  "resources/js/pages/User/LinkUpShop/components/ProductDeleteWarningModal.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/components/ProductDeleteWarningModal.vue",
+  "resources/js/pages/User/LinkUpShop/Orders/Index.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/Orders/Index.vue",
+  "resources/js/pages/User/LinkUpShop/Products/Components/CartModal.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/Products/components/CartModal.vue",
+  "resources/js/pages/User/LinkUpShop/Products/Components/CheckoutModal.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/Products/components/CheckoutModal.vue",
+  "resources/js/pages/User/LinkUpShop/Products/Components/Filter.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/Products/components/Filter.vue",
+  "resources/js/pages/User/LinkUpShop/Products/Components/Header.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/Products/components/Header.vue",
+  "resources/js/pages/User/LinkUpShop/Products/Components/modals/CreateStoreModal.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/Products/components/modals/CreateStoreModal.vue",
+  "resources/js/pages/User/LinkUpShop/Products/Components/modals/OrderTracking.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/Products/components/modals/OrderTracking.vue",
+  "resources/js/pages/User/LinkUpShop/Products/Components/OrdersModal.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/Products/components/OrdersModal.vue",
+  "resources/js/pages/User/LinkUpShop/Products/Components/OrderSummaryModal.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/Products/components/OrderSummaryModal.vue",
+  "resources/js/pages/User/LinkUpShop/Products/Components/ProductCard.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/Products/components/ProductCard.vue",
+  "resources/js/pages/User/LinkUpShop/Products/Components/ProductModal.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/Products/components/ProductModal.vue",
+  "resources/js/pages/User/LinkUpShop/Products/Components/tabs/Product.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/Products/components/tabs/Product.vue",
+  "resources/js/pages/User/LinkUpShop/Products/Components/tabs/StoreCarnival.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/Products/components/tabs/StoreCarnival.vue",
+  "resources/js/pages/User/LinkUpShop/Products/Components/tabs/StoreTab.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/Products/components/tabs/StoreTab.vue",
+  "resources/js/pages/User/LinkUpShop/Products/Index.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/Products/Index.vue",
+  "resources/js/pages/User/LinkUpShop/SellerDashboard/Components/EarningsBreakdownTable.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/SellerDashboard/components/EarningsBreakdownTable.vue",
+  "resources/js/pages/User/LinkUpShop/SellerDashboard/Components/EditListingModal.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/SellerDashboard/components/EditListingModal.vue",
+  "resources/js/pages/User/LinkUpShop/SellerDashboard/Components/Header.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/SellerDashboard/components/Header.vue",
+  "resources/js/pages/User/LinkUpShop/SellerDashboard/Components/OrderDetailModal.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/SellerDashboard/components/OrderDetailModal.vue",
+  "resources/js/pages/User/LinkUpShop/SellerDashboard/Components/OrdersTable.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/SellerDashboard/components/OrdersTable.vue",
+  "resources/js/pages/User/LinkUpShop/SellerDashboard/Components/ReportsSection.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/SellerDashboard/components/ReportsSection.vue",
+  "resources/js/pages/User/LinkUpShop/SellerDashboard/Components/SalesTrendChart.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/SellerDashboard/components/SalesTrendChart.vue",
+  "resources/js/pages/User/LinkUpShop/SellerDashboard/Components/StatCard.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/SellerDashboard/components/StatCard.vue",
+  "resources/js/pages/User/LinkUpShop/SellerDashboard/Components/StoreListingsGrid.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/SellerDashboard/components/StoreListingsGrid.vue",
+  "resources/js/pages/User/LinkUpShop/SellerDashboard/Components/TopProductsTable.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/SellerDashboard/components/TopProductsTable.vue",
+  "resources/js/pages/User/LinkUpShop/SellerDashboard/Earnings.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/SellerDashboard/Earnings.vue",
+  "resources/js/pages/User/LinkUpShop/SellerDashboard/Index.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/SellerDashboard/Index.vue",
+  "resources/js/pages/User/LinkUpShop/SellerDashboard/Order.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/SellerDashboard/Order.vue",
+  "resources/js/pages/User/LinkUpShop/SellerDashboard/Store.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/SellerDashboard/Store.vue",
+  "resources/js/pages/User/LinkUpShop/SellerDashboard/Wallet.vue": "resources/js/pages/User/Marketplace/Classic/LinkUpShop/SellerDashboard/Wallet.vue",
+  "resources/js/pages/User/LiveStream/Index.vue": "resources/js/pages/User/Live/Classic/LiveStream/Index.vue",
+  "resources/js/pages/User/Match/Index.vue": "resources/js/pages/User/Linkup/Classic/Match/Index.vue",
+  "resources/js/pages/User/MyEvent/CreateEvent.vue": "resources/js/pages/User/Events/MyEvents/CreateEvent.vue",
+  "resources/js/pages/User/MyEvent/EditEvent.vue": "resources/js/pages/User/Events/MyEvents/EditEvent.vue",
+  "resources/js/pages/User/MyEvent/EventForm.vue": "resources/js/pages/User/Events/MyEvents/EventForm.vue",
+  "resources/js/pages/User/MyEvent/Index.vue": "resources/js/pages/User/Events/MyEvents/Index.vue",
+  "resources/js/pages/User/Notification/Index-Vue3.vue": "resources/js/pages/User/Notifications/Classic/Index-Vue3.vue",
+  "resources/js/pages/User/Notification/Index.vue": "resources/js/pages/User/Notifications/Classic/Index.vue",
+  "resources/js/pages/User/Profile/EditProfile.vue": "resources/js/pages/User/Profile/Classic/EditProfile.vue",
+  "resources/js/pages/User/Profile/OtherProfile.vue": "resources/js/pages/User/Profile/Classic/OtherProfile.vue",
+  "resources/js/pages/User/Profile/view/EditImageUploaded.vue": "resources/js/pages/User/Profile/Classic/view/EditImageUploaded.vue",
+  "resources/js/pages/User/Profile/view/Events.vue": "resources/js/pages/User/Profile/Classic/view/Events.vue",
+  "resources/js/pages/User/Profile/view/Index.vue": "resources/js/pages/User/Profile/Classic/view/Index.vue",
+  "resources/js/pages/User/Profile/view/LiveMessages.vue": "resources/js/pages/User/Profile/Classic/view/LiveMessages.vue",
+  "resources/js/pages/User/Profile/view/WalletTransactions.vue": "resources/js/pages/User/Profile/Classic/view/WalletTransactions.vue",
+  "resources/js/pages/User/Restaurants/Index.vue": "resources/js/pages/User/Eats/Classic/Restaurants/Index.vue",
+  "resources/js/pages/User/Restaurants/Show.vue": "resources/js/pages/User/Eats/Classic/Restaurants/Show.vue",
+  "resources/js/pages/User/Ticket/CreateTicket.vue": "resources/js/pages/User/Events/Tickets/CreateTicket.vue",
+  "resources/js/pages/User/Ticket/EditTicket.vue": "resources/js/pages/User/Events/Tickets/EditTicket.vue",
+  "resources/js/pages/User/Ticket/Index.vue": "resources/js/pages/User/Events/Tickets/Index.vue",
+  "resources/js/pages/User/Ticket/TicketForm.vue": "resources/js/pages/User/Events/Tickets/TicketForm.vue",
+  "resources/js/pages/User/TicketType.vue": "resources/js/pages/User/Events/Tickets/TicketType.vue",
+  "resources/js/pages/User/UpcommingEvent.vue": "resources/js/pages/User/Events/UpcomingEvent.vue",
+  "resources/js/pages/User/Users.vue": "resources/js/pages/User/Linkup/Classic/Users.vue",
+  "resources/js/pages/User/UserWallet/components/AddBankModal.vue": "resources/js/pages/User/Wallet/Classic/UserWallet/components/AddBankModal.vue",
+  "resources/js/pages/User/UserWallet/components/AddContactModal.vue": "resources/js/pages/User/Wallet/Classic/UserWallet/components/AddContactModal.vue",
+  "resources/js/pages/User/UserWallet/components/AsueDetailModal.vue": "resources/js/pages/User/Wallet/Classic/UserWallet/components/AsueDetailModal.vue",
+  "resources/js/pages/User/UserWallet/components/AsueModal.vue": "resources/js/pages/User/Wallet/Classic/UserWallet/components/AsueModal.vue",
+  "resources/js/pages/User/UserWallet/components/BillButton.vue": "resources/js/pages/User/Wallet/Classic/UserWallet/components/BillButton.vue",
+  "resources/js/pages/User/UserWallet/components/BillPayModal.vue": "resources/js/pages/User/Wallet/Classic/UserWallet/components/BillPayModal.vue",
+  "resources/js/pages/User/UserWallet/components/CryptoModal.vue": "resources/js/pages/User/Wallet/Classic/UserWallet/components/CryptoModal.vue",
+  "resources/js/pages/User/UserWallet/components/example.vue": "resources/js/pages/User/Wallet/Classic/UserWallet/components/example.vue",
+  "resources/js/pages/User/UserWallet/components/HeaderBar.vue": "resources/js/pages/User/Wallet/Classic/UserWallet/components/HeaderBar.vue",
+  "resources/js/pages/User/UserWallet/components/HelpModal.vue": "resources/js/pages/User/Wallet/Classic/UserWallet/components/HelpModal.vue",
+  "resources/js/pages/User/UserWallet/components/MerchantModal.vue": "resources/js/pages/User/Wallet/Classic/UserWallet/components/MerchantModal.vue",
+  "resources/js/pages/User/UserWallet/components/MoneyRequestList.vue": "resources/js/pages/User/Wallet/Classic/UserWallet/components/MoneyRequestList.vue",
+  "resources/js/pages/User/UserWallet/components/PosModal.vue": "resources/js/pages/User/Wallet/Classic/UserWallet/components/PosModal.vue",
+  "resources/js/pages/User/UserWallet/components/QuickAction.vue": "resources/js/pages/User/Wallet/Classic/UserWallet/components/QuickAction.vue",
+  "resources/js/pages/User/UserWallet/components/QuickActions.vue": "resources/js/pages/User/Wallet/Classic/UserWallet/components/QuickActions.vue",
+  "resources/js/pages/User/UserWallet/components/QuickLinkUps.vue": "resources/js/pages/User/Wallet/Classic/UserWallet/components/QuickLinkUps.vue",
+  "resources/js/pages/User/UserWallet/components/RequestMoneyModal.vue": "resources/js/pages/User/Wallet/Classic/UserWallet/components/RequestMoneyModal.vue",
+  "resources/js/pages/User/UserWallet/components/SendMoneyModal.vue": "resources/js/pages/User/Wallet/Classic/UserWallet/components/SendMoneyModal.vue",
+  "resources/js/pages/User/UserWallet/components/SendRequestMoneyModal.vue": "resources/js/pages/User/Wallet/Classic/UserWallet/components/SendRequestMoneyModal.vue",
+  "resources/js/pages/User/UserWallet/components/Sidebar.vue": "resources/js/pages/User/Wallet/Classic/UserWallet/components/Sidebar.vue",
+  "resources/js/pages/User/UserWallet/components/TransactionHistory.vue": "resources/js/pages/User/Wallet/Classic/UserWallet/components/TransactionHistory.vue",
+  "resources/js/pages/User/UserWallet/components/TransferModal.vue": "resources/js/pages/User/Wallet/Classic/UserWallet/components/TransferModal.vue",
+  "resources/js/pages/User/UserWallet/components/WalletModal.vue": "resources/js/pages/User/Wallet/Classic/UserWallet/components/WalletModal.vue",
+  "resources/js/pages/User/UserWallet/components/WalletTopUp.vue": "resources/js/pages/User/Wallet/Classic/UserWallet/components/WalletTopUp.vue",
+  "resources/js/pages/User/UserWallet/components/WithdrawalFeeModal.vue": "resources/js/pages/User/Wallet/Classic/UserWallet/components/WithdrawalFeeModal.vue",
+  "resources/js/pages/User/UserWallet/Index.vue": "resources/js/pages/User/Wallet/Classic/UserWallet/Index.vue",
+  "resources/js/pages/User/UserWallet/style.css": "resources/js/pages/User/Wallet/Classic/UserWallet/style.css",
+  "resources/js/pages/User/UserWallet/WalletKyc.vue": "resources/js/pages/User/Wallet/Classic/UserWallet/WalletKyc.vue",
+  "resources/js/pages/User/VerifyKyc.vue": "resources/js/pages/User/Kyc/VerifyKyc.vue",
+  "resources/js/pages/User/VideoCall.vue": "resources/js/pages/User/Linkup/Classic/Chat/VideoCall.vue",
+  "resources/js/pages/User/Wallet/Coin.vue": "resources/js/pages/User/Wallet/Classic/Wallet/Coin.vue",
+  "resources/js/pages/User/Wallet/Components/Balances.vue": "resources/js/pages/User/Wallet/Classic/Wallet/components/Balances.vue",
+  "resources/js/pages/User/Wallet/Components/Contacts.vue": "resources/js/pages/User/Wallet/Classic/Wallet/components/Contacts.vue",
+  "resources/js/pages/User/Wallet/Components/Earnings.vue": "resources/js/pages/User/Wallet/Classic/Wallet/components/Earnings.vue",
+  "resources/js/pages/User/Wallet/Components/Hero.vue": "resources/js/pages/User/Wallet/Classic/Wallet/components/Hero.vue",
+  "resources/js/pages/User/Wallet/Components/modals/AddMoneyModal.vue": "resources/js/pages/User/Wallet/Classic/Wallet/components/modals/AddMoneyModal.vue",
+  "resources/js/pages/User/Wallet/Components/modals/BuyCoinsModal.vue": "resources/js/pages/User/Wallet/Classic/Wallet/components/modals/BuyCoinsModal.vue",
+  "resources/js/pages/User/Wallet/Components/modals/GiftCionModal.vue": "resources/js/pages/User/Wallet/Classic/Wallet/components/modals/GiftCoinModal.vue",
+  "resources/js/pages/User/Wallet/Components/modals/HelpModal.vue": "resources/js/pages/User/Wallet/Classic/Wallet/components/modals/HelpModal.vue",
+  "resources/js/pages/User/Wallet/Components/modals/QRModal.vue": "resources/js/pages/User/Wallet/Classic/Wallet/components/modals/QRModal.vue",
+  "resources/js/pages/User/Wallet/Components/modals/RequestMoneyModal.vue": "resources/js/pages/User/Wallet/Classic/Wallet/components/modals/RequestMoneyModal.vue",
+  "resources/js/pages/User/Wallet/Components/modals/SendMoneyModal.vue": "resources/js/pages/User/Wallet/Classic/Wallet/components/modals/SendMoneyModal.vue",
+  "resources/js/pages/User/Wallet/Components/modals/SettingsModal.vue": "resources/js/pages/User/Wallet/Classic/Wallet/components/modals/SettingsModal.vue",
+  "resources/js/pages/User/Wallet/Components/Requests.vue": "resources/js/pages/User/Wallet/Classic/Wallet/components/Requests.vue",
+  "resources/js/pages/User/Wallet/Components/Transactions.vue": "resources/js/pages/User/Wallet/Classic/Wallet/components/Transactions.vue",
+  "resources/js/pages/User/Wallet/Components/VirtualCard.vue": "resources/js/pages/User/Wallet/Classic/Wallet/components/VirtualCard.vue",
+  "resources/js/pages/User/Wallet/Index.vue": "resources/js/pages/User/Wallet/Classic/Wallet/Index.vue",
+  "resources/js/pages/User/Wallet/SelectAmount.vue": "resources/js/pages/User/Wallet/Classic/Wallet/SelectAmount.vue",
+  "resources/js/pages/User/Wallet/SelectCoin.vue": "resources/js/pages/User/Wallet/Classic/Wallet/SelectCoin.vue",
+  "resources/js/pages/User/Wizard.vue": "resources/js/pages/User/Onboarding/Wizard.vue",
+  "routes/web/member.php": "routes/web/user.php"
+ },
+ "badBefore": [
+  {
+   "file": "resources/js/app.ts",
+   "spec": "./pages/admin/"
+  },
+  {
+   "file": "resources/js/app.ts",
+   "spec": "./pages/admin/auth/"
+  },
+  {
+   "file": "resources/js/app.ts",
+   "spec": "./pages/admin/events/"
+  },
+  {
+   "file": "resources/js/app.ts",
+   "spec": "./pages/admin/taxes/"
+  },
+  {
+   "file": "resources/js/client/models/Order.ts",
+   "spec": "@/types"
+  },
+  {
+   "file": "resources/js/client/models/OrderItem.ts",
+   "spec": "@/types"
+  },
+  {
+   "file": "resources/js/client/models/UserTable.ts",
+   "spec": "@/types/index"
+  },
+  {
+   "file": "resources/js/components/admin/AppHeader.vue",
+   "spec": "@/types"
+  },
+  {
+   "file": "resources/js/components/admin/AppShell.vue",
+   "spec": "@/types"
+  },
+  {
+   "file": "resources/js/components/admin/AppSidebar.vue",
+   "spec": "@/types"
+  },
+  {
+   "file": "resources/js/components/admin/AppSidebarHeader.vue",
+   "spec": "@/types"
+  },
+  {
+   "file": "resources/js/components/admin/NavFooter.vue",
+   "spec": "@/types"
+  },
+  {
+   "file": "resources/js/components/admin/NavMain.vue",
+   "spec": "@/types"
+  },
+  {
+   "file": "resources/js/components/admin/NavUser.vue",
+   "spec": "@/types"
+  },
+  {
+   "file": "resources/js/components/admin/UserInfo.vue",
+   "spec": "@/types"
+  },
+  {
+   "file": "resources/js/components/admin/UserMenuContent.vue",
+   "spec": "@/types"
+  },
+  {
+   "file": "resources/js/components/FooterLogo.vue",
+   "spec": "./../../assets/images/logo.PNG"
+  },
+  {
+   "file": "resources/js/composables/useCountryStateCity.ts",
+   "spec": "@/types"
+  },
+  {
+   "file": "resources/js/layouts/admin/AppLayout.vue",
+   "spec": "@/types"
+  },
+  {
+   "file": "resources/js/layouts/app/AppHeaderLayout.vue",
+   "spec": "@/types"
+  },
+  {
+   "file": "resources/js/layouts/app/AppSidebarLayout.vue",
+   "spec": "@/types"
+  },
+  {
+   "file": "resources/js/layouts/AuthenticatedLayoutBackup.vue",
+   "spec": "@/Components/Dropdown.vue"
+  },
+  {
+   "file": "resources/js/layouts/AuthenticatedLayoutBackup.vue",
+   "spec": "@/Components/DropdownLink.vue"
+  },
+  {
+   "file": "resources/js/layouts/settings/Layout.vue",
+   "spec": "@/types"
+  },
+  {
+   "file": "resources/js/pages/admin/AskAIDashboard.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/BusinessUnitsDashboard.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/DeliveriesDispatch.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/DriverOnboarding.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/DriverPolicies.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/LinkUpEats/EatsAnalytics.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/LinkUpEats/EatsAppLive.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/LinkUpEats/EatsDashboard.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/LinkUpEats/EatsDeliveryZones.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/LinkUpEats/EatsDriverPayouts.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/LinkUpEats/EatsDrivers.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/LinkUpEats/EatsFeesPricing.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/LinkUpEats/EatsMenus.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/LinkUpEats/EatsOrders.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/LinkUpEats/EatsPromotions.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/LinkUpEats/EatsRestaurantPayouts.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/LinkUpEats/EatsRestaurants.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/LinkUpEats/EatsReviews.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/LinkUpEats/EatsSupport.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/Marketplace/MarketplaceCategories.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/Marketplace/MarketplaceDashboard.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/Marketplace/MarketplaceEscrow.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/Marketplace/MarketplaceFees.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/Marketplace/MarketplaceOrders.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/Marketplace/MarketplaceOrderView.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/Marketplace/MarketplaceProductCreate.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/Marketplace/MarketplaceProductEdit.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/Marketplace/MarketplaceProducts.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/Marketplace/MarketplaceProductView.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/Marketplace/MarketplaceSellers.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/Marketplace/MarketplaceSellerTransfers.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/Marketplace/MarketplaceWallets.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/MerchantPayOnboarding.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/Merchants/MerchantDashboard.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/Merchants/MerchantDirectory.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/Merchants/MerchantKyc.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/Merchants/MerchantOnboarding.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/Merchants/MerchantTax.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/RestaurantOnboarding.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/RestaurantOversight.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/ShippingManagement.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/SubscriptionSuite.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Commerce/SwipesManagement.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/CountriesDashboard.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/events/CancelTickets.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/events/CreateEvent.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/events/EditEvent.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/events/EventCategories.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/events/EventCoupons.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/events/EventSponsors.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/events/LinkUpLive.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/events/TicketSales.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/events/TicketsReport.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/events/TopEarners.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/events/WellnessProviders.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/EventsDashboard.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/EWalletDashboard.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/FeeRevenueDashboard.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/ForecastingDashboard.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/FoundationDashboard.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/NewOverview.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Organizers/OrganizerDirectory.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Organizers/PayoutList.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Organizers/PromoteEvents.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/Organizers/ScannersManagement.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/PayoutOpsDashboard.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/PayrollDashboard.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/PricingDashboard.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/RemittanceDashboard.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/SettingsDashboard.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/SettlementsDashboard.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/taxes/components/TaxLayout.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/admin/UsersDashboard.vue",
+   "spec": "@/../../resources/css/new_admin.css"
+  },
+  {
+   "file": "resources/js/pages/User/Index.vue",
+   "spec": "./Components/liveInterface"
+  },
+  {
+   "file": "resources/js/pages/User/MyEvent/EventForm.vue",
+   "spec": "@/types"
+  },
+  {
+   "file": "resources/js/pages/User/News/CreateEdit.vue",
+   "spec": "@/types"
+  },
+  {
+   "file": "resources/js/pages/User/News/NewsView.vue",
+   "spec": "@/types"
+  },
+  {
+   "file": "resources/js/pages/User/Profile/view/Events.vue",
+   "spec": "@/types"
+  },
+  {
+   "file": "resources/js/pages/User/Profile/view/Index.vue",
+   "spec": "@/types"
+  },
+  {
+   "file": "resources/js/pages/User/Profile/view/LiveMessages.vue",
+   "spec": "@/types"
+  },
+  {
+   "file": "resources/js/pages/User/Profile/view/WalletTransactions.vue",
+   "spec": "@/types"
+  },
+  {
+   "file": "resources/js/pages/User/Ticket/Index.vue",
+   "spec": "@/client/models/Linkupticket"
+  },
+  {
+   "file": "resources/js/pages/User/Ticket/Index.vue",
+   "spec": "@/components/front/MyticketCard.vue"
+  },
+  {
+   "file": "resources/js/pages/User/Wizard.vue",
+   "spec": "./../../assets/images/bg-image2.png"
+  },
+  {
+   "file": "vite.config.ts",
+   "spec": "./resources/js"
+  }
+ ],
+ "missingPages": [
+  {
+   "file": "app/Http/Controllers/Admin/AdminController.php",
+   "name": "admin/adminlist/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/AdminController.php",
+   "name": "admin/adminlist/Component/Create"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/AdminController.php",
+   "name": "admin/adminlist/Component/Edit"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/AdminFeeController.php",
+   "name": "admin/subscriptions/AdminFee/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Ads/AdsController.php",
+   "name": "admin/ads/Dashboard"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Ads/AdsController.php",
+   "name": "admin/ads/Analytics"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Ads/AdsController.php",
+   "name": "admin/ads/Reports"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Ads/AdsController.php",
+   "name": "admin/ads/AllAds"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Ads/AdsController.php",
+   "name": "admin/ads/RestaurantsAds"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Ads/AdsController.php",
+   "name": "admin/ads/ClubsFetesAds"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Ads/AdsController.php",
+   "name": "admin/ads/Campaigns"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Ads/AdsController.php",
+   "name": "admin/ads/EmailSponsorAds"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Ads/AdsController.php",
+   "name": "admin/ads/C360News"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/AppSettingController.php",
+   "name": "admin/settings/AppSetting"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/AppSettingController.php",
+   "name": "admin/events/Setting"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/BankWithdrawalController.php",
+   "name": "admin/BankWithdrawals/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/CancelTicketController.php",
+   "name": "admin/events/cancelTicket/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/CashoutController.php",
+   "name": "admin/cashout/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/CashoutController.php",
+   "name": "admin/cashout/Show"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/ClubFeteController.php",
+   "name": "admin/clubfete/ClubsRestaurants"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/ClubFeteController.php",
+   "name": "admin/clubfete/Create"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/ClubFeteController.php",
+   "name": "admin/clubfete/Show"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/ClubFeteController.php",
+   "name": "admin/clubfete/Edit"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/CouponController.php",
+   "name": "admin/coupons/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Dashboards/EventDashboardController.php",
+   "name": "admin/Dashboards/Event"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Dashboards/FeeDashboardController.php",
+   "name": "admin/Dashboards/Fee"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Dashboards/LiveAnalyticsDashboardController.php",
+   "name": "admin/Dashboards/LiveAnalytics"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Dashboards/ModerationDashboardController.php",
+   "name": "admin/Dashboards/Moderation"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Dashboards/UserDashboardController.php",
+   "name": "admin/Dashboards/Dashboard"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Dashboards/WalletDashboardController.php",
+   "name": "admin/Dashboards/Wallet"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/EmailAdsManagerController.php",
+   "name": "admin/ads/EmailAdsManager"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/EmailController.php",
+   "name": "admin/email/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/EmailController.php",
+   "name": "admin/email/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/EmailController.php",
+   "name": "admin/email/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/EmailController.php",
+   "name": "admin/email/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/EventCategoryController.php",
+   "name": "admin/categories/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/EventController.php",
+   "name": "admin/events/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/EventController.php",
+   "name": "admin/events/Categories"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/EventController.php",
+   "name": "admin/events/EventFee/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/EventOrganizerController.php",
+   "name": "admin/organizer/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/EventOrganizerController.php",
+   "name": "admin/organizer/CreateEdit"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/EventOrganizerController.php",
+   "name": "admin/organizer/ViewOrganizer"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/EventOrganizerController.php",
+   "name": "admin/organizer/Edit"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/e_wallet/DashboardController.php",
+   "name": "admin/e_wallet/Dashboard"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/e_wallet/DashboardController.php",
+   "name": "admin/e_wallet/WalletSetting"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/e_wallet/DigiMoneyController.php",
+   "name": "admin/e_wallet/Digimoney"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/e_wallet/MoneyRequestController.php",
+   "name": "admin/e_wallet/moneyRequest"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/e_wallet/PaymentGatewayController.php",
+   "name": "admin/e_wallet/CreatePaymentWay"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/e_wallet/PaymentGatewayController.php",
+   "name": "admin/e_wallet/UserWalletKyc"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/e_wallet/TransactionController.php",
+   "name": "admin/e_wallet/Transaction"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/e_wallet/WithdrawRequestController.php",
+   "name": "admin/e_wallet/WithdrawRequest"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/InvoiceController.php",
+   "name": "admin/invoices/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/InvoiceController.php",
+   "name": "admin/invoices/Create"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/KycUserController.php",
+   "name": "admin/kycusers/Users"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/KycUserController.php",
+   "name": "admin/kycusers/Organizers"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/KycUserController.php",
+   "name": "admin/kycusers/Organizer"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/LiveStream/CallController.php",
+   "name": "admin/liveStream/calls/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/LiveStream/EncounterController.php",
+   "name": "admin/liveStream/encounters/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/LiveStream/GiftController.php",
+   "name": "admin/liveStream/gifts/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/LiveStream/LinkupLiveGiftController.php",
+   "name": "admin/liveStream/linkUpLiveGift/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/LiveStream/LinkupLiveGiftController.php",
+   "name": "admin/liveStream/linkUpLiveGift/Create"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/LiveStream/LinkupLiveGiftController.php",
+   "name": "admin/liveStream/linkUpLiveGift/Edit"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/LiveStream/LiveStreamController.php",
+   "name": "admin/liveStream/liveStreams/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/LiveStream/LiveStreamController.php",
+   "name": "admin/liveStream/dashboard/Dashboard"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/LiveStream/LiveStreamController.php",
+   "name": "admin/liveStream/feeAnalytics"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/LiveStream/LiveStreamController.php",
+   "name": "admin/liveStream/liveAnalytics"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/LiveStream/LiveStreamController.php",
+   "name": "admin/liveStream/moderation"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/LiveStream/LiveStreamController.php",
+   "name": "admin/liveStream/categories/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/LiveStream/MessageController.php",
+   "name": "admin/liveStream/messages/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/LiveStream/PaymentController.php",
+   "name": "admin/liveStream/payments/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/LiveStream/PayoutController.php",
+   "name": "admin/liveStream/payouts/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/NewsController.php",
+   "name": "admin/news/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/NewsController.php",
+   "name": "admin/news/CreateEdit"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/NewsController.php",
+   "name": "admin/news/NewsView"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/NewsController.php",
+   "name": "admin/news/CreateEdit"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/PushNotificationController.php",
+   "name": "admin/pushNotification/Create"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Reports/TicketsReportController.php",
+   "name": "admin/Reports/Tickets/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Reports/WalletReportController.php",
+   "name": "admin/Reports/Wallet/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/RestaurantController.php",
+   "name": "admin/restaurant/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/RestaurantController.php",
+   "name": "admin/restaurant/Create"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/RestaurantController.php",
+   "name": "admin/restaurant/Show"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/RestaurantController.php",
+   "name": "admin/restaurant/Edit"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/RoleController.php",
+   "name": "admin/roles/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/RoleController.php",
+   "name": "admin/roles/Create"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/RoleController.php",
+   "name": "admin/roles/Edit"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/ScannerController.php",
+   "name": "admin/scanners/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/ScannerController.php",
+   "name": "admin/scanners/CreateEdit"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/ScannerController.php",
+   "name": "admin/scanners/CreateEdit"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/SellerCashOutController.php",
+   "name": "admin/SellerCashOut/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Settings/AdsSettingController.php",
+   "name": "admin/settings/adsSetting"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Settings/PasswordController.php",
+   "name": "admin/settings/Password"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Settings/ProfileController.php",
+   "name": "admin/settings/Profile"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Settings/SmtpSettingController.php",
+   "name": "admin/settings/smtpSetting"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Shops/AdminGiftPurchases.php",
+   "name": "admin/shops/purchaseGifts/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Shops/DashboardController.php",
+   "name": "admin/shops/dashboard/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Shops/DashboardController.php",
+   "name": "admin/shops/fee/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Shops/MerchantController.php",
+   "name": "admin/shops/merchants/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Shops/OrderController.php",
+   "name": "admin/shops/order/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Shops/OrderController.php",
+   "name": "admin/shops/order/View"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Shops/OrderController.php",
+   "name": "admin/shops/escrow/EscrowReleases"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Shops/OrderController.php",
+   "name": "admin/shops/payouts/SellerTransfers"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Shops/ProductCategoryController.php",
+   "name": "admin/shops/categories/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Shops/ProductController.php",
+   "name": "admin/shops/products/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Shops/ProductController.php",
+   "name": "admin/shops/products/Create"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Shops/ProductController.php",
+   "name": "admin/shops/products/Edit"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Shops/ProductController.php",
+   "name": "admin/shops/products/View"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Shops/WalletController.php",
+   "name": "admin/shops/wallets/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/SponsorController.php",
+   "name": "admin/sponsors/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Subscriptions/UserPlanController.php",
+   "name": "admin/subscriptions/Dashboard"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Subscriptions/UserPlanController.php",
+   "name": "admin/subscriptions/UsersPage"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Subscriptions/UserPlanController.php",
+   "name": "admin/subscriptions/GoLive"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Subscriptions/UserPlanController.php",
+   "name": "admin/subscriptions/ClubAndRestaurant"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Subscriptions/UserPlanController.php",
+   "name": "admin/subscriptions/Marketplace"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Subscriptions/UserPlanController.php",
+   "name": "admin/subscriptions/Events"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Subscriptions/UserPlanController.php",
+   "name": "admin/subscriptions/Lab"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Subscriptions/UserPlanController.php",
+   "name": "admin/subscriptions/SubscriptionsPage"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/Subscriptions/UserPlanController.php",
+   "name": "admin/subscriptions/RevenuePage"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/SwipeController.php",
+   "name": "admin/swipes/SwipesPage"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/SwipeController.php",
+   "name": "admin/swipes/Create"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/SwipeController.php",
+   "name": "admin/swipes/Edit"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/TaxesController.php",
+   "name": "admin/taxes/Dashboard"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/TaxesController.php",
+   "name": "admin/taxes/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/TaxesController.php",
+   "name": "admin/taxes/Show"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/TaxesController.php",
+   "name": "admin/taxes/TaxSetting"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/TaxesController.php",
+   "name": "admin/taxes/TaxRemittanceSetting"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/TicketController.php",
+   "name": "admin/events/tickets/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/TicketController.php",
+   "name": "admin/events/tickets/Show"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/TicketSaleController.php",
+   "name": "admin/events/ticketSale/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/TicketSaleController.php",
+   "name": "admin/events/ticketSale/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/UserReportsController.php",
+   "name": "admin/reportedusers/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/UsersController.php",
+   "name": "admin/users/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/UsersController.php",
+   "name": "admin/users/Create"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/UsersController.php",
+   "name": "admin/users/view/Index"
+  },
+  {
+   "file": "app/Http/Controllers/Admin/UsersController.php",
+   "name": "admin/users/Edit"
+  },
+  {
+   "file": "app/Http/Controllers/Auth/ConfirmablePasswordController.php",
+   "name": "Auth/ConfirmPassword"
+  },
+  {
+   "file": "app/Http/Controllers/Auth/EmailVerificationPromptController.php",
+   "name": "Auth/VerifyEmail"
+  },
+  {
+   "file": "app/Http/Controllers/Frontend/EventTicketController.php",
+   "name": "User/Ticket/TicketDetails"
+  },
+  {
+   "file": "app/Http/Controllers/Frontend/MyEventController.php",
+   "name": "User/MyEvent/Show"
+  },
+  {
+   "file": "app/Http/Controllers/Organizer/EventController.php",
+   "name": "organizer/coupon/Show"
+  },
+  {
+   "file": "app/Http/Controllers/Organizer/EventController.php",
+   "name": "organizer/sponsor/Show"
+  },
+  {
+   "file": "routes/admin/settings.php",
+   "name": "admin/settings/Appearance"
+  }
+ ],
+ "nameMap": {
+  "new_front/caribbean360/Index": "User/Caribbean360/Index",
+  "new_front/eats/Index": "User/Eats/Index",
+  "new_front/events/Index": "User/Events/Index",
+  "new_front/home/Index": "User/Home/Index",
+  "new_front/linkup/Chats": "User/Linkup/Chats",
+  "new_front/linkup/Find": "User/Linkup/Find",
+  "new_front/linkup/Friends": "User/Linkup/Friends",
+  "new_front/linkup/Index": "User/Linkup/Index",
+  "new_front/linkup/Likes": "User/Linkup/Likes",
+  "new_front/linkup/Matches": "User/Linkup/Matches",
+  "new_front/linkup/Requests": "User/Linkup/Requests",
+  "new_front/live/Components/StudioView": "User/Live/components/StudioView",
+  "new_front/live/Index": "User/Live/Index",
+  "new_front/live/Watch": "User/Live/Watch",
+  "new_front/marketplace/Index": "User/Marketplace/Index",
+  "new_front/night_life/Index": "User/NightLife/Index",
+  "new_front/notifications/Index": "User/Notifications/Index",
+  "new_front/profile/EditProfileModal": "User/Profile/modals/EditProfileModal",
+  "new_front/profile/Index": "User/Profile/Index",
+  "new_front/profile/settings/AddPaymentMethodModal": "User/Profile/modals/settings/AddPaymentMethodModal",
+  "new_front/profile/settings/AdvertiseBusinessModal": "User/Profile/modals/settings/AdvertiseBusinessModal",
+  "new_front/profile/settings/BlockedAccountsModal": "User/Profile/modals/settings/BlockedAccountsModal",
+  "new_front/profile/settings/ContactModal": "User/Profile/modals/settings/ContactModal",
+  "new_front/profile/settings/CurrencyModal": "User/Profile/modals/settings/CurrencyModal",
+  "new_front/profile/settings/DeleteAccountModal": "User/Profile/modals/settings/DeleteAccountModal",
+  "new_front/profile/settings/HelpModal": "User/Profile/modals/settings/HelpModal",
+  "new_front/profile/settings/LanguageModal": "User/Profile/modals/settings/LanguageModal",
+  "new_front/profile/settings/LegalModal": "User/Profile/modals/settings/LegalModal",
+  "new_front/profile/settings/LogoutConfirmModal": "User/Profile/modals/settings/LogoutConfirmModal",
+  "new_front/profile/settings/MessagingPrivacyModal": "User/Profile/modals/settings/MessagingPrivacyModal",
+  "new_front/profile/settings/NewsRegionModal": "User/Profile/modals/settings/NewsRegionModal",
+  "new_front/profile/settings/PasswordModal": "User/Profile/modals/settings/PasswordModal",
+  "new_front/profile/settings/PaymentMethodsModal": "User/Profile/modals/settings/PaymentMethodsModal",
+  "new_front/profile/settings/RegionModal": "User/Profile/modals/settings/RegionModal",
+  "new_front/profile/settings/SessionsModal": "User/Profile/modals/settings/SessionsModal",
+  "new_front/profile/settings/SettingsSubModal": "User/Profile/modals/settings/SettingsSubModal",
+  "new_front/profile/settings/SubscriptionModal": "User/Profile/modals/settings/SubscriptionModal",
+  "new_front/profile/settings/TransactionPinModal": "User/Profile/modals/settings/TransactionPinModal",
+  "new_front/profile/settings/VerificationModal": "User/Profile/modals/settings/VerificationModal",
+  "new_front/profile/SettingsModal": "User/Profile/modals/SettingsModal",
+  "new_front/Settings": "User/Settings/Index",
+  "new_front/u_vibe/Index": "User/UVibe/Index",
+  "new_front/vibes/Index": "User/Vibes/Index",
+  "new_front/vibes/UserProfile": "User/Vibes/UserProfile",
+  "new_front/wallet/Index": "User/Wallet/Index",
+  "new_front/wallet/LinkUpCoinsCard": "User/Wallet/components/LinkUpCoinsCard",
+  "new_front/wallet/QuickPayContactModal": "User/Wallet/modals/QuickPayContactModal",
+  "new_front/wallet/RequestedMoneyModal": "User/Wallet/modals/RequestedMoneyModal",
+  "new_front/wallet/RequestMoneyModal": "User/Wallet/modals/RequestMoneyModal",
+  "new_front/wallet/SendMoneyModal": "User/Wallet/modals/SendMoneyModal",
+  "new_front/wallet/TopUpModal": "User/Wallet/modals/TopUpModal",
+  "new_front/wallet/WalletActivityModal": "User/Wallet/modals/WalletActivityModal",
+  "Profile/Edit": "User/Profile/Account/Edit",
+  "Profile/Partials/DeleteUserForm": "User/Profile/Account/Partials/DeleteUserForm",
+  "Profile/Partials/UpdatePasswordForm": "User/Profile/Account/Partials/UpdatePasswordForm",
+  "Profile/Partials/UpdateProfileInformationForm": "User/Profile/Account/Partials/UpdateProfileInformationForm",
+  "User/AppSetting": "User/Settings/AppSetting",
+  "User/Bookings/Cancelled": "User/Events/Bookings/Cancelled",
+  "User/Bookings/Completed": "User/Events/Bookings/Completed",
+  "User/Bookings/ETicket": "User/Events/Bookings/ETicket",
+  "User/Bookings/Upcomming": "User/Events/Bookings/Upcoming",
+  "User/BuyTicket": "User/Events/Tickets/BuyTicket",
+  "User/Chat/Chat": "User/Linkup/Classic/Chat/Chat",
+  "User/Chat/components/Emoji": "User/Linkup/Classic/Chat/components/Emoji",
+  "User/Chat/components/Gif": "User/Linkup/Classic/Chat/components/Gif",
+  "User/Chat/components/Inbox": "User/Linkup/Classic/Chat/components/Inbox",
+  "User/Chat/components/Tickets": "User/Linkup/Classic/Chat/components/Tickets",
+  "User/Chat/Index": "User/Linkup/Classic/Chat/Index",
+  "User/Chat": "User/Linkup/Classic/Chat/ChatPage",
+  "User/Clubs/Index": "User/NightLife/Clubs/Index",
+  "User/Clubs/Show": "User/NightLife/Clubs/Show",
+  "User/Eticket": "User/Events/Tickets/Eticket",
+  "User/Event/CreateEvent": "User/Events/Classic/Event/CreateEvent",
+  "User/Event/EditEvent": "User/Events/Classic/Event/EditEvent",
+  "User/Event/EventForm": "User/Events/Classic/Event/EventForm",
+  "User/Event/Favorite": "User/Events/Classic/Event/Favorite",
+  "User/Event/Index": "User/Events/Classic/Event/Index",
+  "User/Event/Show": "User/Events/Classic/Event/Show",
+  "User/Event/SuccessPurchase": "User/Events/Classic/Event/SuccessPurchase",
+  "User/Event/Tickets": "User/Events/Classic/Event/Tickets",
+  "User/FindMatch/home": "User/Linkup/Classic/FindMatch/home",
+  "User/FindMatch/Index": "User/Linkup/Classic/FindMatch/Index",
+  "User/Friend/components/UserCard": "User/Linkup/Classic/Friend/components/UserCard",
+  "User/Friend/Index": "User/Linkup/Classic/Friend/Index",
+  "User/FriendRequest/components/UserCard": "User/Linkup/Classic/FriendRequest/components/UserCard",
+  "User/FriendRequest/Index": "User/Linkup/Classic/FriendRequest/Index",
+  "User/GoLive/Components/AllLiveStrams": "User/Live/Classic/GoLive/components/AllLiveStreams",
+  "User/GoLive/Components/AnalyticsModal": "User/Live/Classic/GoLive/components/AnalyticsModal",
+  "User/GoLive/Components/ChatComponent": "User/Live/Classic/GoLive/components/ChatComponent",
+  "User/GoLive/Components/GiftsPannel": "User/Live/Classic/GoLive/components/GiftsPannel",
+  "User/GoLive/Components/LiveStreamComponent": "User/Live/Classic/GoLive/components/LiveStreamComponent",
+  "User/GoLive/Components/Modals/PayAndSub": "User/Live/Classic/GoLive/components/modals/PayAndSub",
+  "User/GoLive/Components/Modals/ShowHelpModal": "User/Live/Classic/GoLive/components/modals/ShowHelpModal",
+  "User/GoLive/Components/Modals/WalletModal": "User/Live/Classic/GoLive/components/modals/WalletModal",
+  "User/GoLive/Components/PollComponent": "User/Live/Classic/GoLive/components/PollComponent",
+  "User/GoLive/Components/QnaComponent": "User/Live/Classic/GoLive/components/QnaComponent",
+  "User/GoLive/Components/SubscriptionModal": "User/Live/Classic/GoLive/components/SubscriptionModal",
+  "User/GoLive/Components/UserStreams": "User/Live/Classic/GoLive/components/UserStreams",
+  "User/GoLive/GoLiveNetwork": "User/Live/Classic/GoLive/GoLiveNetwork",
+  "User/GoLive/Index": "User/Live/Classic/GoLive/Index",
+  "User/Index": "User/Home/Classic/Index",
+  "User/Landing": "User/Landing/Classic/Landing",
+  "User/Landing2": "User/Landing/Index",
+  "User/Likes/Index": "User/Linkup/Classic/Likes/Index",
+  "User/LinkUpShop/Checkout/Index": "User/Marketplace/Classic/LinkUpShop/Checkout/Index",
+  "User/LinkUpShop/components/DeleteModal": "User/Marketplace/Classic/LinkUpShop/components/DeleteModal",
+  "User/LinkUpShop/components/ProductDeleteWarningModal": "User/Marketplace/Classic/LinkUpShop/components/ProductDeleteWarningModal",
+  "User/LinkUpShop/Orders/Index": "User/Marketplace/Classic/LinkUpShop/Orders/Index",
+  "User/LinkUpShop/Products/Components/CartModal": "User/Marketplace/Classic/LinkUpShop/Products/components/CartModal",
+  "User/LinkUpShop/Products/Components/CheckoutModal": "User/Marketplace/Classic/LinkUpShop/Products/components/CheckoutModal",
+  "User/LinkUpShop/Products/Components/Filter": "User/Marketplace/Classic/LinkUpShop/Products/components/Filter",
+  "User/LinkUpShop/Products/Components/Header": "User/Marketplace/Classic/LinkUpShop/Products/components/Header",
+  "User/LinkUpShop/Products/Components/modals/CreateStoreModal": "User/Marketplace/Classic/LinkUpShop/Products/components/modals/CreateStoreModal",
+  "User/LinkUpShop/Products/Components/modals/OrderTracking": "User/Marketplace/Classic/LinkUpShop/Products/components/modals/OrderTracking",
+  "User/LinkUpShop/Products/Components/OrdersModal": "User/Marketplace/Classic/LinkUpShop/Products/components/OrdersModal",
+  "User/LinkUpShop/Products/Components/OrderSummaryModal": "User/Marketplace/Classic/LinkUpShop/Products/components/OrderSummaryModal",
+  "User/LinkUpShop/Products/Components/ProductCard": "User/Marketplace/Classic/LinkUpShop/Products/components/ProductCard",
+  "User/LinkUpShop/Products/Components/ProductModal": "User/Marketplace/Classic/LinkUpShop/Products/components/ProductModal",
+  "User/LinkUpShop/Products/Components/tabs/Product": "User/Marketplace/Classic/LinkUpShop/Products/components/tabs/Product",
+  "User/LinkUpShop/Products/Components/tabs/StoreCarnival": "User/Marketplace/Classic/LinkUpShop/Products/components/tabs/StoreCarnival",
+  "User/LinkUpShop/Products/Components/tabs/StoreTab": "User/Marketplace/Classic/LinkUpShop/Products/components/tabs/StoreTab",
+  "User/LinkUpShop/Products/Index": "User/Marketplace/Classic/LinkUpShop/Products/Index",
+  "User/LinkUpShop/SellerDashboard/Components/EarningsBreakdownTable": "User/Marketplace/Classic/LinkUpShop/SellerDashboard/components/EarningsBreakdownTable",
+  "User/LinkUpShop/SellerDashboard/Components/EditListingModal": "User/Marketplace/Classic/LinkUpShop/SellerDashboard/components/EditListingModal",
+  "User/LinkUpShop/SellerDashboard/Components/Header": "User/Marketplace/Classic/LinkUpShop/SellerDashboard/components/Header",
+  "User/LinkUpShop/SellerDashboard/Components/OrderDetailModal": "User/Marketplace/Classic/LinkUpShop/SellerDashboard/components/OrderDetailModal",
+  "User/LinkUpShop/SellerDashboard/Components/OrdersTable": "User/Marketplace/Classic/LinkUpShop/SellerDashboard/components/OrdersTable",
+  "User/LinkUpShop/SellerDashboard/Components/ReportsSection": "User/Marketplace/Classic/LinkUpShop/SellerDashboard/components/ReportsSection",
+  "User/LinkUpShop/SellerDashboard/Components/SalesTrendChart": "User/Marketplace/Classic/LinkUpShop/SellerDashboard/components/SalesTrendChart",
+  "User/LinkUpShop/SellerDashboard/Components/StatCard": "User/Marketplace/Classic/LinkUpShop/SellerDashboard/components/StatCard",
+  "User/LinkUpShop/SellerDashboard/Components/StoreListingsGrid": "User/Marketplace/Classic/LinkUpShop/SellerDashboard/components/StoreListingsGrid",
+  "User/LinkUpShop/SellerDashboard/Components/TopProductsTable": "User/Marketplace/Classic/LinkUpShop/SellerDashboard/components/TopProductsTable",
+  "User/LinkUpShop/SellerDashboard/Earnings": "User/Marketplace/Classic/LinkUpShop/SellerDashboard/Earnings",
+  "User/LinkUpShop/SellerDashboard/Index": "User/Marketplace/Classic/LinkUpShop/SellerDashboard/Index",
+  "User/LinkUpShop/SellerDashboard/Order": "User/Marketplace/Classic/LinkUpShop/SellerDashboard/Order",
+  "User/LinkUpShop/SellerDashboard/Store": "User/Marketplace/Classic/LinkUpShop/SellerDashboard/Store",
+  "User/LinkUpShop/SellerDashboard/Wallet": "User/Marketplace/Classic/LinkUpShop/SellerDashboard/Wallet",
+  "User/LiveStream/Index": "User/Live/Classic/LiveStream/Index",
+  "User/Match/Index": "User/Linkup/Classic/Match/Index",
+  "User/MyEvent/CreateEvent": "User/Events/MyEvents/CreateEvent",
+  "User/MyEvent/EditEvent": "User/Events/MyEvents/EditEvent",
+  "User/MyEvent/EventForm": "User/Events/MyEvents/EventForm",
+  "User/MyEvent/Index": "User/Events/MyEvents/Index",
+  "User/Notification/Index-Vue3": "User/Notifications/Classic/Index-Vue3",
+  "User/Notification/Index": "User/Notifications/Classic/Index",
+  "User/Profile/EditProfile": "User/Profile/Classic/EditProfile",
+  "User/Profile/OtherProfile": "User/Profile/Classic/OtherProfile",
+  "User/Profile/view/EditImageUploaded": "User/Profile/Classic/view/EditImageUploaded",
+  "User/Profile/view/Events": "User/Profile/Classic/view/Events",
+  "User/Profile/view/Index": "User/Profile/Classic/view/Index",
+  "User/Profile/view/LiveMessages": "User/Profile/Classic/view/LiveMessages",
+  "User/Profile/view/WalletTransactions": "User/Profile/Classic/view/WalletTransactions",
+  "User/Restaurants/Index": "User/Eats/Classic/Restaurants/Index",
+  "User/Restaurants/Show": "User/Eats/Classic/Restaurants/Show",
+  "User/Ticket/CreateTicket": "User/Events/Tickets/CreateTicket",
+  "User/Ticket/EditTicket": "User/Events/Tickets/EditTicket",
+  "User/Ticket/Index": "User/Events/Tickets/Index",
+  "User/Ticket/TicketForm": "User/Events/Tickets/TicketForm",
+  "User/TicketType": "User/Events/Tickets/TicketType",
+  "User/UpcommingEvent": "User/Events/UpcomingEvent",
+  "User/Users": "User/Linkup/Classic/Users",
+  "User/UserWallet/components/AddBankModal": "User/Wallet/Classic/UserWallet/components/AddBankModal",
+  "User/UserWallet/components/AddContactModal": "User/Wallet/Classic/UserWallet/components/AddContactModal",
+  "User/UserWallet/components/AsueDetailModal": "User/Wallet/Classic/UserWallet/components/AsueDetailModal",
+  "User/UserWallet/components/AsueModal": "User/Wallet/Classic/UserWallet/components/AsueModal",
+  "User/UserWallet/components/BillButton": "User/Wallet/Classic/UserWallet/components/BillButton",
+  "User/UserWallet/components/BillPayModal": "User/Wallet/Classic/UserWallet/components/BillPayModal",
+  "User/UserWallet/components/CryptoModal": "User/Wallet/Classic/UserWallet/components/CryptoModal",
+  "User/UserWallet/components/example": "User/Wallet/Classic/UserWallet/components/example",
+  "User/UserWallet/components/HeaderBar": "User/Wallet/Classic/UserWallet/components/HeaderBar",
+  "User/UserWallet/components/HelpModal": "User/Wallet/Classic/UserWallet/components/HelpModal",
+  "User/UserWallet/components/MerchantModal": "User/Wallet/Classic/UserWallet/components/MerchantModal",
+  "User/UserWallet/components/MoneyRequestList": "User/Wallet/Classic/UserWallet/components/MoneyRequestList",
+  "User/UserWallet/components/PosModal": "User/Wallet/Classic/UserWallet/components/PosModal",
+  "User/UserWallet/components/QuickAction": "User/Wallet/Classic/UserWallet/components/QuickAction",
+  "User/UserWallet/components/QuickActions": "User/Wallet/Classic/UserWallet/components/QuickActions",
+  "User/UserWallet/components/QuickLinkUps": "User/Wallet/Classic/UserWallet/components/QuickLinkUps",
+  "User/UserWallet/components/RequestMoneyModal": "User/Wallet/Classic/UserWallet/components/RequestMoneyModal",
+  "User/UserWallet/components/SendMoneyModal": "User/Wallet/Classic/UserWallet/components/SendMoneyModal",
+  "User/UserWallet/components/SendRequestMoneyModal": "User/Wallet/Classic/UserWallet/components/SendRequestMoneyModal",
+  "User/UserWallet/components/Sidebar": "User/Wallet/Classic/UserWallet/components/Sidebar",
+  "User/UserWallet/components/TransactionHistory": "User/Wallet/Classic/UserWallet/components/TransactionHistory",
+  "User/UserWallet/components/TransferModal": "User/Wallet/Classic/UserWallet/components/TransferModal",
+  "User/UserWallet/components/WalletModal": "User/Wallet/Classic/UserWallet/components/WalletModal",
+  "User/UserWallet/components/WalletTopUp": "User/Wallet/Classic/UserWallet/components/WalletTopUp",
+  "User/UserWallet/components/WithdrawalFeeModal": "User/Wallet/Classic/UserWallet/components/WithdrawalFeeModal",
+  "User/UserWallet/Index": "User/Wallet/Classic/UserWallet/Index",
+  "User/UserWallet/WalletKyc": "User/Wallet/Classic/UserWallet/WalletKyc",
+  "User/VerifyKyc": "User/Kyc/VerifyKyc",
+  "User/VideoCall": "User/Linkup/Classic/Chat/VideoCall",
+  "User/Wallet/Coin": "User/Wallet/Classic/Wallet/Coin",
+  "User/Wallet/Components/Balances": "User/Wallet/Classic/Wallet/components/Balances",
+  "User/Wallet/Components/Contacts": "User/Wallet/Classic/Wallet/components/Contacts",
+  "User/Wallet/Components/Earnings": "User/Wallet/Classic/Wallet/components/Earnings",
+  "User/Wallet/Components/Hero": "User/Wallet/Classic/Wallet/components/Hero",
+  "User/Wallet/Components/modals/AddMoneyModal": "User/Wallet/Classic/Wallet/components/modals/AddMoneyModal",
+  "User/Wallet/Components/modals/BuyCoinsModal": "User/Wallet/Classic/Wallet/components/modals/BuyCoinsModal",
+  "User/Wallet/Components/modals/GiftCionModal": "User/Wallet/Classic/Wallet/components/modals/GiftCoinModal",
+  "User/Wallet/Components/modals/HelpModal": "User/Wallet/Classic/Wallet/components/modals/HelpModal",
+  "User/Wallet/Components/modals/QRModal": "User/Wallet/Classic/Wallet/components/modals/QRModal",
+  "User/Wallet/Components/modals/RequestMoneyModal": "User/Wallet/Classic/Wallet/components/modals/RequestMoneyModal",
+  "User/Wallet/Components/modals/SendMoneyModal": "User/Wallet/Classic/Wallet/components/modals/SendMoneyModal",
+  "User/Wallet/Components/modals/SettingsModal": "User/Wallet/Classic/Wallet/components/modals/SettingsModal",
+  "User/Wallet/Components/Requests": "User/Wallet/Classic/Wallet/components/Requests",
+  "User/Wallet/Components/Transactions": "User/Wallet/Classic/Wallet/components/Transactions",
+  "User/Wallet/Components/VirtualCard": "User/Wallet/Classic/Wallet/components/VirtualCard",
+  "User/Wallet/Index": "User/Wallet/Classic/Wallet/Index",
+  "User/Wallet/SelectAmount": "User/Wallet/Classic/Wallet/SelectAmount",
+  "User/Wallet/SelectCoin": "User/Wallet/Classic/Wallet/SelectCoin",
+  "User/Wizard": "User/Onboarding/Wizard"
+ }
+}

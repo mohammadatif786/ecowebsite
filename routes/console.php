@@ -26,3 +26,6 @@ Schedule::command('app:send-marketplace-new-product')->weekly();
 Schedule::command('app:send-event-emails')->daily();
 
 Schedule::command('live:complete-stale-host-streams --minutes=2')->everyMinute();
+
+// Sign-ups that never confirmed their email are removed after signup.unverified_purge_days.
+Schedule::command('signup:purge-unverified')->daily();

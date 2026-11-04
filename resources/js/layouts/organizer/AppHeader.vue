@@ -60,7 +60,7 @@ const currentPageTitle = computed(() => {
 <template>
   <header class="h-[64px] shrink-0 bg-white border-b border-slate-200 flex items-center gap-3 px-6 justify-between">
     <div class="flex items-center gap-3">
-      <Link :href="route('new_frontend.events')" class="rounded-xl btn btn-ghost hover:bg-slate-100 transition-colors px-3 py-2 flex items-center gap-2 text-sm font-bold text-slate-600">
+      <Link :href="route('user.events')" class="rounded-xl btn btn-ghost hover:bg-slate-100 transition-colors px-3 py-2 flex items-center gap-2 text-sm font-bold text-slate-600">
         <ArrowLeft class="w-4 h-4" />
         Back to LinkUp
       </Link>

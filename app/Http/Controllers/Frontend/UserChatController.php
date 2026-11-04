@@ -23,7 +23,7 @@ class UserChatController extends Controller
 
         $chatUsers = $this->chatService->getChatUsers();
 
-        return Inertia::render('User/Chat/Index', [
+        return Inertia::render('User/Linkup/Classic/Chat/Index', [
             'users' => $chatUsers,
         ]);
     }
@@ -36,7 +36,7 @@ class UserChatController extends Controller
         } else {
             $this->feature = true;
         }
-        return Inertia::render('User/Chat/Chat', [
+        return Inertia::render('User/Linkup/Classic/Chat/Chat', [
             'chatmessages' => $getConversation['messages'],
             'receiver' => $getConversation['receiver'],
             'auth' => ['user' => Auth::user()],

@@ -17,7 +17,7 @@ class BookingController extends Controller
             ->where('ticket_status', 'confirmed')
             ->orderBy('id', 'desc')
             ->get();
-        return Inertia::render("User/Bookings/Upcomming", [
+        return Inertia::render("User/Events/Bookings/Upcoming", [
             'ticketSales' => $ticketSales,
         ]);
     }
@@ -32,7 +32,7 @@ class BookingController extends Controller
             })
             ->get();
 
-        return Inertia::render("User/Bookings/Completed", [
+        return Inertia::render("User/Events/Bookings/Completed", [
             'ticketSales' => $ticketSales,
         ]);
     }
@@ -44,7 +44,7 @@ class BookingController extends Controller
             ->where('ticket_status', 'cancelled')
             ->get();
 
-        return Inertia::render("User/Bookings/Cancelled", [
+        return Inertia::render("User/Events/Bookings/Cancelled", [
             'ticketSales' => $ticketSales,
         ]);
     }
@@ -161,7 +161,7 @@ class BookingController extends Controller
             + $serviceFeeTotal + $processingFeeTotal + $drinkFeesTotal + $bottleFeesTotal + $vipFeesTotal + $mobileFeeTotal + $spaFeesTotal + $cookoutFeesTotal + $totalTax
             - $couponAmount;
 
-        return Inertia::render('User/Bookings/ETicket', [
+        return Inertia::render('User/Events/Bookings/ETicket', [
             'ticketSales' => $ticketSales,
             'app_url' => env('APP_URL'),
             'fees_summary' => [

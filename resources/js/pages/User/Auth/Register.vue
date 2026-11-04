@@ -560,7 +560,7 @@ const loadUniversities = async () => {
     if (universitiesLoaded) return;
     universitiesLoaded = true;
     try {
-        const res = await axios.get(route('new_frontend.universities.catalog'));
+        const res = await axios.get(route('user.universities.catalog'));
         universityOptions.value = res.data?.universities || [];
     } catch (e) {
         universitiesLoaded = false;
