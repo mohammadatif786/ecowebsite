@@ -1339,6 +1339,8 @@ const pay = async (method) => {
 
     const formData = {
       items: items,
+      // Came from a Vibe's "Get Tickets" for this event: credit the person who posted it.
+      vibe_id: vibeRefFor(event.value?.id),
       appliedCoupons: appliedCoupons.value,
       checkoutSummary: {
         servicesSubtotal: Number(subtotal.value || 0),
@@ -1400,6 +1402,17 @@ const pay = async (method) => {
     console.error('Payment error:', error);
     if (window.toast) window.toast('Payment failed. Please try again.');
   }
+};
+
+// A Vibe that sent the buyer here (set by the Vibes tag sheet, valid for 2 hours).
+const vibeRefFor = (eventId) => {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem('lk_vibe_ticket_ref') || 'null');
+    if (saved && Number(saved.event_id) === Number(eventId) && Date.now() - Number(saved.at || 0) < 2 * 3600 * 1000) {
+      return Number(saved.vibe_id) || null;
+    }
+  } catch (e) { /* storage unavailable */ }
+  return null;
 };
 
 const open = (e) => {

@@ -41,7 +41,7 @@
         </div>
       </template>
 
-      <!-- Step 2: Checkout Review & Price Breakdown -->
+      <!-- Step 2: delivery or pickup, priced by the server -->
       <template v-else-if="step === 'review'">
         <div class="p-6">
           <div class="flex items-center justify-between mb-4">
@@ -55,38 +55,57 @@
             <img :src="tag.image" class="w-14 h-14 rounded-xl object-cover" />
             <div class="min-w-0 flex-1">
               <p class="font-black text-sm truncate">{{ tag.title }}</p>
-              <p class="text-xs text-slate-500">{{ money(tag.price) }}</p>
+              <p class="text-xs text-slate-500">{{ money(tag.price) }} · {{ tag.seller || 'Marketplace' }}</p>
             </div>
           </div>
 
-          <div class="space-y-2.5 border-t border-slate-100 pt-4 text-sm font-semibold">
-            <div class="flex justify-between text-slate-600">
-              <span>Item Subtotal</span>
-              <span>{{ money(tag.price) }}</span>
-            </div>
-            <div class="flex justify-between text-slate-600">
-              <span>{{ shopFee.label || 'Platform Fee' }} ({{ shopFee.percent || 5 }}%{{ shopFee.fixed > 0 ? ' + ' + money(shopFee.fixed) : '' }})</span>
-              <span>{{ money(platformFee) }}</span>
-            </div>
-            <div class="flex justify-between text-slate-600">
-              <span>Estimated Tax (8%)</span>
-              <span>{{ money(taxAmount) }}</span>
-            </div>
-            <div class="flex justify-between text-slate-900 font-black text-lg border-t border-slate-100 pt-3">
-              <span>Total Payment</span>
-              <span class="text-lkblue">{{ money(totalPayment) }}</span>
+          <div class="grid grid-cols-2 bg-slate-100 rounded-2xl p-1 font-black text-sm mb-3">
+            <button @click="setMethod('standard')" :class="['rounded-xl py-2', form.shipping_method === 'standard' ? 'bg-white shadow' : 'text-slate-500']">🚚 Delivery</button>
+            <button @click="setMethod('pickup')" :class="['rounded-xl py-2', form.shipping_method === 'pickup' ? 'bg-white shadow' : 'text-slate-500']">📍 Pickup</button>
+          </div>
+
+          <div v-if="form.shipping_method === 'standard'" class="grid grid-cols-2 gap-2 mb-3">
+            <input v-model="form.address" placeholder="Street address" class="col-span-2 rounded-2xl border border-slate-200 px-3 py-2 text-sm" />
+            <input v-model="form.city" placeholder="City" class="rounded-2xl border border-slate-200 px-3 py-2 text-sm" />
+            <input v-model="form.state" @change="loadQuote" placeholder="State / Parish" class="rounded-2xl border border-slate-200 px-3 py-2 text-sm" />
+            <input v-model="form.country" @change="loadQuote" placeholder="Country" class="rounded-2xl border border-slate-200 px-3 py-2 text-sm" />
+            <input v-model="form.zip" placeholder="ZIP (optional)" class="rounded-2xl border border-slate-200 px-3 py-2 text-sm" />
+          </div>
+          <p v-else class="rounded-2xl bg-slate-50 p-3 mb-3 text-[12px] font-bold text-slate-600">
+            Pick up from the seller{{ quote?.pickup ? ' · ' + quote.pickup : '' }}. They’ll message you to arrange it.
+          </p>
+
+          <div class="flex items-center justify-between mb-3 text-sm font-bold">
+            <span>Quantity</span>
+            <div class="flex items-center gap-2">
+              <button @click="setQty(form.qty - 1)" class="w-8 h-8 rounded-full bg-slate-100 font-black">−</button>
+              <span class="w-6 text-center font-black">{{ form.qty }}</span>
+              <button @click="setQty(form.qty + 1)" class="w-8 h-8 rounded-full bg-slate-100 font-black">+</button>
             </div>
           </div>
+
+          <div v-if="quote" class="space-y-2.5 border-t border-slate-100 pt-4 text-sm font-semibold">
+            <div class="flex justify-between text-slate-600"><span>Item Subtotal</span><span>{{ money(quote.subtotal) }}</span></div>
+            <div v-if="quote.fee_amount" class="flex justify-between text-slate-600"><span>{{ quote.fee_label || 'Marketplace Fee' }}</span><span>{{ money(quote.fee_amount) }}</span></div>
+            <div class="flex justify-between text-slate-600"><span>Tax</span><span>{{ money(quote.tax) }}</span></div>
+            <div v-if="quote.shipping" class="flex justify-between text-slate-600"><span>Shipping</span><span>{{ money(quote.shipping) }}</span></div>
+            <div class="flex justify-between text-slate-900 font-black text-lg border-t border-slate-100 pt-3">
+              <span>Total Payment</span><span class="text-lkblue">{{ money(quote.total) }}</span>
+            </div>
+            <p class="text-[11px] text-slate-500 font-bold">Wallet balance {{ money(quote.wallet_balance) }}</p>
+          </div>
+          <p v-else-if="quoteError" class="text-sm font-bold text-rose-600 border-t border-slate-100 pt-4">{{ quoteError }}</p>
+          <p v-else class="text-sm font-bold text-slate-400 border-t border-slate-100 pt-4">Getting the price…</p>
 
           <div class="rounded-2xl bg-amber-50 p-3 mt-4 text-[11px] font-bold text-amber-800 flex items-center gap-2">
             <i data-lucide="info" class="w-4 h-4 shrink-0"></i>
-            Funds will be securely charged from your LinkUp digital wallet.
+            Paid from your LinkUp wallet · escrow-protected, the seller is paid after delivery.
           </div>
 
           <div class="flex gap-2 mt-5">
             <button @click="step = 'detail'" class="btn btn-ghost flex-1 py-3">Cancel</button>
-            <button @click="buyTag" :disabled="busy" class="btn btn-primary flex-1 py-3 font-black">
-              {{ busy ? 'Processing...' : 'Confirm & Pay ' + money(totalPayment) }}
+            <button @click="buyTag" :disabled="busy || !quote" class="btn btn-primary flex-1 py-3 font-black">
+              {{ busy ? 'Processing...' : (quote ? 'Confirm & Pay ' + money(quote.total) : 'Confirm & Pay') }}
             </button>
           </div>
         </div>
@@ -107,30 +126,31 @@ const tag = ref(null);
 const page = usePage();
 const busy = ref(false);
 const step = ref('detail');
+const quote = ref(null);
+const quoteError = ref('');
 
-const walletBalance = computed(() => {
-  const bal = page.props.walletBalance ?? page.props.auth?.user?.balance ?? 0;
-  return Number(bal);
-});
-
-const shopFee = computed(() => page.props.shopFee || { percent: 5, fixed: 0.30, label: 'Marketplace Fee' });
+const authUser = computed(() => page.props.auth?.user || {});
+const form = ref({ qty: 1, shipping_method: 'standard', address: '', city: '', state: '', country: '', zip: '' });
 
 const isEvent = computed(() => tag.value && tag.value.kind === 'event');
 const money = (n) => '$' + Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-const platformFee = computed(() => {
-  const price = Number(tag.value?.price || 0);
-  const pct = Number(shopFee.value.percent || 5);
-  const fixed = Number(shopFee.value.fixed || 0);
-  return Number(((price * pct / 100) + fixed).toFixed(2));
-});
-
-const taxAmount = computed(() => Number((Number(tag.value?.price || 0) * 0.08).toFixed(2)));
-const totalPayment = computed(() => Number((Number(tag.value?.price || 0) + platformFee.value + taxAmount.value).toFixed(2)));
+const errorText = (e, fallback) => e.response?.data?.message || Object.values(e.response?.data?.errors || {})[0]?.[0] || fallback;
 
 const open = (t) => {
   tag.value = t;
   step.value = 'detail';
+  quote.value = null;
+  quoteError.value = '';
+  const u = authUser.value;
+  form.value = {
+    qty: 1,
+    shipping_method: 'standard',
+    address: u.address || '',
+    city: u.new_city || u.city || '',
+    state: u.new_state || u.state || '',
+    country: u.new_country || u.country || '',
+    zip: '',
+  };
   if (modalRef.value) {
     modalRef.value.open();
     if (window.lucide) {
@@ -143,45 +163,71 @@ const close = () => {
   if (modalRef.value) modalRef.value.close();
 };
 
+const payload = () => ({ product_id: tag.value.id, ...form.value });
+
+// The server prices the order (item, fee, tax by location) — the page never sends a price.
+const loadQuote = async () => {
+  if (!tag.value || isEvent.value) return;
+  quoteError.value = '';
+  try {
+    const { data } = await axios.post(route('new_frontend.vibes.purchase.quote', { vibe: tag.value.vibe_id }), payload());
+    quote.value = data;
+  } catch (e) {
+    quote.value = null;
+    quoteError.value = errorText(e, 'Couldn’t price this item.');
+  }
+};
+
+const setMethod = (m) => { form.value.shipping_method = m; loadQuote(); };
+const setQty = (q) => { form.value.qty = Math.min(10, Math.max(1, q)); loadQuote(); };
+
+// Events are bought on the event page (ticket types, add-ons); the Vibe still gets the credit.
+const openEventPage = () => {
+  try {
+    sessionStorage.setItem('lk_vibe_ticket_ref', JSON.stringify({ event_id: tag.value.id, vibe_id: tag.value.vibe_id, at: Date.now() }));
+  } catch (e) { /* private mode: the purchase just isn't credited */ }
+  close();
+  router.visit(route('new_frontend.events', { event: tag.value.id, vibe: tag.value.vibe_id }));
+};
+
 const goToReview = () => {
+  if (isEvent.value) {
+    openEventPage();
+    return;
+  }
   step.value = 'review';
+  loadQuote();
   nextTick(() => {
     if (window.lucide) window.lucide.createIcons();
   });
 };
 
 const buyTag = async () => {
-  const total = totalPayment.value;
-
-  if (walletBalance.value < total) {
-    alert(`Insufficient wallet balance ($${walletBalance.value.toFixed(2)}) — top up first`);
+  if (!quote.value) return;
+  if (!quote.value.can_afford) {
+    showToast(`Insufficient wallet balance (${money(quote.value.wallet_balance)}) — top up first`);
     return;
   }
 
   busy.value = true;
   try {
-    await axios.post(route('new_frontend.vibes.purchase', { vibe: tag.value.vibe_id }), {
-      kind: tag.value.kind,
-      id: tag.value.id,
-      price: total,
-      affiliate_user_id: tag.value.affiliate_user_id || null
+    const { data } = await axios.post(route('new_frontend.vibes.purchase', { vibe: tag.value.vibe_id }), {
+      ...payload(),
+      expected_total: quote.value.total,
     });
 
-    alert(isEvent.value ? `🎟️ Ticket secured · ${tag.value.title}` : `✅ Bought ${tag.value.title} · 🔒 escrow-protected`);
-
+    showToast(`✅ ${data.message || 'Bought ' + tag.value.title} · order ${data.order_number}`);
     router.reload({ only: ['earningsStats', 'walletBalance', 'auth'] });
     close();
   } catch (e) {
-    alert(e.response?.data?.message || 'Purchase failed. Please try again.');
+    showToast(errorText(e, 'Purchase failed. Please try again.'));
+    loadQuote();
   } finally {
     busy.value = false;
   }
 };
 
-const viewEvent = () => {
-  close();
-  router.visit('/new_frontend/events');
-};
+const viewEvent = () => openEventPage();
 
 const addToCart = () => {
   if (!tag.value) return;
@@ -210,6 +256,7 @@ const addToCart = () => {
 
 const showToast = (msg) => {
   if (window.toast) window.toast(msg);
+  else alert(msg);
 };
 
 defineExpose({ open, close });

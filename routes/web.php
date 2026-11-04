@@ -408,12 +408,6 @@ Route::get('/test-hide-debug', function () {
     return view('test_hide_debug');
 });
 
-// ---------------------------------------------------------------------------------------------
-// Route areas live in their own folders. Keep these requires ABOVE the catch-all /{slug} route
-// below, otherwise it swallows their URLs.
-//   routes/web/    auth (+ sign-up), organizer, member app
-//   routes/admin/  everything under /admin (index.php loads the rest of the folder)
-// ---------------------------------------------------------------------------------------------
 require __DIR__.'/web/auth.php';
 require __DIR__.'/admin/index.php';
 require __DIR__.'/web/organizer.php';

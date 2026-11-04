@@ -473,8 +473,8 @@ class IndexController extends Controller
     {
         $request->validate([
             'receiver_id' => 'required|exists:users,id',
-            'gift_name' => 'required|string',
-            'coins' => 'required|integer|min:0',
+            'gift_name' => 'required|string|max:60',
+            'coins' => 'required|integer|min:0|max:1000000',
         ]);
 
         $this->indexAction->sendGift($request);

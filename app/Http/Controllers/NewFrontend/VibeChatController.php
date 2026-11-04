@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\NewFrontend;
 
 use App\Http\Controllers\Controller;
+use App\Models\BlockedUser;
 use App\Models\User;
 use App\Models\VibeMessage;
 use App\Models\Notification;
@@ -30,6 +31,10 @@ class VibeChatController extends Controller
             }
         }
 
+        // People you blocked, or who blocked you, drop out of the inbox.
+        $blocked = $this->blockedIds($user->id);
+        $partnerIds = array_values(array_filter($partnerIds, fn ($id) => ! in_array((int) $id, $blocked, true)));
+
         $partners = User::whereIn('id', $partnerIds)
             ->get(['id', 'name', 'linkup_id', 'avatar'])
             // Newest conversation first (the query above returns them in id order).
@@ -48,6 +53,7 @@ class VibeChatController extends Controller
                     'avatar' => $p->avatar,
                     'last_message' => $lastMsg?->content,
                     'last_message_at' => $lastMsg?->created_at?->toISOString(),
+                    'unread' => $messages->filter(fn ($m) => $m->from_user_id === $p->id && $m->to_user_id === $user->id && $m->read_at === null)->count(),
                 ];
             });
 
@@ -59,6 +65,13 @@ class VibeChatController extends Controller
     public function getMessages(Request $request, User $recipient): JsonResponse
     {
         $user = Auth::user();
+
+        if (in_array((int) $recipient->id, $this->blockedIds($user->id), true)) {
+            return response()->json(['message' => 'You can’t message this person.'], 403);
+        }
+
+        // Opening the chat reads what they sent you.
+        VibeMessage::where('from_user_id', $recipient->id)->where('to_user_id', $user->id)->whereNull('read_at')->update(['read_at' => now()]);
 
         $messages = VibeMessage::where(function ($q) use ($user, $recipient) {
                 $q->where('from_user_id', $user->id)
@@ -85,6 +98,10 @@ class VibeChatController extends Controller
 
         if ($user->id === $recipient->id) {
             return response()->json(['message' => 'You cannot message yourself'], 422);
+        }
+
+        if (in_array((int) $recipient->id, $this->blockedIds($user->id), true)) {
+            return response()->json(['message' => 'You can’t message this person.'], 403);
         }
 
         $message = VibeMessage::create([
@@ -119,5 +136,15 @@ class VibeChatController extends Controller
             'success' => true,
             'messages' => $allMessages,
         ]);
+    }
+
+    /** Users this user blocked, and users who blocked this user. */
+    private function blockedIds(int $userId): array
+    {
+        return BlockedUser::query()->where('is_blocked', true)
+            ->where(fn ($q) => $q->where('user_id', $userId)->orWhere('blocked_user_id', $userId))
+            ->get(['user_id', 'blocked_user_id'])
+            ->map(fn ($b) => (int) ((int) $b->user_id === $userId ? $b->blocked_user_id : $b->user_id))
+            ->unique()->values()->all();
     }
 }

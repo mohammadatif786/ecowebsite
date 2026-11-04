@@ -45,7 +45,8 @@
             <!-- Text Vibe Card -->
             <div v-if="p.kind === 'text' || p.text_bg" class="w-full h-[400px] md:h-[500px] p-8 flex items-center justify-center text-center relative overflow-hidden"
                  :style="{ background: p.text_bg || 'linear-gradient(135deg, #a855f7, #ec4899)' }">
-                <p class="text-white text-2xl md:text-3xl font-black leading-relaxed select-none px-4">
+                <p class="text-white text-2xl md:text-3xl leading-relaxed select-none px-4 whitespace-pre-line"
+                   :class="textFont?.class || 'font-black'" :style="textFont?.style || ''">
                     {{ p.caption }}
                 </p>
             </div>
@@ -190,7 +191,7 @@
         <VibeTagModal ref="vibeTagModalRef" />
         <VibeCommentsModal ref="vibeCommentsModalRef" @commentAdded="onCommentAdded" />
         <VibeBigUpModal ref="vibeBigUpModalRef" :p="p" @sent="onBigUpSent" />
-        <VibeOptionsModal ref="vibeOptionsModalRef" :vibe="p" :isOwner="isOwner" @delete="handleDelete" @edit="handleEdit" />
+        <VibeOptionsModal ref="vibeOptionsModalRef" :vibe="p" :isOwner="isOwner" @delete="handleDelete" @edit="handleEdit" @hidden="(id) => emit('deleted', id)" />
         <EditVibeModal ref="editVibeModalRef" @updated="onVibeUpdated" />
     </article>
 </template>
@@ -200,6 +201,7 @@ import { ref, computed, nextTick, onMounted } from 'vue';
 import { usePage, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { formatMoney, formatNumber } from '../../../lib/utils';
+import { vibeFont } from '../../../lib/vibeFonts';
 import VibeTagModal from '../modals/VibeTagModal.vue';
 import VibeCommentsModal from '../modals/VibeCommentsModal.vue';
 import VibeBigUpModal from '../modals/VibeBigUpModal.vue';
@@ -214,6 +216,8 @@ const props = defineProps({
 const emit = defineEmits(['deleted', 'reposted', 'edit']);
 
 const page = usePage();
+// The look picked for a text Vibe ("Aa Classic", "Aa Neon"…), same names as the app.
+const textFont = computed(() => vibeFont(props.p.text_font));
 const user = computed(() => page.props.auth?.user || {});
 const isOwner = computed(() => {
     if (!props.p.created_by || !user.value.id) return false;

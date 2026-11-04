@@ -182,7 +182,7 @@ class UVibeFeedService
                 'id' => $e->id,
                 'title' => $e->title,
                 'price' => $e->tickets->min('price') ?? 0,
-                'date' => $e->start_date?->format('Y-m-d'),
+                'date' => \App\Support\VibeFeedPresenter::eventDate($e)?->format('Y-m-d'),
                 'location' => $e->venue,
                 'seller' => $e->user?->name,
                 'image' => $e->image_url,

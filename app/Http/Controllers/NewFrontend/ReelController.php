@@ -75,6 +75,7 @@ class ReelController extends Controller
         ]);
 
         $reel = $action->execute(auth()->user(), CreateReelData::fromRequest($request));
+        app(\App\Services\VibeActivityNotifier::class)->mentioned(auth()->user(), $reel, $reel->caption);
 
         return response()->json([
             'success' => true,

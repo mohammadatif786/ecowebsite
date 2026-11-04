@@ -384,6 +384,19 @@ const requestAutoLocation = () => {
 
 onMounted(() => {
     // requestAutoLocation();
+
+    // Opened from a Vibe's "Get Tickets" / "View event": show that event straight away.
+    const params = new URLSearchParams(window.location.search);
+    const wantedId = Number(params.get('event'));
+    if (wantedId) {
+        const lists = [props.allEvents, props.events, props.newProvidence, props.eventLowCost, props.jamaicaEvent, props.freeEvents];
+        const found = lists.flat().find((e) => Number(e?.id) === wantedId);
+        if (found) {
+            nextTick(() => openEvent(found));
+        } else {
+            showToast('That event is no longer on sale.');
+        }
+    }
 });
 
 const selectedCategory = (categoryId) => {

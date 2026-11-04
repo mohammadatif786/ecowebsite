@@ -26,61 +26,7 @@ class CheckOutController extends Controller
 
     protected function dispatchSellerCheckoutEmails(Order $order): void
     {
-        $order->loadMissing([
-            'customer',
-            'orderItems.product.merchant.user',
-            'orderItems.product.user',
-        ]);
-
-        $sellerUserIds = [];
-        $sellerItemCounts = [];
-
-        foreach ($order->orderItems as $item) {
-            $product = $item->product;
-            if (! $product) {
-                continue;
-            }
-
-            $sellerUserId = null;
-
-            if ($product->merchant && $product->merchant->user) {
-                $sellerUserId = (int) $product->merchant->user->id;
-            } elseif ($product->user) {
-                $sellerUserId = (int) $product->user->id;
-            }
-
-            if ($sellerUserId) {
-                $sellerUserIds[$sellerUserId] = true;
-                $sellerItemCounts[$sellerUserId] = ($sellerItemCounts[$sellerUserId] ?? 0) + (int) ($item->qty ?? 0);
-            }
-        }
-
-        foreach (array_keys($sellerUserIds) as $sellerUserId) {
-            $buyer = $order->customer;
-            if ($buyer) {
-                Notification::create([
-                    'title' => 'Item sold',
-                    'message' => 'You have a new Marketplace order ' . ($order->number ?? ('#' . $order->id)) . '.',
-                    'send_by' => (string) $buyer->id,
-                    'user_id' => (int) $sellerUserId,
-                    'type' => 'marketplace_order',
-                    'context' => 'marketplace_orders',
-                    'unread' => true,
-                    'priority' => true,
-                    'avatar' => $buyer->avatar ?? null,
-                    'metadata' => [
-                        'order_id' => (int) $order->id,
-                        'order_number' => (string) ($order->number ?? ''),
-                        'items_qty_total' => (int) ($sellerItemCounts[$sellerUserId] ?? 0),
-                    ],
-                ]);
-            }
-
-            SendShopCheckoutSellerEmailJob::dispatch((int) $order->id, (int) $sellerUserId)->afterCommit();
-
-            // Dispatch WhatsApp notification to seller
-            SendWhatsAppToSellerJob::dispatch((int) $order->id, (int) $sellerUserId)->afterCommit();
-        }
+        app(\App\Actions\NotifyMarketplaceSellersAction::class)->execute($order);
     }
 
     public function index()

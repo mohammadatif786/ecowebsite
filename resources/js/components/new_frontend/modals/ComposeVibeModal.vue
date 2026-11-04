@@ -89,6 +89,7 @@
               rows="4"
               placeholder="Your text vibe here..."
               :class="['w-full bg-transparent text-white placeholder:text-white/70 focus:bg-transparent text-xl md:text-2xl text-center outline-none resize-none leading-relaxed', currentFont.class]"
+              :style="currentFont.style || ''"
             ></textarea>
           </div>
 
@@ -163,6 +164,7 @@
 </template>
 
 <script setup>
+import { VIBE_FONTS } from '../../../lib/vibeFonts';
 import axios from 'axios';
 import { usePage } from '@inertiajs/vue3';
 import { ref, computed, nextTick } from 'vue';
@@ -188,17 +190,7 @@ const isTextMode = ref(false);
 const textVibeContent = ref('');
 const selectedTextBg = ref('linear-gradient(135deg, #a855f7, #ec4899)');
 
-const fonts = [
-  { name: 'Aa Classic', class: 'font-serif italic' },
-  { name: 'Aa Modern', class: 'font-sans font-bold' },
-  { name: 'Aa Mono', class: 'font-mono' },
-  { name: 'Aa Script', class: 'font-serif tracking-wide' },
-  { name: 'Aa Heavy', class: 'font-black tracking-tighter' },
-  { name: 'Aa Italic', class: 'font-sans italic font-semibold' },
-  { name: 'Aa Impact', class: 'font-sans uppercase font-extrabold tracking-widest' },
-  { name: 'Aa Typewriter', class: 'font-mono tracking-widest' },
-  { name: 'Aa Elegant', class: 'font-serif tracking-widest font-light' },
-];
+const fonts = VIBE_FONTS;
 
 const fontIndex = ref(0);
 const currentFont = computed(() => fonts[fontIndex.value]);

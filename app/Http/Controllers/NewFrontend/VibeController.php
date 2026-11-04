@@ -11,7 +11,12 @@ use App\Models\BlockedUser;
 use App\Models\CreatorFollower;
 use App\Models\User;
 use App\Models\Vibe;
+use App\Services\UVibePostActionService;
+use App\Services\VibeActivityNotifier;
+use App\Support\UVibeOptions;
+use App\Support\VibeFeedPresenter;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 
 class VibeController extends Controller
 {
@@ -22,120 +27,80 @@ class VibeController extends Controller
     {
         $user = $request->user();
         $page = max(1, (int) $request->query('page', 1));
+        // `?tag=fete` (or `#fete`): only posts with that hashtag.
+        $tag = strtolower(ltrim(trim((string) $request->query('tag', '')), '#'));
 
-        $vibes = Vibe::with(['creator', 'publisher', 'media', 'products.user', 'events.user', 'events.tickets'])
-            ->withExists(['likes as liked_by_viewer' => fn ($q) => $q->where('user_id', $user?->id)])
-            ->where('status', \App\Domain\Vibes\Enums\VibeStatus::Published)
-            // U Vibe posts only show in the main Vibes feed when "Also post on Vibes" was ticked.
-            ->where(fn ($q) => $q->where('is_uvibe', false)->orWhere('show_on_vibes', true))
-            // Private, friends-only and followers-only posts, and blocked users, are filtered here.
-            ->visibleTo($user)
+        $vibes = VibeFeedPresenter::query($user)
+            ->when($tag !== '', fn ($q) => $q->whereIn('id', DB::table('vibe_hashtags')->where('tag', $tag)->select('vibe_id')))
             ->latest()
             ->skip(($page - 1) * self::FEED_PAGE_SIZE)
             ->take(self::FEED_PAGE_SIZE + 1)
             ->get();
 
         $hasMore = $vibes->count() > self::FEED_PAGE_SIZE;
-        $vibes = $vibes->take(self::FEED_PAGE_SIZE);
-
-        $formattedVibes = $vibes->map(function ($vibe) use ($user) {
-            $tag = null;
-
-            if ($vibe->products->isNotEmpty()) {
-                $p = $vibe->products->first();
-                $tag = [
-                    'kind' => 'product',
-                    'vibe_id' => $vibe->id,
-                    'affiliate_user_id' => $vibe->created_by,
-                    'id' => $p->id,
-                    'title' => $p->name,
-                    'price' => $p->price,
-                    'seller' => $p->user?->name ?? $p->seller?->name,
-                    'image' => $p->image_url,
-                ];
-            } elseif ($vibe->events->isNotEmpty()) {
-                $e = $vibe->events->first();
-                $tag = [
-                    'kind' => 'event',
-                    'vibe_id' => $vibe->id,
-                    'affiliate_user_id' => $vibe->created_by,
-                    'id' => $e->id,
-                    'title' => $e->title,
-                    'price' => $e->tickets->min('price') ?? 0,
-                    'date' => $e->start_date?->format('Y-m-d'),
-                    'location' => $e->venue,
-                    'seller' => $e->user?->name,
-                    'image' => $e->image_url,
-                ];
-            }
-
-            $mediaItems = $vibe->media->map(function ($m) {
-                return [
-                    'id' => $m->id,
-                    'type' => $m->media_type->value,
-                    'url' => $m->disk === 'public' ? asset('storage/' . $m->path) : \Illuminate\Support\Facades\Storage::disk($m->disk)->url($m->path),
-                    'thumbnail' => $m->thumbnail_path ? ($m->disk === 'public' ? asset('storage/' . $m->thumbnail_path) : \Illuminate\Support\Facades\Storage::disk($m->disk)->url($m->thumbnail_path)) : null,
-                ];
-            });
-
-            $isReel = $vibe->media->contains(fn ($m) => $m->media_type->value === 'video');
-
-            $publisher = $vibe->publisher;
-            $publisherName = 'User';
-            $publisherType = 'user';
-            $publisherAvatar = $vibe->creator?->avatar ?? 'https://i.pravatar.cc/120?img=1';
-
-            if ($publisher instanceof \App\Models\User) {
-                $publisherName = $publisher->name;
-                $publisherType = 'user';
-                $publisherAvatar = $publisher->avatar;
-            } elseif ($publisher instanceof \App\Models\OrganizerProfile) {
-                $publisherName = $publisher->organizer_name;
-                $publisherType = 'organization';
-            } elseif ($publisher instanceof \App\Models\ClubFete) {
-                $publisherName = $publisher->name;
-                $publisherType = 'group';
-            } elseif ($publisher instanceof \App\Models\UserCustomPublisher) {
-                $publisherName = $publisher->name;
-                $publisherType = $publisher->type;
-            }
-
-            return [
-                'id' => $vibe->id,
-                'created_by' => $vibe->created_by,
-                'handle' => $publisherName,
-                'publisher_type' => $publisherType,
-                'avatar' => $publisherAvatar,
-                'location' => $vibe->location_name,
-                'media' => $mediaItems,
-                'kind' => $isReel ? 'reel' : (!empty($vibe->text_bg) && $mediaItems->isEmpty() ? 'text' : 'photo'),
-                'caption' => $vibe->caption,
-                'text_bg' => $vibe->text_bg,
-                'text_font' => $vibe->text_font,
-                'likes_count' => $vibe->likes_count,
-                'comments_count' => $vibe->comments_count,
-                'shares_count' => $vibe->shares_count,
-                'reposts_count' => $vibe->reposts_count ?? 0,
-                'bigups_count' => $vibe->bigups_count,
-                'is_liked' => (bool) $vibe->liked_by_viewer,
-                'repost_of' => $vibe->reposted_from_id ? ['id' => (int) $vibe->reposted_from_id, 'name' => $vibe->reposted_from_name] : null,
-                'allow_coin_gifts' => (bool) $vibe->allow_coin_gifts,
-                'bigup' => $vibe->bigups_count,
-                'shoppable' => $tag !== null,
-                'tag' => $tag,
-            ];
-        });
 
         return response()->json([
-            'posts' => $formattedVibes->values(),
+            'posts' => $vibes->take(self::FEED_PAGE_SIZE)->map(fn (Vibe $vibe) => VibeFeedPresenter::present($vibe))->values(),
             'page' => $page,
             'has_more' => $hasMore,
+            'tag' => $tag === '' ? null : $tag,
+        ]);
+    }
+
+    /** One post, in the feed's shape — for links, notifications and "View post". */
+    public function show(\Illuminate\Http\Request $request, Vibe $vibe): JsonResponse
+    {
+        $post = VibeFeedPresenter::query($request->user())->whereKey($vibe->id)->first();
+        abort_if($post === null, 404, 'This post isn’t available.');
+
+        return response()->json(['post' => VibeFeedPresenter::present($post)]);
+    }
+
+    /** "Hide this post": it disappears from this member's feeds only. */
+    public function hide(\Illuminate\Http\Request $request, Vibe $vibe, UVibePostActionService $actions): JsonResponse
+    {
+        abort_unless($vibe->isVisibleTo($request->user()), 404);
+        $actions->hide($request->user(), $vibe);
+
+        return response()->json(['success' => true, 'message' => 'Post hidden. You won’t see it in your feed.']);
+    }
+
+    /** Report a post to the moderation team (`reason` from `vibes/report-reasons`). */
+    public function report(\Illuminate\Http\Request $request, Vibe $vibe, UVibePostActionService $actions): JsonResponse
+    {
+        abort_unless($vibe->isVisibleTo($request->user()), 404);
+        $data = $request->validate([
+            'reason' => ['required', 'string', 'max:24'],
+            'notes' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $result = $actions->report($request->user(), $vibe, $data['reason'], $data['notes'] ?? null);
+
+        return response()->json([
+            'success' => true,
+            'already' => $result['already'],
+            'message' => $result['already'] ? 'You already reported this post — our team is on it.' : 'Thanks — our team will review this post.',
+        ]);
+    }
+
+    /** What a member can report a post for (the same list U Vibe uses). */
+    public function reportReasons(): JsonResponse
+    {
+        return response()->json([
+            'reasons' => collect(UVibeOptions::REPORT_REASONS)->map(fn ($r) => [
+                'key' => $r[0],
+                'emoji' => $r[1],
+                'label' => $r[2],
+                'description' => $r[3],
+                'severity' => $r[4],
+            ])->values(),
         ]);
     }
 
     public function store(StoreVibeRequest $request, CreateVibeAction $action): JsonResponse
     {
         $vibe = $action->execute($request->user(), CreateVibeData::fromRequest($request));
+        app(VibeActivityNotifier::class)->mentioned($request->user(), $vibe, $vibe->caption);
 
         return (new VibeResource($vibe))->response()->setStatusCode(201);
     }
@@ -237,6 +202,7 @@ class VibeController extends Controller
         } else {
             CreatorFollower::firstOrCreate(['follower_id' => $currentUser->id, 'creator_id' => $user->id]);
             $isFollowing = true;
+            app(VibeActivityNotifier::class)->followed($currentUser, $user);
         }
 
         $userReels = [];

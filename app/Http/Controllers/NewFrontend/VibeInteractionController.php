@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\NewFrontend;
 
+use App\Services\VibeActivityNotifier;
 use App\Domain\Vibes\Actions\PostVibeCommentAction;
 use App\Domain\Vibes\Actions\ToggleVibeLikeAction;
 use App\Http\Controllers\Controller;
@@ -31,6 +32,10 @@ class VibeInteractionController extends Controller
     {
         $this->ensureVisible($vibe);
         $result = $action->execute(auth()->user(), $vibe);
+
+        if (! empty($result['is_liked'])) {
+            app(VibeActivityNotifier::class)->liked(auth()->user(), $vibe);
+        }
 
         return response()->json($result);
     }
@@ -84,7 +89,8 @@ class VibeInteractionController extends Controller
         $this->ensureVisible($vibe);
         $request->validate([
             'comment' => 'required|string|max:1000',
-            'parent_id' => 'nullable|exists:vibe_comments,id',
+            // A reply must answer a comment on this same post.
+            'parent_id' => ['nullable', \Illuminate\Validation\Rule::exists('vibe_comments', 'id')->where('vibe_id', $vibe->id)],
         ]);
 
         $comment = $vibe->comments()->create([
@@ -94,6 +100,9 @@ class VibeInteractionController extends Controller
         ]);
 
         $vibe->increment('comments_count');
+
+        $repliedTo = $request->parent_id ? \App\Models\VibeComment::find($request->parent_id)?->user : null;
+        app(VibeActivityNotifier::class)->commented(auth()->user(), $vibe, (string) $request->comment, $comment->id, $repliedTo);
 
         return response()->json($comment->load('user:id,name,avatar')->loadCount('likes'), 201);
     }
@@ -447,6 +456,8 @@ class VibeInteractionController extends Controller
 
             $vibe->increment('reposts_count');
 
+            app(VibeActivityNotifier::class)->reposted($user, $vibe);
+
             return $newVibe;
         });
 
@@ -505,21 +516,7 @@ class VibeInteractionController extends Controller
             'pending' => $pendingAff,
             'available' => $availableAff,
             'paid' => $paidAff,
-            'recent' => $affEarnings->take(20)->map(function($e) {
-                $product = $e->product_id ? \App\Models\MarketplaceProduct::find($e->product_id) : null;
-                $rate = $product ? (float) $product->commission : 10;
-                $commission = (float) $e->commission_amount;
-                $saleAmount = $product && $product->price ? (float) $product->price : (($rate > 0) ? ($commission / ($rate / 100)) : $commission);
-
-                return [
-                    'title' => $product?->name ?? 'Affiliate Sale',
-                    'amount' => round($saleAmount, 2),
-                    'commission' => $commission,
-                    'rate' => $rate,
-                    'status' => $e->status,
-                    'source' => $e->order_id ? 'marketplace' : 'vibe'
-                ];
-            })
+            'recent' => $affEarnings->take(20)->map(fn ($e) => $e->summaryRow())
         ];
 
         return response()->json([

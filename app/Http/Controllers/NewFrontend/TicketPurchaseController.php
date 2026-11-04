@@ -89,6 +89,8 @@ class TicketPurchaseController extends Controller
                 ->keyBy('id');
 
             $isFirstSale = true;
+            $vibeCart = [];
+            $vibeSales = [];
             foreach ($items as $item) {
                 $ticket = $tickets->get((int) $item['ticketId']);
                 if (!$ticket) {
@@ -175,6 +177,19 @@ class TicketPurchaseController extends Controller
                 $ticket->quantity -= $quantity;
                 $ticket->save();
                 $isFirstSale = false;
+                $vibeCart[] = ['ticket' => $ticket, 'qty' => $quantity, 'price' => $price];
+                $vibeSales[] = $ticketSale;
+            }
+
+            // Bought from a Vibe's "Get Tickets": the person who posted earns the ticket commission.
+            if ($request->filled('vibe_id') && ! empty($vibeSales)) {
+                app(\App\Services\VibeTicketCommissionService::class)->record(
+                    (int) $request->input('vibe_id'),
+                    $vibeSales[0]->event ?? \App\Models\LinkUpEvent::find($vibeSales[0]->link_up_event_id),
+                    (int) $user->id,
+                    ['items' => $vibeCart],
+                    $vibeSales
+                );
             }
 
             DB::commit();

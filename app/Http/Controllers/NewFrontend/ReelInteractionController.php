@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\NewFrontend;
 
+use App\Services\VibeActivityNotifier;
 use App\Http\Controllers\Controller;
 use App\Models\ReelComment;
 use App\Models\ReelLike;
@@ -33,6 +34,7 @@ class ReelInteractionController extends Controller
             ]);
             $reel->incrementLikesCount();
             $isLiked = true;
+            app(VibeActivityNotifier::class)->liked($user, $reel);
         }
 
         return response()->json([
@@ -96,7 +98,8 @@ class ReelInteractionController extends Controller
     {
         $request->validate([
             'comment' => 'required|string|max:1000',
-            'parent_id' => 'nullable|exists:reel_comments,id',
+            // A reply must answer a comment on this same reel.
+            'parent_id' => ['nullable', \Illuminate\Validation\Rule::exists('reel_comments', 'id')->where('user_reel_id', $reel->id)],
         ]);
 
         $comment = ReelComment::create([
@@ -107,6 +110,9 @@ class ReelInteractionController extends Controller
         ]);
 
         $reel->incrementCommentsCount();
+
+        $repliedTo = $request->parent_id ? ReelComment::find($request->parent_id)?->user : null;
+        app(VibeActivityNotifier::class)->commented(auth()->user(), $reel, (string) $request->comment, $comment->id, $repliedTo);
 
         $comment->load('user:id,name,avatar,linkup_id');
 

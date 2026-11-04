@@ -45,6 +45,9 @@ class RecordMarketplaceAffiliateCommissionAction
                 }
             }
 
+            // Which post drove the sale (if any), for My Earnings → Vibes / U Vibe.
+            $saleVibe = Vibe::find($itemVibeId ?: $vibeId);
+
             if (! $affUserId) continue;
 
             $promotion = MarketplaceAffiliatePromotion::firstOrCreate([
@@ -65,6 +68,10 @@ class RecordMarketplaceAffiliateCommissionAction
                 'affiliate_user_id' => $affUserId,
                 'order_id' => $order->id,
                 'product_id' => $item->product_id,
+                'vibe_id' => $saleVibe?->id,
+                'source' => $saleVibe ? ($saleVibe->is_uvibe ? 'uvibe' : 'vibe') : 'marketplace',
+                'title' => $product->name,
+                'sale_amount' => round((float) $item->sub_total, 2),
                 'commission_amount' => round($amount, 2),
                 'status' => 'pending',
             ]);

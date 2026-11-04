@@ -28,6 +28,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Repositories\NewsRepository;
 use App\Support\CountryFlag;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -415,102 +416,32 @@ class DashboardController extends Controller
     {
         $user = request()->user();
 
-        $vibes = Vibe::with(['creator', 'publisher', 'media', 'products.user', 'events.user', 'events.tickets'])
-            ->where('status', VibeStatus::Published)
-            // U Vibe posts only show in the main Vibes feed when "Also post on Vibes" was ticked.
-            ->where(fn ($q) => $q->where('is_uvibe', false)->orWhere('show_on_vibes', true))
-            // Private, friends-only and followers-only posts, and blocked users, are filtered here.
-            ->visibleTo($user)
+        // Same posts and shape as the app's feed (GET vibes/posts): visibility, blocked users and
+        // posts this member hid are filtered out. `?tag=fete` shows one hashtag.
+        $tag = strtolower(ltrim(trim((string) request()->query('tag', '')), '#'));
+        $formattedVibes = \App\Support\VibeFeedPresenter::query($user)
+            ->when($tag !== '', fn ($q) => $q->whereIn('id', DB::table('vibe_hashtags')->where('tag', $tag)->select('vibe_id')))
             ->latest()
             ->take(20)
-            ->get();
+            ->get()
+            ->map(function ($vibe) {
+                $row = \App\Support\VibeFeedPresenter::present($vibe);
+                $row['avatar'] = $row['avatar'] ?: 'https://i.pravatar.cc/120?u='.$vibe->created_by;
 
-        $formattedVibes = $vibes->map(function ($vibe) use ($user) {
-            $tag = null;
-
-            if ($vibe->products->isNotEmpty()) {
-                $p = $vibe->products->first();
-                $tag = [
-                    'kind' => 'product',
-                    'vibe_id' => $vibe->id,
-                    'affiliate_user_id' => $vibe->created_by,
-                    'id' => $p->id,
-                    'title' => $p->name,
-                    'price' => $p->price,
-                    'seller' => $p->user?->name ?? $p->seller?->name,
-                    'image' => $this->resolveStorageImage($p->cover_image) ?? $p->image_url,
-                ];
-            } elseif ($vibe->events->isNotEmpty()) {
-                $e = $vibe->events->first();
-                $tag = [
-                    'kind' => 'event',
-                    'vibe_id' => $vibe->id,
-                    'affiliate_user_id' => $vibe->created_by,
-                    'id' => $e->id,
-                    'title' => $e->title,
-                    'price' => $e->tickets->min('price') ?? 0,
-                    'date' => $e->start_date?->format('Y-m-d'),
-                    'location' => $e->venue,
-                    'seller' => $e->user?->name,
-                    'image' => $this->resolveStorageImage($e->featured_image) ?? $e->image_url,
-                ];
-            }
-
-            $mediaItems = $vibe->media->map(function ($m) {
-                return [
-                    'id' => $m->id,
-                    'type' => $m->media_type->value,
-                    'url' => $m->disk === 'public' ? asset('storage/' . $m->path) : Storage::disk($m->disk)->url($m->path),
-                    'thumbnail' => $m->thumbnail_path ? ($m->disk === 'public' ? asset('storage/' . $m->thumbnail_path) : Storage::disk($m->disk)->url($m->thumbnail_path)) : null,
-                ];
+                return $row;
             });
 
-            $isReel = $vibe->media->contains(fn ($m) => $m->media_type->value === 'video');
-
-            $publisher = $vibe->publisher;
-            $publisherName = 'User';
-            $publisherType = 'user';
-            $publisherAvatar = $vibe->creator?->avatar ?? 'https://i.pravatar.cc/120?img=1';
-
-            if ($publisher instanceof User) {
-                $publisherName = $publisher->name;
-                $publisherType = 'user';
-                $publisherAvatar = $publisher->avatar;
-            } elseif ($publisher instanceof \App\Models\OrganizerProfile) {
-                $publisherName = $publisher->organizer_name;
-                $publisherType = 'organization';
-            } elseif ($publisher instanceof \App\Models\ClubFete) {
-                $publisherName = $publisher->name;
-                $publisherType = 'group';
-            } elseif ($publisher instanceof UserCustomPublisher) {
-                $publisherName = $publisher->name;
-                $publisherType = $publisher->type;
+        // A shared link (`/new_frontend/vibes?id=12`, from "Copy link" on the web or the app)
+        // puts that post first, when this member may see it.
+        $sharedId = (int) request()->query('id', 0);
+        if ($sharedId > 0) {
+            $shared = \App\Support\VibeFeedPresenter::query($user)->whereKey($sharedId)->first();
+            if ($shared) {
+                $row = \App\Support\VibeFeedPresenter::present($shared);
+                $row['avatar'] = $row['avatar'] ?: 'https://i.pravatar.cc/120?u='.$shared->created_by;
+                $formattedVibes = $formattedVibes->reject(fn ($v) => $v['id'] === $sharedId)->prepend($row)->values();
             }
-
-            return [
-                'id' => $vibe->id,
-                'created_by' => $vibe->created_by,
-                'handle' => $publisherName,
-                'publisher_type' => $publisherType,
-                'avatar' => $publisherAvatar,
-                'location' => $vibe->location_name,
-                'media' => $mediaItems,
-                'kind' => $isReel ? 'reel' : (!empty($vibe->text_bg) && $mediaItems->isEmpty() ? 'text' : 'photo'),
-                'caption' => $vibe->caption,
-                'text_bg' => $vibe->text_bg,
-                'text_font' => $vibe->text_font,
-                'likes_count' => $vibe->likes_count,
-                'comments_count' => $vibe->comments_count,
-                'shares_count' => $vibe->shares_count,
-                'reposts_count' => $vibe->reposts_count ?? 0,
-                'bigups_count' => $vibe->bigups_count,
-                'is_liked' => $user ? $vibe->likes()->where('user_id', $user->id)->exists() : false,
-                'allow_coin_gifts' => (bool) $vibe->allow_coin_gifts,
-                'bigup' => $vibe->bigups_count,
-                'shoppable' => $tag !== null,
-                'tag' => $tag,
-            ];
-        });
+        }
 
         $customPublishers = UserCustomPublisher::where('user_id', $user->id)->get();
 
@@ -544,21 +475,7 @@ class DashboardController extends Controller
             'pending' => $pendingAff,
             'available' => $availableAff,
             'paid' => $paidAff,
-            'recent' => $affEarnings->take(20)->map(function($e) {
-                $product = $e->product_id ? \App\Models\MarketplaceProduct::find($e->product_id) : null;
-                $rate = $product ? (float) $product->commission : 10;
-                $commission = (float) $e->commission_amount;
-                $saleAmount = $product && $product->price ? (float) $product->price : (($rate > 0) ? ($commission / ($rate / 100)) : $commission);
-
-                return [
-                    'title' => $product?->name ?? 'Affiliate Sale',
-                    'amount' => round($saleAmount, 2),
-                    'commission' => $commission,
-                    'rate' => $rate,
-                    'status' => $e->status,
-                    'source' => $e->order_id ? 'marketplace' : 'vibe'
-                ];
-            })
+            'recent' => $affEarnings->take(20)->map(fn ($e) => $e->summaryRow())
         ];
 
         $affiliateProducts = MarketplaceProduct::with(['seller:id,name,avatar'])
@@ -817,7 +734,7 @@ class DashboardController extends Controller
             'id' => $e->id,
             'title' => $e->title,
             'price' => $e->tickets->min('price') ?? 0,
-            'date' => $e->start_date?->format('Y-m-d'),
+            'date' => \App\Support\VibeFeedPresenter::eventDate($e)?->format('Y-m-d'),
             'venue' => $e->venue,
             'image' => $e->image_url,
         ]);
@@ -1256,10 +1173,13 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
+        // Only Vibes activity (likes, comments, replies, mentions, follows, reposts, Big Ups) —
+        // not every notification on the account.
         $notifications = Notification::where('user_id', $user->id)
+            ->whereIn('context', \App\Services\VibeActivityNotifier::CONTEXTS)
             ->with('sender')
             ->latest()
-            ->take(50)
+            ->take(60)
             ->get();
 
         $followingUserIds = CreatorFollower::followedIds($user->id);
@@ -1269,26 +1189,39 @@ class DashboardController extends Controller
             $isFollowing = $sender ? in_array((int) $sender->id, $followingUserIds, true) : false;
 
             $type = match (true) {
-                str_contains(strtolower($n->title), 'like') || $n->type === 'like' => 'like',
-                str_contains(strtolower($n->title), 'comment') || $n->type === 'comment' => 'comment',
-                str_contains(strtolower($n->message), 'started following') || $n->type === 'friend_request' => 'follow',
-                default => 'mention',
+                str_ends_with((string) $n->context, '_like') => 'like',
+                str_ends_with((string) $n->context, '_comment'), str_ends_with((string) $n->context, '_reply') => 'comment',
+                str_ends_with((string) $n->context, '_mention') => 'mention',
+                $n->context === 'vibe_follow' => 'follow',
+                $n->context === 'vibe_repost' => 'repost',
+                $n->context === 'say_thank_you' => 'thanks',
+                default => 'gift',
             };
 
             $metadata = is_array($n->metadata) ? $n->metadata : json_decode($n->metadata ?? '{}', true);
+            if (is_string($metadata)) {
+                $metadata = json_decode($metadata, true);
+            }
+            $metadata = is_array($metadata) ? $metadata : [];
 
             return [
                 'id' => $n->id,
                 'type' => $type,
+                'context' => $n->context,
                 'user' => [
                     'id' => $sender?->id,
                     'name' => $sender?->name ?? 'User',
                     'handle' => $sender?->linkup_id ?? $sender?->name ?? 'user',
-                    'avatar' => $sender?->avatar ?: ($n->avatar ?? 'https://i.pravatar.cc/150'),
+                    'avatar' => $sender?->avatar ?: $n->avatar,
                     'is_following' => $isFollowing,
                 ],
                 'message' => $n->message,
                 'title' => $n->title,
+                'comment' => $metadata['comment'] ?? null,
+                'vibe_id' => isset($metadata['vibe_id']) ? (int) $metadata['vibe_id'] : null,
+                'reel_id' => isset($metadata['reel_id']) ? (int) $metadata['reel_id'] : null,
+                'coins' => isset($metadata['amount']) ? (int) $metadata['amount'] : null,
+                'unread' => (bool) $n->unread,
                 'time_group' => $n->created_at?->isToday() ? 'Today' : ($n->created_at?->isYesterday() ? 'Yesterday' : $n->created_at?->format('M d, Y')),
                 'time_ago' => $n->created_at?->diffForHumans(null, true),
                 'media_thumbnail' => $metadata['thumbnail'] ?? $metadata['image'] ?? null,
@@ -1296,6 +1229,10 @@ class DashboardController extends Controller
                 'created_at' => $n->created_at?->toISOString(),
             ];
         });
+
+        // Opening the activity list reads it.
+        Notification::where('user_id', $user->id)->whereIn('context', \App\Services\VibeActivityNotifier::CONTEXTS)
+            ->where('unread', true)->update(['unread' => false]);
 
         return response()->json([
             'activity' => $activities,
@@ -1821,7 +1758,7 @@ class DashboardController extends Controller
                     'id' => $e->id,
                     'title' => $e->title,
                     'price' => $e->tickets?->min('price') ?? 0,
-                    'date' => $e->start_date?->format('Y-m-d'),
+                    'date' => \App\Support\VibeFeedPresenter::eventDate($e)?->format('Y-m-d'),
                     'location' => $e->venue,
                     'seller' => $e->user?->name,
                     'image' => $this->resolveStorageImage($e->featured_image) ?? $e->image_url,
@@ -1938,21 +1875,7 @@ class DashboardController extends Controller
             'pending' => $pendingAff,
             'available' => $availableAff,
             'paid' => $paidAff,
-            'recent' => $affEarnings->take(20)->map(function($e) {
-                $product = $e->product_id ? \App\Models\MarketplaceProduct::find($e->product_id) : null;
-                $rate = $product ? (float) $product->commission : 10;
-                $commission = (float) $e->commission_amount;
-                $saleAmount = $product && $product->price ? (float) $product->price : (($rate > 0) ? ($commission / ($rate / 100)) : $commission);
-
-                return [
-                    'title' => $product?->name ?? 'Affiliate Sale',
-                    'amount' => round($saleAmount, 2),
-                    'commission' => $commission,
-                    'rate' => $rate,
-                    'status' => $e->status,
-                    'source' => $e->order_id ? 'marketplace' : 'vibe'
-                ];
-            })
+            'recent' => $affEarnings->take(20)->map(fn ($e) => $e->summaryRow())
         ];
 
         $postsCount = UserReel::where('user_id', $user->id)->count() + Vibe::where('created_by', $user->id)->count();
@@ -1998,21 +1921,7 @@ class DashboardController extends Controller
             'pending' => $pendingAff,
             'available' => $availableAff,
             'paid' => $paidAff,
-            'recent' => $affEarnings->take(20)->map(function($e) {
-                $product = $e->product_id ? \App\Models\MarketplaceProduct::find($e->product_id) : null;
-                $rate = $product ? (float) $product->commission : 10;
-                $commission = (float) $e->commission_amount;
-                $saleAmount = $product && $product->price ? (float) $product->price : (($rate > 0) ? ($commission / ($rate / 100)) : $commission);
-
-                return [
-                    'title' => $product?->name ?? 'Affiliate Sale',
-                    'amount' => round($saleAmount, 2),
-                    'commission' => $commission,
-                    'rate' => $rate,
-                    'status' => $e->status,
-                    'source' => $e->order_id ? 'marketplace' : 'vibe'
-                ];
-            })
+            'recent' => $affEarnings->take(20)->map(fn ($e) => $e->summaryRow())
         ];
     }
 
