@@ -271,9 +271,6 @@ async function deletePost(id) {
   }
 }
 
-const openNewReelModal = () => {
-  newReelRef.value?.open();
-};
 const openCreatorReels = (userId) => { reelsRef.value?.openCreator(userId, true); };
 const onReelCreated = (reel) => {
   myReelsCount.value += 1;
