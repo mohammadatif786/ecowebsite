@@ -113,6 +113,39 @@ class UserReel extends Model
         return $query->where('status', 'active');
     }
 
+    /** Reels the viewer may see: nothing from someone who blocked them or whom they blocked. */
+    public function scopeVisibleTo($query, ?User $viewer)
+    {
+        if (! $viewer) {
+            return $query;
+        }
+        $id = $viewer->getKey();
+
+        return $query
+            ->whereNotIn('user_id', BlockedUser::query()->where('user_id', $id)->where('is_blocked', true)->select('blocked_user_id'))
+            ->whereNotIn('user_id', BlockedUser::query()->where('blocked_user_id', $id)->where('is_blocked', true)->select('user_id'));
+    }
+
+    /** One loaded reel: active (or the viewer's own) and not hidden by a block. */
+    public function isVisibleTo(?User $viewer): bool
+    {
+        if ($viewer && (int) $this->user_id === (int) $viewer->getKey()) {
+            return true;
+        }
+
+        return $this->status === 'active'
+            && self::query()->whereKey($this->getKey())->visibleTo($viewer)->exists();
+    }
+
+    /** Liked / saved flags for the viewer, loaded with the list (no query per reel). */
+    public function scopeWithViewerFlags($query, User $viewer)
+    {
+        return $query->withExists([
+            'likes as viewer_liked' => fn ($q) => $q->where('user_id', $viewer->getKey()),
+            'saves as viewer_saved' => fn ($q) => $q->where('user_id', $viewer->getKey()),
+        ]);
+    }
+
     protected function getFilePathAttribute($value)
     {
         return $value ? asset('storage/' . $value) : null;

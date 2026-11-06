@@ -4,6 +4,7 @@ use App\Http\Controllers\User\ChatAttachmentController;
 use App\Http\Controllers\User\ChatController;
 use App\Http\Controllers\User\DashboardController;
 use App\Http\Controllers\User\EventController;
+use App\Http\Controllers\User\Gifts\GiftCashOutController;
 use App\Http\Controllers\User\LinkupController;
 use App\Http\Controllers\User\LiveStreamController;
 use App\Http\Controllers\User\MarketplaceAffiliateController;
@@ -27,7 +28,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('user')->name('user.')->group(function () {
     // Public campus list (sign-up page + Campus Explorer).
-    Route::get('/universities', [UniversityController::class, 'catalog'])->middleware('throttle:60,1')->name('universities.catalog');
+    Route::get('/universities', [UniversityController::class, 'catalog'])->middleware('throttle:60,1,universities-catalog:')->name('universities.catalog');
 
     Route::middleware(['auth'])->group(function () {
         Route::post('/logout', [ProfileSecurityController::class, 'logout'])->name('logout');
@@ -37,90 +38,92 @@ Route::prefix('user')->name('user.')->group(function () {
         // U Vibe campuses (same controller as the mobile API in routes/api/mobile.php)
         Route::prefix('universities')->name('universities.')->controller(UniversityController::class)->group(function () {
             Route::get('/state', 'state')->name('state');
-            Route::post('/mine', 'addMine')->middleware('throttle:20,1')->name('mine.store');
+            Route::post('/mine', 'addMine')->middleware('throttle:20,1,mine-store:')->name('mine.store');
             Route::delete('/mine/{university}', 'removeMine')->name('mine.destroy');
             Route::patch('/mine/{university}', 'setStatus')->name('mine.status');
             Route::post('/mine/{university}/main', 'makeMain')->name('mine.main');
             Route::post('/{university}/follow', 'follow')->name('follow');
             Route::delete('/{university}/follow', 'unfollow')->name('unfollow');
         });
-        Route::post('/vibes', [VibeController::class, 'store'])->middleware('throttle:10,1')->name('vibes.store');
+        Route::post('/vibes', [VibeController::class, 'store'])->middleware('throttle:10,1,vibes-store:')->name('vibes.store');
         Route::delete('/vibes/{vibe}', [VibeController::class, 'destroy'])->name('vibes.destroy');
         Route::put('/vibes/{vibe}', [VibeController::class, 'update'])->name('vibes.update');
         Route::post('/vibes/{vibe}/update', [VibeController::class, 'update'])->name('vibes.update.post');
         Route::get('/vibes/{vibe}/copy-link', [VibeController::class, 'copyLink'])->name('vibes.copy-link');
         Route::get('/vibes/suggested-creators', [VibeController::class, 'suggestedCreators'])->name('vibes.suggested-creators');
-        Route::post('/creators/{user}/toggle-follow', [VibeController::class, 'toggleFollowCreator'])->middleware('throttle:60,1')->name('creators.toggle-follow');
-        Route::post('/vibes/{vibe}/like', [VibeInteractionController::class, 'toggleLike'])->middleware('throttle:120,1')->name('vibes.like');
+        Route::post('/creators/{user}/toggle-follow', [VibeController::class, 'toggleFollowCreator'])->middleware('throttle:60,1,creators-toggle-follow:')->name('creators.toggle-follow');
+        Route::post('/vibes/{vibe}/like', [VibeInteractionController::class, 'toggleLike'])->middleware('throttle:120,1,vibes-like:')->name('vibes.like');
         Route::get('/vibes/{vibe}/comments', [VibeInteractionController::class, 'indexComments'])->name('vibes.comments.index');
         Route::get('/vibes/{vibe}/top-comments', [VibeInteractionController::class, 'topComments'])->name('vibes.top-comments');
-        Route::post('/vibes/{vibe}/comments', [VibeInteractionController::class, 'storeComment'])->middleware('throttle:30,1')->name('vibes.comments.store');
+        Route::post('/vibes/{vibe}/comments', [VibeInteractionController::class, 'storeComment'])->middleware('throttle:30,1,vibes-comments-store:')->name('vibes.comments.store');
         Route::post('/vibes/{vibe}/share', [VibeInteractionController::class, 'share'])->name('vibes.share');
-        Route::post('/vibes/{vibe}/repost', [VibeInteractionController::class, 'repost'])->middleware('throttle:20,1')->name('vibes.repost');
-        Route::post('/vibes/{vibe}/bigup', [VibeInteractionController::class, 'sendBigUp'])->middleware('throttle:30,1')->name('vibes.bigup');
-        Route::post('/vibes/bigup', [VibeInteractionController::class, 'sendBigUp'])->middleware('throttle:30,1')->name('vibes.send-vibe');
+        Route::post('/vibes/{vibe}/repost', [VibeInteractionController::class, 'repost'])->middleware('throttle:20,1,vibes-repost:')->name('vibes.repost');
+        Route::post('/vibes/{vibe}/bigup', [VibeInteractionController::class, 'sendBigUp'])->middleware('throttle:30,1,vibes-bigup:')->name('vibes.bigup');
+        Route::post('/vibes/bigup', [VibeInteractionController::class, 'sendBigUp'])->middleware('throttle:30,1,vibes-send-vibe:')->name('vibes.send-vibe');
         Route::get('/vibes/activity', [DashboardController::class, 'activityApi'])->name('vibes.activity');
         Route::get('/vibes/gifts-received', [DashboardController::class, 'giftsReceivedApi'])->name('vibes.gifts-received');
-        Route::post('/vibes/thank-sender', [DashboardController::class, 'thankSender'])->name('vibes.thank-sender');
+        Route::post('/vibes/thank-sender', [DashboardController::class, 'thankSender'])->middleware('throttle:20,1,vibes-thank-sender:')->name('vibes.thank-sender');
         Route::get('/vibes/chats/conversations', [VibeChatController::class, 'getConversations'])->name('vibes.chats.conversations');
         Route::get('/vibes/chats/{recipient}/messages', [VibeChatController::class, 'getMessages'])->name('vibes.chats.messages');
-        Route::post('/vibes/chats/{recipient}/messages', [VibeChatController::class, 'storeMessage'])->middleware('throttle:30,1')->name('vibes.chats.messages.store');
+        Route::post('/vibes/chats/{recipient}/messages', [VibeChatController::class, 'storeMessage'])->middleware('throttle:30,1,vibes-chats-messages-store:')->name('vibes.chats.messages.store');
 
         // Reels routes
-        Route::post('/reels', [ReelController::class, 'store'])->name('reels.store');
+        Route::post('/reels', [ReelController::class, 'store'])->middleware('throttle:10,1,reels-store:')->name('reels.store');
         Route::get('/reels/followed', [ReelController::class, 'getFollowedReels'])->name('reels.followed');
         Route::get('/reels/user/{user}', [ReelController::class, 'getUserReels'])->name('reels.user');
         Route::get('/reels/{reel}', [ReelController::class, 'show'])->name('reels.show');
         Route::delete('/reels/{reel}', [ReelController::class, 'destroy'])->name('reels.destroy');
-        Route::post('/reels/{reel}/like', [ReelInteractionController::class, 'toggleLike'])->middleware('throttle:120,1')->name('reels.like');
-        Route::post('/reels/{reel}/comments', [ReelInteractionController::class, 'storeComment'])->middleware('throttle:30,1')->name('reels.comments.store');
+        Route::post('/reels/{reel}/like', [ReelInteractionController::class, 'toggleLike'])->middleware('throttle:120,1,reels-like:')->name('reels.like');
+        Route::post('/reels/{reel}/comments', [ReelInteractionController::class, 'storeComment'])->middleware('throttle:30,1,reels-comments-store:')->name('reels.comments.store');
         Route::get('/reels/{reel}/comments', [ReelInteractionController::class, 'indexComments'])->name('reels.comments.index');
         Route::post('/reels/{reel}/share', [ReelInteractionController::class, 'share'])->name('reels.share');
         Route::post('/reels/{reel}/save', [ReelInteractionController::class, 'toggleSave'])->name('reels.save');
-        Route::post('/reels/{reel}/bigup', [ReelInteractionController::class, 'sendBigUp'])->middleware('throttle:30,1')->name('reels.bigup');
-        Route::post('/reels/{reel}/gift', [ReelInteractionController::class, 'sendGift'])->middleware('throttle:30,1')->name('reels.gift');
-        Route::post('/reel-comments/{comment}/like', [ReelInteractionController::class, 'toggleCommentLike'])->middleware('throttle:120,1')->name('reels.comments.like');
+        Route::post('/reels/{reel}/bigup', [ReelInteractionController::class, 'sendBigUp'])->middleware('throttle:30,1,reels-bigup:')->name('reels.bigup');
+        Route::post('/reels/{reel}/gift', [ReelInteractionController::class, 'sendGift'])->middleware('throttle:30,1,reels-gift:')->name('reels.gift');
+        Route::post('/reel-comments/{comment}/like', [ReelInteractionController::class, 'toggleCommentLike'])->middleware('throttle:120,1,reels-comments-like:')->name('reels.comments.like');
+        Route::delete('/reel-comments/{comment}', [ReelInteractionController::class, 'destroyComment'])->middleware('throttle:60,1,reels-comments-destroy:')->name('reels.comments.destroy');
         // Buy the item tagged on a post: priced on the server, a real order, paid from the wallet.
-        Route::post('/vibes/{vibe}/purchase/quote', [\App\Http\Controllers\User\VibeShopController::class, 'quote'])->middleware('throttle:60,1')->name('vibes.purchase.quote');
-        Route::post('/vibes/{vibe}/purchase', [\App\Http\Controllers\User\VibeShopController::class, 'buy'])->middleware('throttle:10,1')->name('vibes.purchase');
-        Route::post('/vibes/{vibe}/hide', [VibeController::class, 'hide'])->middleware('throttle:60,1')->name('vibes.hide');
-        Route::post('/vibes/{vibe}/report', [VibeController::class, 'report'])->middleware('throttle:10,1')->name('vibes.report');
+        Route::post('/vibes/{vibe}/purchase/quote', [\App\Http\Controllers\User\VibeShopController::class, 'quote'])->middleware('throttle:60,1,vibes-purchase-quote:')->name('vibes.purchase.quote');
+        Route::post('/vibes/{vibe}/purchase', [\App\Http\Controllers\User\VibeShopController::class, 'buy'])->middleware('throttle:10,1,vibes-purchase:')->name('vibes.purchase');
+        Route::post('/vibes/{vibe}/hide', [VibeController::class, 'hide'])->middleware('throttle:60,1,vibes-hide:')->name('vibes.hide');
+        Route::post('/vibes/{vibe}/report', [VibeController::class, 'report'])->middleware('throttle:10,1,vibes-report:')->name('vibes.report');
         Route::get('/vibes/report-reasons', [VibeController::class, 'reportReasons'])->name('vibes.report-reasons');
-        Route::get('/vibes/search', [\App\Http\Controllers\User\VibeExploreController::class, 'search'])->middleware('throttle:120,1')->name('vibes.search');
-        Route::post('/vibes/earnings/release', [VibeInteractionController::class, 'releasePendingEarnings'])->middleware('throttle:6,1')->name('vibes.earnings.release');
-        Route::post('/vibes/earnings/transfer', [VibeInteractionController::class, 'transferToWallet'])->middleware('throttle:6,1')->name('vibes.earnings.transfer');
-        Route::post('/vibe-comments/{comment}/like', [VibeInteractionController::class, 'toggleCommentLike'])->middleware('throttle:120,1')->name('vibes.comments.like');
-        Route::post('/vibes/custom-publishers', [DashboardController::class, 'storeCustomPublisher'])->middleware('throttle:20,1')->name('vibes.custom-publishers.store');
+        Route::get('/vibes/search', [\App\Http\Controllers\User\VibeExploreController::class, 'search'])->middleware('throttle:120,1,vibes-search:')->name('vibes.search');
+        Route::post('/vibes/earnings/release', [VibeInteractionController::class, 'releasePendingEarnings'])->middleware('throttle:6,1,vibes-earnings-release:')->name('vibes.earnings.release');
+        Route::post('/vibes/earnings/transfer', [VibeInteractionController::class, 'transferToWallet'])->middleware('throttle:6,1,vibes-earnings-transfer:')->name('vibes.earnings.transfer');
+        Route::post('/vibe-comments/{comment}/like', [VibeInteractionController::class, 'toggleCommentLike'])->middleware('throttle:120,1,vibes-comments-like:')->name('vibes.comments.like');
+        Route::delete('/vibe-comments/{comment}', [VibeInteractionController::class, 'destroyComment'])->middleware('throttle:60,1,vibes-comments-destroy:')->name('vibes.comments.destroy');
+        Route::post('/vibes/custom-publishers', [DashboardController::class, 'storeCustomPublisher'])->middleware('throttle:20,1,vibes-custom-publishers-store:')->name('vibes.custom-publishers.store');
         Route::get('/home', [DashboardController::class, 'home'])->name('feed');
         Route::get('/vibes', [DashboardController::class, 'vibes'])->name('vibes');
         Route::get('/vibes/profile/{user}', [DashboardController::class, 'vibeUserProfile'])->name('vibes.user-profile');
         Route::get('/uvibe', [DashboardController::class, 'uvibe'])->name('uvibe');
         // U Vibe campus feed + the "Post to U Vibe" button (same controller as the mobile API in routes/api/mobile.php)
-        Route::get('/uvibe/posts', [UVibeController::class, 'index'])->middleware('throttle:60,1')->name('uvibe.posts.index');
-        Route::post('/uvibe/posts', [UVibeController::class, 'store'])->middleware('throttle:10,1')->name('uvibe.posts.store');
+        Route::get('/uvibe/posts', [UVibeController::class, 'index'])->middleware('throttle:60,1,uvibe-posts-index:')->name('uvibe.posts.index');
+        Route::post('/uvibe/posts', [UVibeController::class, 'store'])->middleware('throttle:10,1,uvibe-posts-store:')->name('uvibe.posts.store');
         Route::get('/uvibe/options', [UVibeController::class, 'options'])->name('uvibe.options');
         // "Post as → An organization": the organizations a member posts for
         Route::get('/uvibe/organizations', [UVibeOrganizationController::class, 'index'])->name('uvibe.organizations.index');
-        Route::post('/uvibe/organizations', [UVibeOrganizationController::class, 'store'])->middleware('throttle:20,1')->name('uvibe.organizations.store');
+        Route::post('/uvibe/organizations', [UVibeOrganizationController::class, 'store'])->middleware('throttle:20,1,uvibe-organizations-store:')->name('uvibe.organizations.store');
         // What a member can do with a post in the feed: edit, delete, hide, report, repost, Boost, and Campus Gig apply/pay
-        Route::put('/uvibe/posts/{vibe}', [UVibePostController::class, 'update'])->middleware('throttle:30,1')->name('uvibe.posts.update');
-        Route::delete('/uvibe/posts/{vibe}', [UVibePostController::class, 'destroy'])->middleware('throttle:30,1')->name('uvibe.posts.destroy');
-        Route::post('/uvibe/posts/{vibe}/hide', [UVibePostController::class, 'hide'])->middleware('throttle:60,1')->name('uvibe.posts.hide');
-        Route::post('/uvibe/posts/{vibe}/report', [UVibePostController::class, 'report'])->middleware('throttle:10,1')->name('uvibe.posts.report');
-        Route::post('/uvibe/posts/{vibe}/repost', [UVibePostController::class, 'repost'])->middleware('throttle:20,1')->name('uvibe.posts.repost');
+        Route::put('/uvibe/posts/{vibe}', [UVibePostController::class, 'update'])->middleware('throttle:30,1,uvibe-posts-update:')->name('uvibe.posts.update');
+        Route::delete('/uvibe/posts/{vibe}', [UVibePostController::class, 'destroy'])->middleware('throttle:30,1,uvibe-posts-destroy:')->name('uvibe.posts.destroy');
+        Route::post('/uvibe/posts/{vibe}/hide', [UVibePostController::class, 'hide'])->middleware('throttle:60,1,uvibe-posts-hide:')->name('uvibe.posts.hide');
+        Route::post('/uvibe/posts/{vibe}/report', [UVibePostController::class, 'report'])->middleware('throttle:10,1,uvibe-posts-report:')->name('uvibe.posts.report');
+        Route::post('/uvibe/posts/{vibe}/repost', [UVibePostController::class, 'repost'])->middleware('throttle:20,1,uvibe-posts-repost:')->name('uvibe.posts.repost');
         Route::get('/uvibe/boosts', [UVibePostController::class, 'boosts'])->name('uvibe.boosts');
-        Route::post('/uvibe/posts/{vibe}/boost', [UVibePostController::class, 'boost'])->middleware('throttle:30,1')->name('uvibe.posts.boost');
-        Route::post('/uvibe/posts/{vibe}/apply', [UVibePostController::class, 'apply'])->middleware('throttle:20,1')->name('uvibe.posts.apply');
-        Route::get('/uvibe/posts/{vibe}/applicants', [UVibePostController::class, 'applicants'])->middleware('throttle:60,1')->name('uvibe.posts.applicants');
-        Route::post('/uvibe/posts/{vibe}/applications/{application}/pay', [UVibePostController::class, 'pay'])->middleware('throttle:6,1')->name('uvibe.posts.pay');
+        Route::post('/uvibe/posts/{vibe}/boost', [UVibePostController::class, 'boost'])->middleware('throttle:30,1,uvibe-posts-boost:')->name('uvibe.posts.boost');
+        Route::post('/uvibe/posts/{vibe}/apply', [UVibePostController::class, 'apply'])->middleware('throttle:20,1,uvibe-posts-apply:')->name('uvibe.posts.apply');
+        Route::get('/uvibe/posts/{vibe}/applicants', [UVibePostController::class, 'applicants'])->middleware('throttle:60,1,uvibe-posts-applicants:')->name('uvibe.posts.applicants');
+        Route::post('/uvibe/posts/{vibe}/applications/{application}/pay', [UVibePostController::class, 'pay'])->middleware('throttle:6,1,uvibe-posts-pay:')->name('uvibe.posts.pay');
         // Header: the search window (people + campuses) and "Say Thank You" (Vibes gifts + Boosts you received)
-        Route::get('/uvibe/search', [UVibeSearchController::class, 'index'])->middleware('throttle:120,1')->name('uvibe.search');
-        Route::get('/uvibe/thank-you', [UVibeThankYouController::class, 'index'])->middleware('throttle:60,1')->name('uvibe.thank-you.index');
-        Route::post('/uvibe/thank-you', [UVibeThankYouController::class, 'store'])->middleware('throttle:20,1')->name('uvibe.thank-you.store');
+        Route::get('/uvibe/search', [UVibeSearchController::class, 'index'])->middleware('throttle:120,1,uvibe-search:')->name('uvibe.search');
+        Route::get('/uvibe/thank-you', [UVibeThankYouController::class, 'index'])->middleware('throttle:60,1,uvibe-thank-you-index:')->name('uvibe.thank-you.index');
+        Route::post('/uvibe/thank-you', [UVibeThankYouController::class, 'store'])->middleware('throttle:20,1,uvibe-thank-you-store:')->name('uvibe.thank-you.store');
         Route::get('/eats', [DashboardController::class, 'eats'])->name('eats');
         Route::get('/live', [LiveStreamController::class, 'index'])->name('live');
-        Route::get('/live/analytics-data', [LiveStreamController::class, 'analyticsData'])->middleware('throttle:30,1')->name('live.analytics_data');
-        Route::post('/live/transfer-earnings', [LiveStreamController::class, 'transferEarnings'])->middleware('throttle:5,1')->name('live.transfer_earnings');
+        Route::get('/live/analytics-data', [LiveStreamController::class, 'analyticsData'])->middleware('throttle:30,1,live-analytics_data:')->name('live.analytics_data');
+        Route::post('/live/transfer-earnings', [LiveStreamController::class, 'transferEarnings'])->middleware('throttle:5,1,live-transfer_earnings:')->name('live.transfer_earnings');
         Route::get('/live/watch/{stream?}', [LiveStreamController::class, 'watch'])->name('live.watch');
         Route::post('/live/start', [LiveStreamController::class, 'start'])->middleware('throttle:live-stream-create')->name('live.start');
         Route::post('/live/{stream}/credentials', [LiveStreamController::class, 'credentials'])->middleware('throttle:live-stream-join')->name('live.credentials');
@@ -139,8 +142,8 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('/wallet-hub', [DashboardController::class, 'wallet'])->name('wallet');
         Route::get('/profile', [DashboardController::class, 'profile'])->name('profile');
         Route::get('/marketplace', [DashboardController::class, 'marketplace'])->name('marketplace');
-        Route::get('/marketplace/ref/{token}', [MarketplaceAffiliateController::class, 'attribute'])->middleware('throttle:30,1')->name('marketplace.affiliate.attribute');
-        Route::post('/marketplace/affiliate/promotions/{product}', [MarketplaceAffiliateController::class, 'toggle'])->middleware('throttle:20,1')->name('marketplace.affiliate.promotions.toggle');
+        Route::get('/marketplace/ref/{token}', [MarketplaceAffiliateController::class, 'attribute'])->middleware('throttle:30,1,marketplace-affiliate-attribute:')->name('marketplace.affiliate.attribute');
+        Route::post('/marketplace/affiliate/promotions/{product}', [MarketplaceAffiliateController::class, 'toggle'])->middleware('throttle:20,1,marketplace-affiliate-promotions-toggle:')->name('marketplace.affiliate.promotions.toggle');
         Route::get('/notifications', [DashboardController::class, 'notifications'])->name('notifications');
 
         Route::post('/notifications/mark-all-read', [DashboardController::class, 'markAllNotificationsRead'])->name('notifications.mark_all_read');
@@ -148,7 +151,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('/notifications/settings', [DashboardController::class, 'saveNotificationSettings'])->name('notifications.settings');
 
         Route::put('/profile', [DashboardController::class, 'updateProfile'])->name('profile.update');
-        Route::post('/convert-gifts-to-cash', [DashboardController::class, 'convertToCash'])->name('profile.gifts.convert');
+        Route::post('/convert-gifts-to-cash', [GiftCashOutController::class, 'store'])->middleware('throttle:6,1,profile-gifts-convert:')->name('profile.gifts.convert');
         Route::put('/profile/password', [ProfileSecurityController::class, 'updatePassword'])->name('profile.password.update');
         Route::put('/profile/transaction-pin', [ProfileSecurityController::class, 'updateTransactionPin'])->name('profile.transaction_pin.update');
 

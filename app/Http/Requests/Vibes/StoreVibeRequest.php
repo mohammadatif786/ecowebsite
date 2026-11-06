@@ -19,6 +19,12 @@ class StoreVibeRequest extends FormRequest
                 $this->merge([$field => is_array($decoded) ? $decoded : []]);
             }
         }
+
+        // A post from Vibes is never a U Vibe post: those go through StoreUVibeRequest, which
+        // adds the U Vibe rules (title, type, the poster's own university, Campus Gig pay).
+        if (! $this instanceof StoreUVibeRequest) {
+            $this->merge(['is_uvibe' => false]);
+        }
     }
 
     public function authorize(): bool
@@ -39,11 +45,11 @@ class StoreVibeRequest extends FormRequest
             'category' => ['nullable', 'string', 'max:64'],
             'campus' => ['nullable', 'string', 'max:255'],
             'university_id' => ['nullable', 'integer', 'exists:universities,id'],
-            'price' => ['nullable', 'numeric', 'min:0'],
+            'price' => ['nullable', 'numeric', 'min:0', 'max:100000'],
             'is_uvibe' => ['sometimes', 'boolean'],
             'show_on_vibes' => ['sometimes', 'boolean'],
-            'text_bg' => ['nullable', 'string', 'max:255'],
-            'text_font' => ['nullable', 'string', 'max:100'],
+            'text_bg' => ['nullable', 'string', 'max:255', 'regex:'.config('vibes.text_bg_pattern')],
+            'text_font' => ['nullable', 'string', 'max:100', 'regex:'.config('vibes.text_font_pattern')],
             'location_name' => ['nullable', 'string', 'max:255'],
             'location_place_id' => ['nullable', 'string', 'max:255'],
             'latitude' => ['nullable', 'numeric', 'between:-90,90', 'required_with:longitude'],

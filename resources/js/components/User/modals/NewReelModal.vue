@@ -174,6 +174,22 @@ const removeFile = () => {
 
 const open = () => {
   modalRef.value?.open();
+
+  if (!location.value && navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(async ({ coords }) => {
+      try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(coords.latitude)}&lon=${encodeURIComponent(coords.longitude)}&zoom=10`);
+        if (!response.ok) return;
+        const data = await response.json();
+        const address = data.address || {};
+        const city = address.city || address.town || address.village || address.county;
+        const broadLocation = [city, address.country].filter(Boolean).join(', ');
+        if (broadLocation && !location.value) {
+          location.value = broadLocation;
+        }
+      } catch (e) {}
+    }, () => {}, { timeout: 10000 });
+  }
 };
 
 const close = () => {
@@ -191,7 +207,7 @@ const resetForm = () => {
 
 const submit = async () => {
   error.value = '';
-  
+
   if (!file.value) {
     error.value = 'Please select a file to upload';
     return;

@@ -376,7 +376,7 @@ Route::middleware(['auth', 'otp.verified', 'isWizardComplete'])->group(function 
         Route::post('/api/user/notifications/{id}/mark-read', [IndexController::class, 'markNotificationAsRead']);
 
         // Convert gifts to cash route
-        Route::post('/convert-gifts-to-cash', [ProfileController::class, 'convertToCash'])->name('gifts.convert.to.cash');
+        Route::post('/convert-gifts-to-cash', [\App\Http\Controllers\User\Gifts\GiftCashOutController::class, 'store'])->middleware('throttle:6,1,profile-gifts-convert:')->name('gifts.convert.to.cash');
 
         // Swipe-ad tracking
         Route::post('/api/ads/{advertisement}/track', [AdTrackingController::class, 'trackEvent'])->name('ads.track');

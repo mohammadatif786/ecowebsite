@@ -4,7 +4,7 @@
     <div class="rounded-3xl brandgrad text-white p-6 md:p-8 relative overflow-hidden">
       <div class="relative z-10 flex flex-wrap items-center gap-5 justify-between">
         <div class="flex items-center gap-4">
-          <img :src="user.avatar || '/images/default-avatar.png'" @error="$event.target.src = '/images/default-avatar.png'" class="w-16 h-16 rounded-2xl ring-4 ring-white/30 object-cover"/>
+          <img :src="user.avatar || ''" @error="$event.target.src = ''" class="w-16 h-16 rounded-2xl ring-4 ring-white/30 object-cover"/>
           <div>
             <p class="text-white/80 font-bold text-sm">Good afternoon</p>
             <h1 class="text-3xl font-black leading-tight">{{ user.name }} 👋</h1>

@@ -35,7 +35,7 @@
                 :src="message.user_avatar"
                 :alt="message.user_name"
                 class="w-8 h-8 rounded-full object-cover"
-                @error="$event.target.src = '/images/default-avatar.png'"
+                @error="$event.target.src = ''"
               >
             </div>
 
@@ -68,7 +68,7 @@
                 :src="message.user_avatar"
                 :alt="message.user_name"
                 class="w-8 h-8 rounded-full object-cover"
-                @error="$event.target.src = '/images/default-avatar.png'"
+                @error="$event.target.src = ''"
               >
             </div>
           </div>

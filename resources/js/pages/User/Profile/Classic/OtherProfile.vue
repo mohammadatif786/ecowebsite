@@ -557,7 +557,7 @@ const allPhotos = computed(() => {
     const photos = [];
     if (props.userdata.avatar) photos.push(props.userdata.avatar);
     if (Array.isArray(props.userdata.more_photos)) photos.push(...props.userdata.more_photos);
-    return photos.length > 0 ? photos : ['default-avatar.png'];
+    return photos.length > 0 ? photos : [''];
 });
 
 const currentIdx = ref(0);

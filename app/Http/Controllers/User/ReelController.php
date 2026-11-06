@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\UserReel;
+use App\Support\ReelPresenter;
 use App\Domain\Reels\Actions\CreateReelAction;
 use App\Domain\Reels\DTOs\CreateReelData;
 use Illuminate\Http\JsonResponse;
@@ -14,42 +15,15 @@ use Illuminate\Support\Str;
 
 class ReelController extends Controller
 {
+    /** How many reels one list returns at most. */
+    private const LIST_LIMIT = 100;
+
     public function index(Request $request): JsonResponse
     {
-        $user = auth()->user();
-        $reels = UserReel::active()
-            ->with('user:id,name,avatar,linkup_id,city,country')
-            ->latest()
-            ->take(50)
-            ->get()
-            ->map(function ($reel) use ($user) {
-                $isLiked = $reel->likes()->where('user_id', $user->id)->exists();
-                $isSaved = $reel->saves()->where('user_id', $user->id)->exists();
+        $user = $request->user();
+        $reels = $this->listQuery($user)->take(50)->get();
 
-                return [
-                    'id' => $reel->id,
-                    'uid' => $reel->uid,
-                    'user_id' => $reel->user_id,
-                    'handle' => $reel->user_id === $user->id ? 'Your Reel' : ($reel->user?->linkup_id ?? $reel->user?->name ?? 'User'),
-                    'avatar' => $reel->user?->avatar,
-                    'name' => $reel->user?->name ?? 'User',
-                    'type' => $reel->type,
-                    'file_path' => $reel->file_path,
-                    'thumbnail_path' => $reel->thumbnail_path,
-                    'caption' => $reel->caption,
-                    'location' => $reel->location,
-                    'likes_count' => $reel->likes_count,
-                    'comments_count' => $reel->comments_count,
-                    'shares_count' => $reel->shares_count,
-                    'gifts_count' => $reel->gifts_count,
-                    'bigups_count' => $reel->bigups_count,
-                    'is_liked' => $isLiked,
-                    'is_saved' => $isSaved,
-                    'created_at' => $reel->created_at,
-                ];
-            });
-
-        return response()->json($reels);
+        return response()->json($reels->map(fn (UserReel $reel) => $this->present($reel, $user)));
     }
 
     public function store(Request $request, CreateReelAction $action): JsonResponse
@@ -85,78 +59,20 @@ class ReelController extends Controller
 
     public function getFollowedReels(Request $request): JsonResponse
     {
-        $user = auth()->user();
-        $reels = UserReel::active()
-            ->fromFollowedUsers($user->id)
-            ->with('user:id,name,avatar,linkup_id,city,country')
-            ->latest()
-            ->get()
-            ->map(function ($reel) use ($user) {
-                $isLiked = $reel->likes()->where('user_id', $user->id)->exists();
-                $isSaved = $reel->saves()->where('user_id', $user->id)->exists();
+        $user = $request->user();
+        $reels = $this->listQuery($user)->fromFollowedUsers($user->id)->take(self::LIST_LIMIT)->get();
 
-                return [
-                    'id' => $reel->id,
-                    'uid' => $reel->uid,
-                    'user_id' => $reel->user_id,
-                    'handle' => $reel->user_id === $user->id ? 'Your Reel' : $reel->user->linkup_id,
-                    'avatar' => $reel->user->avatar,
-                    'name' => $reel->user->name,
-                    'type' => $reel->type,
-                    'file_path' => $reel->file_path,
-                    'thumbnail_path' => $reel->thumbnail_path,
-                    'caption' => $reel->caption,
-                    'location' => $reel->location,
-                    'likes_count' => $reel->likes_count,
-                    'comments_count' => $reel->comments_count,
-                    'shares_count' => $reel->shares_count,
-                    'gifts_count' => $reel->gifts_count,
-                    'bigups_count' => $reel->bigups_count,
-                    'is_liked' => $isLiked,
-                    'is_saved' => $isSaved,
-                    'created_at' => $reel->created_at,
-                ];
-            });
-
-        return response()->json($reels);
+        return response()->json($reels->map(fn (UserReel $reel) => $this->present($reel, $user)));
     }
 
-    public function getUserReels(User $user): JsonResponse
+    public function getUserReels(Request $request, User $user): JsonResponse
     {
-        $currentUser = auth()->user();
+        $currentUser = $request->user();
 
-        $reels = UserReel::active()
-            ->where('user_id', $user->id)
-            ->with('user:id,name,avatar,linkup_id,city,country')
-            ->latest()
-            ->get()
-            ->map(function ($reel) use ($currentUser) {
-                $isLiked = $reel->likes()->where('user_id', $currentUser->id)->exists();
-                $isSaved = $reel->saves()->where('user_id', $currentUser->id)->exists();
+        // Nobody sees the reels of someone they blocked, or who blocked them.
+        abort_if((int) $user->id !== (int) $currentUser->id && $this->blockedBetween($currentUser->id, $user->id), 404, 'Profile not found.');
 
-                return [
-                    'id' => $reel->id,
-                    'uid' => $reel->uid,
-                    'user_id' => $reel->user_id,
-                    'handle' => $reel->user_id === $currentUser->id ? 'Your Reel' : $reel->user->linkup_id,
-                    'avatar' => $reel->user->avatar,
-                    'name' => $reel->user->name,
-                    'type' => $reel->type,
-                    'file_path' => $reel->file_path,
-                    'thumbnail_path' => $reel->thumbnail_path,
-                    'caption' => $reel->caption,
-                    'location' => $reel->location,
-                    'likes_count' => $reel->likes_count,
-                    'comments_count' => $reel->comments_count,
-                    'shares_count' => $reel->shares_count,
-                    'gifts_count' => $reel->gifts_count,
-                    'bigups_count' => $reel->bigups_count,
-                    'is_liked' => $isLiked,
-                    'is_saved' => $isSaved,
-                    'allow_coin_gifts' => (bool) ($reel->allow_coin_gifts ?? true),
-                    'created_at' => $reel->created_at,
-                ];
-            });
+        $reels = $this->listQuery($currentUser)->where('user_id', $user->id)->take(self::LIST_LIMIT)->get();
 
         $isFollowing = \App\Models\CreatorFollower::where('follower_id', $currentUser->id)->where('creator_id', $user->id)->exists();
 
@@ -170,40 +86,19 @@ class ReelController extends Controller
                 'country' => $user->country,
                 'is_following' => $isFollowing,
             ],
-            'reels' => $reels,
+            'reels' => $reels->map(fn (UserReel $reel) => $this->present($reel, $currentUser)),
         ]);
     }
 
-    public function show(UserReel $reel): JsonResponse
+    public function show(Request $request, UserReel $reel): JsonResponse
     {
-        $reel->load('user:id,name,avatar,linkup_id,city,country');
-        $currentUser = auth()->user();
+        $currentUser = $request->user();
+        abort_unless($reel->isVisibleTo($currentUser), 404, 'Reel not found.');
 
-        // Check if current user has liked this reel
-        $isLiked = $reel->likes()->where('user_id', $currentUser->id)->exists();
-        $isSaved = $reel->saves()->where('user_id', $currentUser->id)->exists();
+        $reel = UserReel::query()->whereKey($reel->id)->with('user:id,name,avatar,linkup_id,city,country')
+            ->withViewerFlags($currentUser)->firstOrFail();
 
-        return response()->json([
-            'id' => $reel->id,
-            'uid' => $reel->uid,
-            'user_id' => $reel->user_id,
-            'handle' => $reel->user_id === $currentUser->id ? 'Your Reel' : $reel->user->linkup_id,
-            'avatar' => $reel->user->avatar,
-            'name' => $reel->user->name,
-            'type' => $reel->type,
-            'file_path' => $reel->file_path,
-            'thumbnail_path' => $reel->thumbnail_path,
-            'caption' => $reel->caption,
-            'location' => $reel->location,
-            'likes_count' => $reel->likes_count,
-            'comments_count' => $reel->comments_count,
-            'shares_count' => $reel->shares_count,
-            'gifts_count' => $reel->gifts_count,
-            'bigups_count' => $reel->bigups_count,
-            'is_liked' => $isLiked,
-            'is_saved' => $isSaved,
-            'created_at' => $reel->created_at,
-        ]);
+        return response()->json($this->present($reel, $currentUser));
     }
 
     public function destroy(UserReel $reel): JsonResponse
@@ -221,6 +116,26 @@ class ReelController extends Controller
         $reel->delete();
 
         return response()->json(['success' => true]);
+    }
+
+    /** Active reels the viewer may see, newest first, with the creator and the viewer's like/save flags. */
+    private function listQuery(User $viewer)
+    {
+        return ReelPresenter::query($viewer);
+    }
+
+    private function blockedBetween(int $a, int $b): bool
+    {
+        return \App\Models\BlockedUser::query()->where('is_blocked', true)
+            ->where(fn ($q) => $q->where(fn ($x) => $x->where('user_id', $a)->where('blocked_user_id', $b))
+                ->orWhere(fn ($x) => $x->where('user_id', $b)->where('blocked_user_id', $a)))
+            ->exists();
+    }
+
+    /** One reel as every list and the viewer show it. */
+    private function present(UserReel $reel, User $viewer): array
+    {
+        return ReelPresenter::present($reel, $viewer);
     }
 
     private function generateVideoThumbnail($file): ?string

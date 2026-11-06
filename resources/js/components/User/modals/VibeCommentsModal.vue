@@ -86,7 +86,7 @@ const replyingTo = ref(null);
 const emit = defineEmits(['commentAdded']);
 
 const pageData = usePage();
-const currentUserAvatar = computed(() => pageData.props.auth?.user?.avatar || '/images/default-avatar.png');
+const currentUserAvatar = computed(() => pageData.props.auth?.user?.avatar || '');
 
 const handleReply = (comment) => {
   replyingTo.value = comment;

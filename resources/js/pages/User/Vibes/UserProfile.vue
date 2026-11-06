@@ -3,7 +3,7 @@ import { ref, computed } from 'vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 import MainLayout from '@/layouts/User/MainLayout.vue';
-import ReelViewModal from '@/components/User/modals/ReelViewModal.vue';
+import ReelsViewer from '@/components/User/vibes/reels/ReelsViewer.vue';
 import VibesChatModal from '@/components/User/modals/VibesChatModal.vue';
 import SendVibeModal from '@/components/User/modals/SendVibeModal.vue';
 import AffiliateHubModal from '@/components/User/modals/AffiliateHubModal.vue';
@@ -151,17 +151,19 @@ const filteredItems = computed(() => {
   return combinedItems.value;
 });
 
-const openReel = (reel) => {
-  currentReel.value = {
-    ...reel,
-    handle: reel.handle || user.value.handle || user.value.name || 'User',
-    avatar: reel.avatar || user.value.avatar,
-    user_id: reel.user_id || user.value.id,
-    verified: reel.verified ?? user.value.verified,
-  };
-  if (reelViewModalRef.value) {
-    reelViewModalRef.value.open();
+// A reel opens the reels viewer with this creator's reels; a post opens on the Vibes page.
+const openReel = (item) => {
+  if (!item.is_reel) {
+    router.visit(`/user/vibes?id=${item.id}`);
+    return;
   }
+  const reels = combinedItems.value.filter((i) => i.is_reel).map((r) => ({
+    ...r,
+    handle: r.handle || user.value.handle || user.value.name || 'User',
+    avatar: r.avatar || user.value.avatar,
+    user_id: r.user_id || user.value.id,
+  }));
+  reelViewModalRef.value?.open(reels, Math.max(0, reels.findIndex((r) => r.id === item.id)));
 };
 
 const num = (n) => Number(n || 0).toLocaleString();
@@ -349,7 +351,7 @@ const money = (n) => '$' + Number(n || 0).toLocaleString(undefined, { minimumFra
     </div>
 
     <!-- Modals -->
-    <ReelViewModal ref="reelViewModalRef" :reel="currentReel" :reels="filteredItems" />
+    <ReelsViewer ref="reelViewModalRef" />
     <VibesChatModal ref="vibesChatModalRef" />
     <SendVibeModal ref="sendVibeModalRef" :recipientUserId="user.id" :recipientHandle="user.handle || user.name" />
     <AffiliateHubModal ref="affiliateHubModalRef" :items="props.shopItems" :stats="props.earningsStats" />
