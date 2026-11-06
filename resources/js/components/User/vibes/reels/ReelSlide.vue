@@ -2,10 +2,10 @@
   <!-- One reel filling the viewer: the video (tap to sound on/off) or photo, who posted it, and the buttons. -->
   <div class="reel-slide h-full w-full relative shrink-0 snap-start bg-black" :data-id="reel.id" @click="toggleMute" @dblclick.stop="$emit('like', true)">
     <video v-if="video" ref="videoEl" :src="reel.file_path" :poster="reel.thumbnail_path || undefined"
-           class="absolute inset-0 w-full h-full object-contain bg-black" :muted="muted" loop playsinline preload="metadata"></video>
-    <img v-else :src="reel.file_path" alt="" class="absolute inset-0 w-full h-full object-contain bg-black" />
+           class="absolute inset-0 w-full h-full object-cover" :muted="muted" loop playsinline preload="metadata"></video>
+    <img v-else :src="reel.file_path" alt="" class="absolute inset-0 w-full h-full object-cover" />
 
-    <span v-if="video" class="absolute top-14 right-3 z-10 h-9 w-9 rounded-full bg-black/45 backdrop-blur grid place-items-center pointer-events-none">
+    <span v-if="video" class="absolute top-14 left-3 z-10 h-9 w-9 rounded-full bg-black/45 backdrop-blur grid place-items-center pointer-events-none">
       <VolumeX v-if="muted" class="w-5 h-5 text-white" /><Volume2 v-else class="w-5 h-5 text-white" />
     </span>
     <div class="absolute inset-0 pointer-events-none" style="background:linear-gradient(to top,rgba(0,0,0,.75),rgba(0,0,0,.05) 45%,rgba(0,0,0,.25))"></div>

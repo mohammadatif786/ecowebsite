@@ -77,10 +77,8 @@
       <!-- Main Feed Column -->
       <div class="lg:col-span-2 space-y-4 min-w-0">
 
-        <!-- Stories Carousel -->
-        <div class="card p-4">
-          <ReelStoriesBar :stories="props.stories" :my-reels-count="myReelsCount" @add="openNewReelModal" @mine="openCreatorReels(user.id)" @open="(s) => openCreatorReels(s.user_id)" />
-        </div>
+        <!-- Reels bar: the same component as Vibes, in U Vibe's violet -->
+        <ReelStoriesBar :stories="props.stories" :my-reels-count="myReelsCount" ring="violet" @add="openNewReelModal" @mine="openCreatorReels(user.id)" @open="(s) => openCreatorReels(s.user_id)" />
 
         <!-- Share on your campus bar -->
         <div class="card p-4 flex items-center gap-3">
@@ -145,9 +143,6 @@
 
     <!-- Action Modals shared by posts -->
     <CommentsModal ref="commentsRef" />
-    <VibeBigUpModal ref="bigUpRef" :p="bigUpFor || {}" @sent="onBigUpSent" />
-    <VibeOptionsModal ref="optionsRef" :vibe="optionsFor || {}" :is-owner="isOwner(optionsFor)" @delete="deletePost" @edit="(v) => composeModalRef?.openEdit(v)" @hidden="removePost" />
-    <SendVibeModal ref="sendVibeRef" :recipient-user-id="Number(sendVibeTo || 0)" />
   </div>
 </template>
 
@@ -180,11 +175,8 @@ import CampusExplorerModal from '../../../components/User/modals/CampusExplorerM
 import ReelStoriesBar from '../../../components/User/vibes/stories/ReelStoriesBar.vue';
 import ReelsViewer from '../../../components/User/vibes/reels/ReelsViewer.vue';
 import NewReelModal from '../../../components/User/modals/NewReelModal.vue';
-import { provideVibeActions, toast } from '../../../components/User/vibes/useVibeActions';
+import { provideVibeActions } from '../../../components/User/vibes/useVibeActions';
 import CommentsModal from '../../../components/User/vibes/comments/CommentsModal.vue';
-import VibeBigUpModal from '../../../components/User/modals/VibeBigUpModal.vue';
-import VibeOptionsModal from '../../../components/User/modals/VibeOptionsModal.vue';
-import SendVibeModal from '../../../components/User/modals/SendVibeModal.vue';
 import { getUser } from '../../../components/User/MockDataStore';
 
 defineOptions({ layout: MainLayout });
@@ -218,22 +210,13 @@ watch(() => props.myReelsCount, (v) => (myReelsCount.value = v));
 const newReelRef = ref(null);
 const reelsRef = ref(null);
 const commentsRef = ref(null);
-const bigUpRef = ref(null);
-const optionsRef = ref(null);
-const sendVibeRef = ref(null);
 
-const bigUpFor = ref(null);
-let bigUpDone = null;
-const optionsFor = ref(null);
-const sendVibeTo = ref(null);
-
-const isOwner = (p) => !!p && String(p.created_by) === String(user.value.id);
 
 function openNewReelModal() {
   newReelRef.value?.open();
 }
 function openCreatorReels(userId) {
-  reelsRef.value?.openCreator(userId, true);
+  reelsRef.value?.openCreator(userId);
 }
 function onReelCreated(reel) {
   myReelsCount.value += 1;
@@ -244,32 +227,15 @@ function onReelDeleted(id) {
   myReelsCount.value = Math.max(0, myReelsCount.value - 1);
 }
 
+// The comments window and the reels viewer are the Vibes ones; U Vibe's own windows (menu, Boost,
+// edit, report) are opened through the post card's events below.
 provideVibeActions({
   openComments: (post, onCount) => commentsRef.value?.open(post, onCount),
-  openBigUp: (post, done) => { bigUpFor.value = post; bigUpDone = done; nextTick(() => bigUpRef.value?.open()); },
-  openOptions: (post) => { optionsFor.value = post; nextTick(() => optionsRef.value?.open()); },
-  openTag: (post) => post?.tag && tagRef.value?.open(post.tag),
-  sendVibe: (userId) => { sendVibeTo.value = userId; nextTick(() => sendVibeRef.value?.open()); },
+  openTag: (post) => post?.tag && tagModalRef.value?.open(post.tag),
   openReels: (list, index) => reelsRef.value?.open(list, index),
   openCreatorReels,
-  filterTag: (tag) => { activeCategory.value = 'all'; },
   openProfile: (userId) => userId && router.visit(route('user.vibes.user-profile', { user: userId })),
 });
-
-function onBigUpSent(count) {
-  if (bigUpDone) bigUpDone(count);
-  else if (bigUpFor.value) bigUpFor.value.bigups_count = count;
-}
-
-async function deletePost(id) {
-  try {
-    await axios.delete(route('user.vibes.destroy', { vibe: id }));
-    removePost(id);
-    toast('🗑️ Post deleted');
-  } catch (e) {
-    toast(e.response?.data?.message || 'Couldn’t delete this post');
-  }
-}
 
 // Campus bar state comes from the server (same data the mobile API returns).
 const campus = ref(props.campusState);

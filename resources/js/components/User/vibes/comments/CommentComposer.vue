@@ -33,7 +33,7 @@ const props = defineProps({
 const emit = defineEmits(['submit', 'cancelReply']);
 
 const page = usePage();
-const avatar = computed(() => page.props.auth?.user?.avatar || '');
+const avatar = computed(() => page.props.auth?.user?.avatar || `https://i.pravatar.cc/120?u=${page.props.auth?.user?.id || 'me'}`);
 const inputId = 'cmt-' + Math.random().toString(36).slice(2, 8);
 const text = ref('');
 const input = ref(null);

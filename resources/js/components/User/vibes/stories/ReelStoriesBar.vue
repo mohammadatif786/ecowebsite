@@ -16,7 +16,7 @@
         <span class="text-xs font-semibold text-slate-600">Your reel</span>
       </button>
       <button v-for="s in stories" :key="s.user_id" type="button" class="flex flex-col items-center gap-1 shrink-0" @click="$emit('open', s)">
-        <span class="w-16 h-16 rounded-full p-[3px] bg-gradient-to-tr from-lkyellow via-pink-500 to-lkblue">
+        <span :class="['w-16 h-16 rounded-full p-[3px] bg-gradient-to-tr', ring === 'violet' ? 'from-violet-500 via-fuchsia-500 to-purple-600' : 'from-lkyellow via-pink-500 to-lkblue']">
           <img :src="s.avatar || `https://i.pravatar.cc/120?u=${s.user_id}`" alt="" class="w-full h-full rounded-full object-cover border-2 border-white bg-slate-200" />
         </span>
         <span class="text-xs font-semibold text-slate-600 max-w-[64px] truncate">{{ s.handle }}</span>
@@ -34,8 +34,10 @@ import { Plus } from 'lucide-vue-next';
 defineProps({
   stories: { type: Array, default: () => [] },
   myReelsCount: { type: Number, default: 0 },
+  // Story ring colours: 'brand' on Vibes, 'violet' on U Vibe (as in the design).
+  ring: { type: String, default: 'brand' },
 });
 defineEmits(['add', 'mine', 'open']);
 const page = usePage();
-const myAvatar = computed(() => page.props.auth?.user?.avatar || '');
+const myAvatar = computed(() => page.props.auth?.user?.avatar || `https://i.pravatar.cc/120?u=${page.props.auth?.user?.id || 'me'}`);
 </script>

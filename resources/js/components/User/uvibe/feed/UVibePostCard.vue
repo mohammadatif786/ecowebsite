@@ -43,9 +43,9 @@
 
       <PostTagCard :tag="post.tag" @open="$emit('openTag', post)" />
 
-      <!-- Actions -->
+      <!-- Like · comments · share · repost · Send a Boost · On Vibes -->
       <div class="mt-3">
-        <VibePostActions :post="post" @comments="actions.openComments(post, (c) => post.comments_count = c)" @reposted="$emit('reposted', $event)" />
+        <UVibePostActions :post="post" @reposted="$emit('reposted', $event)" @boost="$emit('boost', $event)" @need-university="$emit('needUniversity')" />
       </div>
 
       <PostGigRow v-if="post.category === 'opportunity'" :post="post" @applicants="$emit('applicants', $event)" @updated="$emit('updated', $event)" />
@@ -57,8 +57,8 @@
 
 <script setup>
 import { computed } from 'vue';
-import { CheckCircle, Heart, MessageCircle, Repeat2 } from 'lucide-vue-next';
-import { money, num, posterName } from '../../../../services/uvibeFormat';
+import { Repeat2 } from 'lucide-vue-next';
+import { money, posterName } from '../../../../services/uvibeFormat';
 import UVibeTextCard from '../UVibeTextCard.vue';
 import PostPoster from './PostPoster.vue';
 import PostCampusPill from './PostCampusPill.vue';
@@ -67,12 +67,9 @@ import PostMenuButton from './PostMenuButton.vue';
 import PostMedia from './PostMedia.vue';
 import PostTicketsButton from './PostTicketsButton.vue';
 import PostTagCard from './PostTagCard.vue';
-import PostShareButton from './PostShareButton.vue';
-import PostRepostButton from './PostRepostButton.vue';
 import PostGigRow from './PostGigRow.vue';
 import PostReportLink from './PostReportLink.vue';
-import VibePostActions from '../../vibes/feed/VibePostActions.vue';
-import { useVibeActions } from '../../vibes/useVibeActions';
+import UVibePostActions from './UVibePostActions.vue';
 
 const props = defineProps({
   post: { type: Object, required: true },
@@ -85,6 +82,5 @@ defineEmits([
   'updated', 'reposted', 'needUniversity', // something changed
 ]);
 
-const actions = useVibeActions();
 const name = computed(() => posterName(props.post));
 </script>

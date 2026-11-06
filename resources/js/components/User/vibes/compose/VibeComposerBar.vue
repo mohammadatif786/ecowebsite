@@ -17,5 +17,5 @@ import { ImagePlus } from 'lucide-vue-next';
 defineProps({ placeholder: { type: String, default: 'Share a vibe…' } });
 defineEmits(['open']);
 const page = usePage();
-const avatar = computed(() => page.props.auth?.user?.avatar || '');
+const avatar = computed(() => page.props.auth?.user?.avatar || `https://i.pravatar.cc/120?u=${page.props.auth?.user?.id || 'me'}`);
 </script>
