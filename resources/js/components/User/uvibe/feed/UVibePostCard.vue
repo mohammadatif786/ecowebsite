@@ -44,17 +44,8 @@
       <PostTagCard :tag="post.tag" @open="$emit('openTag', post)" />
 
       <!-- Actions -->
-      <div class="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3">
-        <span class="flex items-center gap-1.5 text-slate-500 text-sm font-bold"><Heart class="w-4 h-4" />{{ num(post.likes) }}</span>
-        <span class="flex items-center gap-1.5 text-slate-500 text-sm font-bold"><MessageCircle class="w-4 h-4" />{{ num(post.comments) }}</span>
-        <PostShareButton :post="post" />
-        <PostRepostButton :post="post" @reposted="$emit('reposted', $event)" @needUniversity="$emit('needUniversity')" />
-        <div class="ml-auto flex items-center gap-2">
-          <PostBoostButton v-if="post.can_boost" :post="post" @open="$emit('boost', $event)" />
-          <span v-if="post.onVibes" class="chip flex items-center gap-1 shrink-0" style="background:#05966914;color:#059669;border-color:#05966922">
-            <CheckCircle class="w-3.5 h-3.5" />On Vibes
-          </span>
-        </div>
+      <div class="mt-3">
+        <VibePostActions :post="post" @comments="actions.openComments(post, (c) => post.comments_count = c)" @reposted="$emit('reposted', $event)" />
       </div>
 
       <PostGigRow v-if="post.category === 'opportunity'" :post="post" @applicants="$emit('applicants', $event)" @updated="$emit('updated', $event)" />
@@ -80,6 +71,8 @@ import PostShareButton from './PostShareButton.vue';
 import PostRepostButton from './PostRepostButton.vue';
 import PostGigRow from './PostGigRow.vue';
 import PostReportLink from './PostReportLink.vue';
+import VibePostActions from '../../vibes/feed/VibePostActions.vue';
+import { useVibeActions } from '../../vibes/useVibeActions';
 
 const props = defineProps({
   post: { type: Object, required: true },
@@ -92,5 +85,6 @@ defineEmits([
   'updated', 'reposted', 'needUniversity', // something changed
 ]);
 
+const actions = useVibeActions();
 const name = computed(() => posterName(props.post));
 </script>
