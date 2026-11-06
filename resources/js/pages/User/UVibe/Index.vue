@@ -229,6 +229,21 @@ const sendVibeTo = ref(null);
 
 const isOwner = (p) => !!p && String(p.created_by) === String(user.value.id);
 
+function openNewReelModal() {
+  newReelRef.value?.open();
+}
+function openCreatorReels(userId) {
+  reelsRef.value?.openCreator(userId, true);
+}
+function onReelCreated(reel) {
+  myReelsCount.value += 1;
+  reels.value.unshift({ ...reel, is_mine: true, handle: 'Your Reel' });
+}
+function onReelDeleted(id) {
+  reels.value = reels.value.filter((r) => r.id !== id);
+  myReelsCount.value = Math.max(0, myReelsCount.value - 1);
+}
+
 provideVibeActions({
   openComments: (post, onCount) => commentsRef.value?.open(post, onCount),
   openBigUp: (post, done) => { bigUpFor.value = post; bigUpDone = done; nextTick(() => bigUpRef.value?.open()); },
