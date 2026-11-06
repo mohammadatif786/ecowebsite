@@ -22,7 +22,7 @@ import LinkUpSave from './EWallet/LinkUpSave.vue';
 import Cryptocurrency from './EWallet/Cryptocurrency.vue';
 import ComplianceDesk from './EWallet/ComplianceDesk.vue';
 import RiskReconciliation from './EWallet/RiskReconciliation.vue';
-import AuditTrail from './EWallet/AuditTrail.vue';
+import WalletActivity from './EWallet/WalletActivity.vue';
 import SystemLogs from './EWallet/SystemLogs.vue';
 import ScotiaPortal from './EWallet/ScotiaPortal.vue';
 
@@ -82,6 +82,8 @@ const props = defineProps<{
     initialAsueSummary: any;
     initialPayoutQueue: any[];
     initialPayoutQueueSummary: any;
+    initialWalletSummary?: any;
+    initialCoinsData?: any;
     initialAds?: any[];
     initialEmailAds?: any[];
     initialEmailAdCategories?: any[];
@@ -234,6 +236,7 @@ const labelFor = (id: string) => {
     const pages = [
         ['walletCommand', 'Mission Control'],
         ['walletTransactionsCommand', 'Transactions Ledger'],
+        ['walletActivityCommand', 'Wallet Activity'],
         ['walletUsersCommand', 'Wallet Users'],
         ['walletBalancesCommand', 'Wallet Balances'],
         ['walletSettlementCenterCommand', 'Settlement Center'],
@@ -374,15 +377,14 @@ const labelFor = (id: string) => {
                     :filtered-movements="filteredMovements"
                     :wallet-filter="walletFilter"
                     :wallet-user-directory="walletUserDirectory"
+                    :summary="props.initialWalletSummary || {}"
                 />
 
                 <!-- TRANSACTIONS LEDGER -->
                 <TransactionsLedger
                     v-else-if="activeViewId === 'walletTransactionsCommand'"
-                    :filtered-movements="filteredMovements"
-                    :wallet-filter="walletFilter"
                     :fmt="fmt"
-                    :get-scale="getScale"
+                    :summary="props.initialWalletSummary || {}"
                 />
 
                 <!-- WALLET USERS -->
@@ -442,8 +444,7 @@ const labelFor = (id: string) => {
                 <!-- COINS -->
                 <CoinsTreasury
                     v-else-if="activeViewId === 'coins'"
-                    :get-filtered-countries="getFilteredCountries"
-                    :get-scale="getScale"
+                    :coins="props.initialCoinsData || {}"
                     :fmt="fmt"
                     :num="num"
                 />
@@ -481,10 +482,15 @@ const labelFor = (id: string) => {
                     :countries="countries"
                 />
 
-                <!-- AUDIT TRAIL -->
-                <AuditTrail
+                <!-- WALLET ACTIVITY (every member + admin wallet action, real data) -->
+                <WalletActivity
+                    v-else-if="activeViewId === 'walletActivityCommand'"
+                />
+
+                <!-- AUDIT TRAIL (admin wallet actions, real data) -->
+                <WalletActivity
                     v-else-if="activeViewId === 'walletAuditCommand'"
-                    :audit-logs="auditLogs"
+                    admin-only
                 />
 
                 <!-- SYSTEM LOGS -->

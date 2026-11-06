@@ -80,7 +80,22 @@ import {
     Utensils,
     Wallet,
 } from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
+import axios from 'axios';
+
+// Global GTV card: real money moved through LinkUp (server-cached for 5 minutes).
+const gtv = ref<{ total: number; parts: Record<string, number> } | null>(null);
+const gtvText = computed(() => {
+    const t = gtv.value?.total;
+    if (t === undefined) return '…';
+    if (t >= 1e6) return '$' + (t / 1e6).toFixed(1) + 'M';
+    if (t >= 1e3) return '$' + (t / 1e3).toFixed(1) + 'K';
+    return '$' + t.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+});
+const gtvTitle = computed(() => gtv.value ? Object.entries(gtv.value.parts).map(([k, v]) => `${k}: $${Number(v).toLocaleString()}`).join(' · ') : '');
+onMounted(async () => {
+    try { gtv.value = (await axios.get(route('admin.e-wallet.gtv'))).data; } catch { gtv.value = null; }
+});
 
 const props = defineProps<{
     activeId: string;
@@ -327,6 +342,7 @@ const marketplacePages = [
 const walletPages = [
     ['walletCommand', 'wallet', 'Mission Control'],
     ['walletTransactionsCommand', 'list', 'Transactions Ledger'],
+    ['walletActivityCommand', 'activity', 'Wallet Activity'],
     ['walletUsersCommand', 'users', 'Wallet Users'],
     ['walletBalancesCommand', 'landmark', 'Wallet Balances'],
     ['walletSettlementCenterCommand', 'receipt', 'Settlement Center'],
@@ -1169,8 +1185,8 @@ const adminCatActive = computed(() => adminActive.value || settingsActive.value 
         <div class="border-t border-slate-100 p-4">
             <div class="ribbon rounded-3xl p-5 text-white">
                 <p class="text-xs opacity-60">Global GTV</p>
-                <h3 class="mt-1 text-3xl font-black">$14.2M</h3>
-                <p class="mt-2 text-xs text-lime-300">Money moving through LinkUp</p>
+                <h3 class="mt-1 text-3xl font-black" :title="gtvTitle">{{ gtvText }}</h3>
+                <p class="mt-2 text-xs text-lime-300">Payments, tickets, orders & transfers</p>
             </div>
         </div>
     </aside>

@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 export function useEWalletData(props: {
     initialUnits: any[];
@@ -140,8 +140,10 @@ export function useEWalletData(props: {
     const walletCountryStats = (countryName: string) => {
         const c = countries.value.find(x => x.country === countryName);
         const movementRows = walletMovements.value.filter(w => w.country === countryName);
-        const totalBalance = (c?.wallet || 0) * getScale();
-        const walletUsers = (c?.users || 0) * 0.64 * getScale();
+        // Real stored value and wallet count for the country (balances table), not ledger volume.
+        const bal = (walletCountryBalances.value || []).find((x: any) => x.country === countryName);
+        const totalBalance = (bal?.balance || 0) * getScale();
+        const walletUsers = (bal?.walletUsers || 0);
         const loads = movementRows.filter(w => w.type === 'Wallet Load').reduce((s, w) => s + w.amount, 0) * getScale();
         const sent = movementRows.filter(w => w.type === 'Send Money' || w.type === 'FX Transfer').reduce((s, w) => s + w.amount, 0) * getScale();
         const received = movementRows.filter(w => w.type === 'Receive Money' || w.type === 'Refund').reduce((s, w) => s + w.amount, 0) * getScale();
@@ -183,6 +185,13 @@ export function useEWalletData(props: {
     // Drawer), mapped server-side in AdminOverviewService::getPayoutQueueData().
     const payoutQueue = ref(props.initialPayoutQueue);
     const payoutQueueSummary = ref(props.initialPayoutQueueSummary);
+
+    // Keep server data in step after a partial reload (e.g. after approving a withdrawal).
+    watch(() => props.initialPayoutQueue, (v) => { payoutQueue.value = v; });
+    watch(() => props.initialPayoutQueueSummary, (v) => { payoutQueueSummary.value = v; });
+    watch(() => props.initialWalletMovements, (v) => { walletMovements.value = v; });
+    watch(() => props.initialWalletUsers, (v) => { walletUserAccounts.value = v; });
+    watch(() => props.initialWalletCountryBalances, (v) => { walletCountryBalances.value = v; });
 
     const complianceCases = ref([
         { id: 'AML-3002', date: '2026-06-05', user: 'Lucas Silva', country: 'Brazil', type: 'Cross-border FX', amount: 8400, risk: 'High', status: 'Open', reason: 'Rapid cross-border FX pattern exceeds $5,000 threshold.' },

@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Admin\EWallet\WalletActivityController;
+use App\Http\Controllers\Admin\Trust\KycDocumentController;
 use App\Http\Controllers\Admin\NewAdminController;
 use App\Http\Controllers\Admin\NewAdmin\AdminUserController;
 use App\Http\Controllers\Admin\NewAdmin\AdsSettingController;
@@ -30,6 +32,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::delete('legal-pages/{key}', [NewAdminController::class, 'deleteLegalPage'])->name('legal.delete');
         });
         Route::get('e-wallet-dashboard', [NewAdminController::class, 'eWalletDashboard'])->name('e-wallet-dashboard');
+        Route::get('e-wallet/activity', [WalletActivityController::class, 'index'])->middleware('throttle:120,1,admin-wallet-activity:')->name('e-wallet.activity');
+        Route::get('e-wallet/activity/export', [WalletActivityController::class, 'export'])->middleware('throttle:10,1,admin-wallet-activity-export:')->name('e-wallet.activity.export');
+        Route::get('e-wallet/ledger', [\App\Http\Controllers\Admin\EWallet\WalletLedgerController::class, 'index'])->middleware('throttle:120,1,admin-wallet-ledger:')->name('e-wallet.ledger');
+        Route::get('e-wallet/gtv', \App\Http\Controllers\Admin\EWallet\GtvController::class)->middleware('throttle:60,1,admin-wallet-gtv:')->name('e-wallet.gtv');
+        Route::post('e-wallet/withdrawals/{withdrawal}/approve', [\App\Http\Controllers\Admin\EWallet\PayoutQueueController::class, 'approve'])->middleware('throttle:admin-sensitive')->name('e-wallet.withdrawals.approve');
+        Route::post('e-wallet/withdrawals/{withdrawal}/reject', [\App\Http\Controllers\Admin\EWallet\PayoutQueueController::class, 'reject'])->middleware('throttle:admin-sensitive')->name('e-wallet.withdrawals.reject');
         Route::get('remittance-dashboard', [NewAdminController::class, 'remittanceDashboard'])->name('remittance-dashboard');
         Route::get('settlements-dashboard', [NewAdminController::class, 'settlementsDashboard'])->name('settlements-dashboard');
         Route::get('payout-ops-dashboard', [NewAdminController::class, 'payoutOpsDashboard'])->name('payout-ops-dashboard');
@@ -60,6 +68,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         });
         Route::patch('trust/kyc/{source}/{id}/status', [NewAdminController::class, 'updateKycReviewStatus'])->middleware('throttle:admin-sensitive')->name('trust.kyc.status');
         Route::patch('trust/kyc/{source}/{id}/documents/{document}/status', [NewAdminController::class, 'updateKycDocumentStatus'])->middleware('throttle:admin-sensitive')->name('trust.kyc.documents.status');
+        Route::get('trust/kyc/{source}/{id}/documents/{document}/file', [KycDocumentController::class, 'show'])
+            ->middleware(['signed:relative', 'throttle:120,1,kyc-docs:'])
+            ->whereIn('source', ['wallet', 'organizer', 'user'])
+            ->whereNumber('id')
+            ->name('trust.kyc.documents.file');
         Route::prefix('trust/flagged-users')->name('trust.flagged-users.')->group(function () {
             Route::patch('{flaggedUser}/status', [NewAdminController::class, 'updateFlaggedUserStatus'])->middleware('throttle:admin-sensitive')->name('status');
             Route::patch('{flaggedUser}/activation', [NewAdminController::class, 'updateFlaggedUserActivation'])->middleware('throttle:admin-sensitive')->name('activation');

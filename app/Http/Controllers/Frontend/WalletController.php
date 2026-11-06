@@ -374,11 +374,7 @@ class WalletController extends Controller
                 }
             }
 
-            if ($request->redirect_to) {
-                return redirect($request->redirect_to)->with('success', 'Coins added successfully!');
-            }
-
-            return redirect()->route('frontend.user.wallet')->with('success', 'Coins added successfully!');
+            return redirect($this->safeReturnUrl($request->redirect_to))->with('success', 'Coins added successfully!');
         } catch (\Exception $e) {
             logger('Stripe API Error: ' . $e->getMessage());
             return redirect('/subscription-error')->with('error', $e->getMessage());
@@ -402,11 +398,7 @@ class WalletController extends Controller
                 }
             }
 
-            if ($request->redirect_to) {
-                return redirect($request->redirect_to)->with('success', 'Funds added successfully!');
-            }
-
-            return redirect()->route('frontend.user.wallet')->with('success', 'Funds added successfully!');
+            return redirect($this->safeReturnUrl($request->redirect_to))->with('success', 'Funds added successfully!');
         } catch (\Exception $e) {
             logger('Stripe API Error: ' . $e->getMessage());
             return redirect('/subscription-error')->with('error', $e->getMessage());
@@ -1798,9 +1790,9 @@ class WalletController extends Controller
 
         $documentPaths = [];
         if ($request->hasFile('kyc_documents')) {
+            $kycStore = app(\App\Domain\Kyc\KycDocumentStore::class);
             foreach ($request->file('kyc_documents') as $file) {
-                $path = $file->store('kyc-documents', 'public');
-                $documentPaths[] = $path;
+                $documentPaths[] = $kycStore->store($file, 'wallet/' . $user->id);
             }
         }
 
@@ -2249,5 +2241,20 @@ class WalletController extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /** Only return to a page on this site after Stripe (no open redirect); default is the wallet hub. */
+    private function safeReturnUrl(mixed $target): string
+    {
+        $fallback = route('user.wallet');
+        if (! is_string($target) || $target === '') {
+            return $fallback;
+        }
+        if (str_starts_with($target, '/') && ! str_starts_with($target, '//') && ! str_contains($target, '\\')) {
+            return $target;
+        }
+        $host = parse_url($target, PHP_URL_HOST);
+
+        return $host && strcasecmp($host, request()->getHost()) === 0 ? $target : $fallback;
     }
 }

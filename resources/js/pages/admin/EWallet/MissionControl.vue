@@ -14,56 +14,39 @@ const props = defineProps<{
     filteredMovements: any[];
     walletFilter: any;
     walletUserDirectory: any[];
+    summary?: Record<string, number>;
 }>();
 
-// Active Wallets 24H / Risk & Compliance are computed off the full, unfiltered
-// movement log (matches the source dashboard, which doesn't scope these to region/country).
-const activeWallets24h = computed(() => new Set(props.walletMovements.map((w) => w.user)).size);
-const riskFlagCount = computed(() => props.walletMovements.filter((w) => w.status === 'Review' || w.status === 'Pending').length);
+// Real figures from the server (GetAdminWalletSummaryAction). No estimates or assumed splits.
+const S = computed(() => props.summary || {});
+const v = (k: string) => Number(S.value[k] || 0);
 
-const activeWalletUsers = computed(() => props.getFilteredCountries().reduce((s, c) => s + (c.users || 0) * 0.64, 0) * props.getScale());
+const treasuryGrid = computed(() => [
+    { label: 'Member Wallet Balances', value: props.fmt(v('balances')) },
+    { label: 'Wallets (funded / total)', value: `${props.num(v('fundedWallets'))} / ${props.num(v('walletUsers'))}` },
+    { label: 'Wallet Loads (30d)', value: props.fmt(v('loads30d')) },
+    { label: 'Wallet Loads (all time)', value: props.fmt(v('loadsAll')) },
+    { label: 'Cash-outs Paid (all time)', value: props.fmt(v('cashoutsCompleted')) },
+    { label: 'Net Inflow (loads − cash-outs)', value: props.fmt(v('loadsAll') - v('cashoutsCompleted')) },
+    { label: 'Movement Volume (30d)', value: props.fmt(v('volume30d')) },
+    { label: 'Transactions (30d)', value: props.num(v('txCount30d')) },
+]);
 
-const treasuryGrid = computed(() => {
-    const w = props.walletStats;
-    return [
-        { label: 'Total Wallet Balances', value: props.fmt(w.balances) },
-        { label: 'Available Reserves', value: props.fmt(w.availableReserves) },
-        { label: 'Reserve Surplus', value: props.fmt(w.availableReserves - w.balances) },
-        { label: 'Required Reserve 110%', value: props.fmt(w.balances * 1.1) },
-        { label: 'Movement Volume', value: props.fmt(w.movementVolume) },
-        { label: 'Wallet Fees', value: props.fmt(w.fees) },
-        { label: 'Net Inflow', value: props.fmt(w.loads + w.received - w.sent - w.cashouts - w.merchantPayments) },
-        { label: 'Active Wallet Users', value: props.num(activeWalletUsers.value) },
-    ];
-});
+const riskGrid = computed(() => [
+    { label: 'Pending Cash-outs', value: `${v('pendingCashouts')} · ${props.fmt(v('pendingCashoutAmount'))}` },
+    { label: 'Identity Checks Waiting', value: String(v('kycPending')) },
+    { label: 'Failed Wallet Actions Today', value: String(v('failedToday')) },
+    { label: 'Wrong PINs (24h)', value: String(v('wrongPins24h')) },
+    { label: 'Largest Movement (30d)', value: props.fmt(v('largestMovement30d')) },
+    { label: 'Wallets of Deleted Members', value: `${v('orphanWallets')} · ${props.fmt(v('orphanBalance'))}` },
+]);
 
-const riskGrid = computed(() => {
-    const m = props.filteredMovements;
-    const largest = Math.max(...m.map((w) => w.amount * props.getScale()), 0);
-    return [
-        { label: 'Pending Cash Outs', value: String(m.filter((w) => w.status === 'Pending').length) },
-        { label: 'Review Transactions', value: String(m.filter((w) => w.status === 'Review').length) },
-        { label: 'Largest Movement', value: props.fmt(largest) },
-        { label: 'Reserve Ratio', value: Math.round(props.walletStats.reserveRatio) + '%' },
-        { label: 'FX / Cross-Border', value: String(m.filter((w) => w.type === 'FX Transfer' || w.channel === 'Cross-Border Transfer').length) },
-        { label: 'Merchant Settlements', value: String(m.filter((w) => w.type === 'Merchant Settlement').length) },
-    ];
-});
-
-// Profit Center reflects total platform-wide wallet fee income, independent of the
-// region/country/type/status filters applied to the ledger below (matches source).
-const profitCenter = computed(() => {
-    const feeTotal = props.walletMovements.reduce((s, w) => s + w.fee, 0) * props.getScale();
-    const linkup = feeTotal * 0.6;
-    const bank = feeTotal * 0.4;
-    return [
-        { label: 'Total Wallet Fees', sub: 'All wallet channels', value: props.fmt(feeTotal) },
-        { label: 'LinkUp Share 60%', sub: 'Platform income', value: props.fmt(linkup), color: 'text-emerald-600' },
-        { label: 'Bank / Processor Share 40%', sub: 'Processing partner', value: props.fmt(bank), color: 'text-amber-600' },
-        { label: 'Net Wallet Revenue', sub: 'Before operating cost', value: props.fmt(linkup), color: 'text-purple-600' },
-        { label: 'Transaction Count', sub: 'Current filter', value: props.num(props.filteredMovements.length) },
-    ];
-});
+const profitCenter = computed(() => [
+    { label: 'Wallet Transaction Fees', sub: 'Commission on wallet transactions (all time)', value: props.fmt(v('walletFeesAll')) },
+    { label: 'Bank Withdrawal Fees', sub: 'Fees on completed cash-outs', value: props.fmt(v('cashoutFees')), color: 'text-emerald-600' },
+    { label: 'Total Wallet Fee Income', sub: 'Before processor costs', value: props.fmt(v('walletFeesAll') + v('cashoutFees')), color: 'text-purple-600' },
+    { label: 'Transaction Count', sub: 'Current ledger filter', value: props.num(props.filteredMovements.length) },
+]);
 
 const walletCountryChartRef = ref<HTMLCanvasElement | null>(null);
 const walletMixChartRef = ref<HTMLCanvasElement | null>(null);
@@ -96,13 +79,12 @@ const renderCharts = () => {
     }
     const ctxMix = walletMixChartRef.value;
     if (ctxMix) {
-        const w = props.walletStats;
         charts.value.walletMix = new Chart(ctxMix, {
             type: 'doughnut',
             data: {
-                labels: ['Loads', 'Transfers', 'Merchant Pay', 'Bills', 'Cash Outs'],
+                labels: ['Loads (30d)', 'Transfers (30d)', 'Payments (30d)', 'Pending cash-outs', 'Cash-outs paid'],
                 datasets: [{
-                    data: [w.loads, w.sent, w.merchantPayments, 10000 * props.getScale(), w.cashouts],
+                    data: [v('loads30d'), v('p2p30d'), v('payments30d'), v('pendingCashoutAmount'), v('cashoutsCompleted')],
                     backgroundColor: ['#28A8FF', '#8B5CF6', '#00C853', '#F59E0B', '#F43F5E']
                 }]
             },
@@ -121,10 +103,21 @@ const renderCharts = () => {
 };
 
 onMounted(renderCharts);
-watch(() => [props.walletStats, props.getScale()], renderCharts, { deep: true });
-
+watch(() => [props.summary, props.getScale()], renderCharts, { deep: true });
 const exportWalletCSV = () => {
-    alert('Exporting Wallet CSV...');
+    const cell = (x: any) => {
+        let t = String(x ?? '');
+        if (/^[=+\-@\t\r]/.test(t)) t = "'" + t;
+        return '"' + t.replace(/"/g, '""') + '"';
+    };
+    const head = ['ID', 'Date', 'Country', 'Member', 'Other member', 'Type', 'Direction', 'Channel', 'Amount', 'Fee', 'Status'];
+    const rows = props.filteredMovements.map((w) => [w.id, w.date, w.country, w.user, w.counterparty || '', w.type, w.direction, w.channel, w.amount, w.fee, w.status]);
+    const csv = [head, ...rows].map((r) => r.map(cell).join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    a.download = `wallet-ledger-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
 };
 
 // Geographic grouping for the country-wise accordions below (Transactions Ledger,
@@ -217,8 +210,6 @@ const userAvatar = (name: string, size = 26) => {
                 <p class="text-slate-500">View LinkUp wallet balances, transactions, fees, risk flags, and settlement movement in one place.</p>
             </div>
             <div class="flex flex-wrap gap-2">
-                <span class="rounded-full border border-green-200 bg-green-50 px-4 py-2 text-sm font-black text-green-700">● DB: Online</span>
-                <span class="rounded-full border border-sky-200 bg-sky-50 px-4 py-2 text-sm font-black text-sky-700">API Latency: 112ms</span>
                 <button @click="exportWalletCSV" class="flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-2 font-black text-white">
                     <Download class="h-4 w-4" /> Export Wallet CSV
                 </button>
@@ -228,24 +219,24 @@ const userAvatar = (name: string, size = 26) => {
         <!-- Top KPIs -->
         <div class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
             <div class="card metric dark rounded-3xl p-5">
-                <p class="font-bold text-slate-300">Total Revenue YTD</p>
-                <h3 class="mt-2 text-4xl font-black">{{ fmt(walletStats.fees * 0.6) }}</h3>
-                <p class="font-bold text-lime-300">Wallet fees + LinkUp events</p>
+                <p class="font-bold text-slate-300">Wallet Fee Income</p>
+                <h3 class="mt-2 text-4xl font-black">{{ fmt(v('walletFeesAll') + v('cashoutFees')) }}</h3>
+                <p class="font-bold text-lime-300">Transaction + cash-out fees, all time</p>
             </div>
             <div class="card rounded-3xl p-5">
                 <p class="font-bold text-slate-500">Platform Float</p>
-                <h3 class="mt-2 text-4xl font-black">{{ fmt(walletStats.balances) }}</h3>
-                <p class="font-bold text-slate-500">Held across custodial accounts</p>
+                <h3 class="mt-2 text-4xl font-black">{{ fmt(v('balances')) }}</h3>
+                <p class="font-bold text-slate-500">Money members hold in their wallets</p>
             </div>
             <div class="card rounded-3xl p-5">
                 <p class="font-bold text-slate-500">Active Wallets 24H</p>
-                <h3 class="mt-2 text-4xl font-black">{{ num(activeWallets24h) }}</h3>
+                <h3 class="mt-2 text-4xl font-black">{{ num(v('activeWallets24h')) }}</h3>
                 <p class="font-bold text-green-500">Unique wallets transacting</p>
             </div>
             <div class="card rounded-3xl p-5">
                 <p class="font-bold text-slate-500">Risk & Compliance</p>
-                <h3 class="mt-2 text-4xl font-black">{{ riskFlagCount }} Flags</h3>
-                <p class="font-bold text-amber-500">Review / pending items</p>
+                <h3 class="mt-2 text-4xl font-black">{{ v('pendingCashouts') + v('kycPending') + v('failedToday') }} Items</h3>
+                <p class="font-bold text-amber-500">Cash-outs, identity checks, failed actions</p>
             </div>
         </div>
 
@@ -253,38 +244,38 @@ const userAvatar = (name: string, size = 26) => {
         <div class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-5">
             <div class="card rounded-3xl p-5">
                 <p class="font-bold text-slate-500">Total Wallet Balances</p>
-                <h3 class="text-4xl font-black">{{ fmt(walletStats.balances) }}</h3>
-                <p class="font-bold text-green-500">Customer stored value</p>
+                <h3 class="text-4xl font-black">{{ fmt(v('balances')) }}</h3>
+                <p class="font-bold text-green-500">{{ num(v('fundedWallets')) }} funded of {{ num(v('walletUsers')) }} wallets</p>
             </div>
             <div class="card rounded-3xl p-5">
                 <p class="font-bold text-slate-500">Movement Volume</p>
-                <h3 class="text-4xl font-black">{{ fmt(walletStats.movementVolume) }}</h3>
-                <p class="font-bold text-sky-500">All wallet movement</p>
+                <h3 class="text-4xl font-black">{{ fmt(v('volume30d')) }}</h3>
+                <p class="font-bold text-sky-500">Last 30 days · {{ num(v('txCount30d')) }} transactions</p>
             </div>
             <div class="card rounded-3xl p-5">
                 <p class="font-bold text-slate-500">Wallet Fees</p>
-                <h3 class="text-4xl font-black">{{ fmt(walletStats.fees) }}</h3>
-                <p class="font-bold text-purple-500">Fee income</p>
+                <h3 class="text-4xl font-black">{{ fmt(v('walletFeesAll')) }}</h3>
+                <p class="font-bold text-purple-500">Transaction commission, all time</p>
             </div>
             <div class="card rounded-3xl p-5">
-                <p class="font-bold text-slate-500">Bank / Processor Share</p>
-                <h3 class="text-4xl font-black">{{ fmt(walletStats.fees * 0.4) }}</h3>
-                <p class="font-bold text-amber-500">Processing partner split</p>
+                <p class="font-bold text-slate-500">Pending Cash-outs</p>
+                <h3 class="text-4xl font-black">{{ fmt(v('pendingCashoutAmount')) }}</h3>
+                <p class="font-bold text-amber-500">{{ v('pendingCashouts') }} waiting in the Payout Queue</p>
             </div>
             <div class="card rounded-3xl p-5">
-                <p class="font-bold text-slate-500">Reserve Ratio</p>
-                <h3 class="text-4xl font-black">{{ Math.round(walletStats.reserveRatio) }}%</h3>
-                <p class="font-bold text-rose-500">Funds coverage</p>
+                <p class="font-bold text-slate-500">Deleted Members' Wallets</p>
+                <h3 class="text-4xl font-black">{{ fmt(v('orphanBalance')) }}</h3>
+                <p class="font-bold text-rose-500">{{ num(v('orphanWallets')) }} wallets with no member</p>
             </div>
         </div>
 
         <!-- Flow Summary -->
         <div class="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-5">
-            <div class="card rounded-3xl p-5"><p class="font-bold text-slate-500">Wallet Loads</p><h3 class="text-4xl font-black">{{ fmt(walletStats.loads) }}</h3></div>
-            <div class="card rounded-3xl p-5"><p class="font-bold text-slate-500">Money Sent</p><h3 class="text-4xl font-black">{{ fmt(walletStats.sent) }}</h3></div>
-            <div class="card rounded-3xl p-5"><p class="font-bold text-slate-500">Money Received</p><h3 class="text-4xl font-black">{{ fmt(walletStats.received) }}</h3></div>
-            <div class="card rounded-3xl p-5"><p class="font-bold text-slate-500">Cash Outs</p><h3 class="text-4xl font-black">{{ fmt(walletStats.cashouts) }}</h3></div>
-            <div class="card rounded-3xl p-5"><p class="font-bold text-slate-500">Merchant Payments</p><h3 class="text-4xl font-black">{{ fmt(walletStats.merchantPayments) }}</h3></div>
+            <div class="card rounded-3xl p-5"><p class="font-bold text-slate-500">Wallet Loads (30d)</p><h3 class="text-4xl font-black">{{ fmt(v('loads30d')) }}</h3></div>
+            <div class="card rounded-3xl p-5"><p class="font-bold text-slate-500">Member Transfers (30d)</p><h3 class="text-4xl font-black">{{ fmt(v('p2p30d')) }}</h3></div>
+            <div class="card rounded-3xl p-5"><p class="font-bold text-slate-500">Payments (30d)</p><h3 class="text-4xl font-black">{{ fmt(v('payments30d')) }}</h3></div>
+            <div class="card rounded-3xl p-5"><p class="font-bold text-slate-500">Cash-outs Paid</p><h3 class="text-4xl font-black">{{ fmt(v('cashoutsCompleted')) }}</h3></div>
+            <div class="card rounded-3xl p-5"><p class="font-bold text-slate-500">Active Wallets (24h)</p><h3 class="text-4xl font-black">{{ num(v('activeWallets24h')) }}</h3></div>
         </div>
 
         <!-- Charts -->

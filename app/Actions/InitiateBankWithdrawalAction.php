@@ -18,7 +18,7 @@ class InitiateBankWithdrawalAction
         $this->validateAmount($dto->amount);
         $this->validateBankSelection($dto);
 
-        $feePercent = $this->resolveFeePercent();
+        $feePercent = self::feePercent();
         $feeAmount = round($dto->amount * ($feePercent / 100), 2);
         $payoutAmount = max(round($dto->amount - $feeAmount, 2), 0);
 
@@ -33,17 +33,30 @@ class InitiateBankWithdrawalAction
         }
 
         // Get the user's bank details to retrieve the actual bank info
-        $bankAccounts = \App\Models\UserBankAccount::where('user_id', $dto->userId)->get();
-        
-        if ($bankAccounts->isEmpty() || !isset($bankAccounts[$dto->bankIndex])) {
+        // A specific saved account (wallet hub) or, for older screens, its position in the list.
+        $bankAccounts = \App\Models\UserBankAccount::where('user_id', $dto->userId)->orderBy('id')->get()
+            ->filter(fn ($account) => ! empty($account->bank_name) && ! empty($account->account_number))
+            ->values();
+
+        $selectedBank = $dto->bankAccountId !== null
+            ? $bankAccounts->firstWhere('id', $dto->bankAccountId)
+            : ($bankAccounts[$dto->bankIndex] ?? null);
+
+        if (! $selectedBank) {
             throw ValidationException::withMessages([
                 'bank' => ['Invalid bank selection.'],
             ]);
         }
 
-        $selectedBank = $bankAccounts[$dto->bankIndex];
-
         $withdrawal = DB::transaction(function () use ($dto, $user, $selectedBank, $feePercent, $feeAmount, $payoutAmount) {
+            // Re-check under a row lock so two quick withdrawals cannot both pass the balance check.
+            User::whereKey($user->id)->lockForUpdate()->first();
+            if ($user->balance('USD')->value->get() < $dto->amount) {
+                throw ValidationException::withMessages([
+                    'amount' => ['Insufficient balance for this withdrawal.'],
+                ]);
+            }
+
             // Deduct amount from wallet by transferring to system custodian
             $custodian = \O21\LaravelWallet\Models\Custodian::of('system');
             
@@ -115,14 +128,14 @@ class InitiateBankWithdrawalAction
 
     private function validateBankSelection(BankWithdrawalDTO $dto): void
     {
-        if ($dto->bankIndex < 0) {
+        if ($dto->bankAccountId === null && $dto->bankIndex < 0) {
             throw ValidationException::withMessages([
                 'bank' => ['Please select a bank account.'],
             ]);
         }
     }
 
-    private function resolveFeePercent(): float
+    public static function feePercent(): float
     {
         $feePercentRaw = env('BANK_PROCESSING_FEE_PERCENT', 5);
         $feePercent = is_numeric($feePercentRaw) ? (float) $feePercentRaw : 5.0;

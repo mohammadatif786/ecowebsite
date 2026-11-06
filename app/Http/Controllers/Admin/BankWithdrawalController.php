@@ -44,35 +44,18 @@ class BankWithdrawalController extends Controller
         ]);
     }
 
-    public function approve($id)
+    public function approve($id, \App\Domain\Wallet\Actions\SettleBankWithdrawalAction $settle)
     {
         $admin = Auth::user();
         $this->verifyAdminRole($admin);
         $this->enforceRateLimit($admin->id, 'approve');
 
-        $withdrawal = BankWithdrawal::with('user')->lockForUpdate()->findOrFail($id);
-
-        DB::transaction(function () use ($withdrawal) {
-
-            if ($withdrawal->status !== 'pending') {
-                throw ValidationException::withMessages([
-                    'status' => ['This withdrawal cannot be approved. It may already be processed.'],
-                ]);
-            }
-            $withdrawal->update([
-                'status' => 'completed',
-                'processed_at' => now(),
-            ]);
-        });
-
-        $mailData = $this->mailData($withdrawal);
-
-        BankWithDrawalJob::dispatch($mailData);
+        $settle->approve((int) $id, (int) $admin->id); // locked + status-checked inside one transaction
 
         return back()->with('success', 'Withdrawal approved successfully.');
     }
 
-    public function reject(Request $request, $id)
+    public function reject(Request $request, $id, \App\Domain\Wallet\Actions\SettleBankWithdrawalAction $settle)
     {
         $admin = Auth::user();
         $this->verifyAdminRole($admin);
@@ -82,39 +65,7 @@ class BankWithdrawalController extends Controller
             'reason' => 'nullable|string|max:500',
         ]);
 
-        $withdrawal = BankWithdrawal::with('user')->lockForUpdate()->findOrFail($id);
-
-        if ($withdrawal->status !== 'pending') {
-            throw ValidationException::withMessages([
-                'status' => ['This withdrawal cannot be rejected. It may already be processed.'],
-            ]);
-        }
-
-        $user = $withdrawal->user;
-        $systemCustodian = Custodian::of('system');
-
-        DB::transaction(function () use ($withdrawal, $user, $systemCustodian, $request, $admin) {
-            transfer($withdrawal->amount, 'USD')
-                ->from($systemCustodian)
-                ->to($user)
-                ->meta([
-                    'type' => 'bank_withdrawal_refund',
-                    'withdrawal_id' => $withdrawal->id,
-                    'admin_id' => $admin->id,
-                    'note' => 'Withdrawal rejected by admin - amount refunded',
-                ])
-                ->commit();
-
-            $withdrawal->update([
-                'status' => 'failed',
-                'failure_reason' => $request->reason ?? 'Rejected by admin',
-                'processed_at' => now(),
-            ]);
-        });
-
-        $mailData = $this->mailData($withdrawal);
-
-        BankWithDrawalJob::dispatch($mailData);
+        $settle->reject((int) $id, (int) $admin->id, $request->reason);
 
         return back()->with('success', 'Withdrawal rejected and amount refunded to user.');
     }

@@ -886,6 +886,8 @@ class DashboardController extends Controller
             'subscriptions' => $this->walletSubscriptions($user),
             'bankWithdrawals' => $this->walletBankWithdrawals($user),
             'activeAsue' => $this->walletActiveAsue($user),
+            // Saved banks (masked), withdrawal fee, KYC status, PIN set?
+            ...($user ? \App\Domain\Wallet\WalletPageData::forUser($user) : []),
         ]);
     }
 

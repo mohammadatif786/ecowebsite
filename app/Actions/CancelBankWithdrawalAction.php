@@ -15,51 +15,15 @@ class CancelBankWithdrawalAction
     {
         $this->enforceRateLimit($userId);
 
-        $withdrawal = BankWithdrawal::where('id', $withdrawalId)
-            ->where('user_id', $userId)
-            ->lockForUpdate()
-            ->firstOrFail();
-
-        // Only allow cancellation if status is pending
-        if ($withdrawal->status !== 'pending') {
-            throw ValidationException::withMessages([
-                'status' => ['This withdrawal cannot be cancelled. It may already be processed.'],
-            ]);
-        }
-
-        // Fraud prevention: Only allow cancellation within 30 minutes of creation
-        $createdAt = $withdrawal->created_at;
-        $cutoff = now()->subMinutes(30);
-        if ($createdAt->lt($cutoff)) {
-            throw ValidationException::withMessages([
-                'time' => ['This withdrawal can no longer be cancelled. Cancellation is only allowed within 30 minutes of submission.'],
-            ]);
-        }
-
-        $user = User::findOrFail($userId);
-        $systemCustodian = Custodian::of('system');
-
-        DB::transaction(function () use ($withdrawal, $user, $systemCustodian) {
-            // Refund the amount back to the user from system custodian
-            transfer($withdrawal->amount, 'USD')
-                ->from($systemCustodian)
-                ->to($user)
-                ->meta([
-                    'type' => 'bank_withdrawal_refund',
-                    'withdrawal_id' => $withdrawal->id,
-                    'note' => 'Withdrawal cancelled - amount refunded',
-                ])
-                ->commit();
-
-            // Update withdrawal status to cancelled
-            $withdrawal->update([
-                'status' => 'cancelled',
-                'failure_reason' => 'Cancelled by user',
-                'processed_at' => now(),
-            ]);
+        // Locked, status-checked and refunded inside one transaction (no double refund with an admin reject).
+        return app(\App\Domain\Wallet\Actions\SettleBankWithdrawalAction::class)->cancelByMember($withdrawalId, $userId, function (BankWithdrawal $withdrawal) {
+            // Fraud prevention: only within 30 minutes of creation
+            if ($withdrawal->created_at->lt(now()->subMinutes(30))) {
+                throw ValidationException::withMessages([
+                    'time' => ['This withdrawal can no longer be cancelled. Cancellation is only allowed within 30 minutes of submission.'],
+                ]);
+            }
         });
-
-        return $withdrawal->refresh();
     }
 
     private function enforceRateLimit(int $userId): void

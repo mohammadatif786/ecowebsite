@@ -10,6 +10,7 @@ class BankWithdrawalDTO
         public readonly int $bankIndex,
         public readonly ?string $bankName = null,
         public readonly ?string $accountNumber = null,
+        public readonly ?int $bankAccountId = null,
     ) {
     }
 }

@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Domain\Kyc\KycDocumentStore;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 
 class KycService
@@ -18,10 +20,15 @@ class KycService
     {
         $user = User::find(Auth::id());
 
-        $front = $this->uploader->uploadSingle($files['front_side'] ?? null, 'kyc/front');
-        $back = $this->uploader->uploadSingle($files['back_side'] ?? null, 'kyc/back');
-        $address = $this->uploader->uploadSingle($files['address_proof'] ?? null, 'kyc/address');
-        $selfie = $this->uploader->uploadSingle($files['selfie'] ?? null, 'kyc/selfie');
+        // Identity documents go to the private "kyc" disk, never the public one.
+        $store = app(KycDocumentStore::class);
+        $folder = 'user/' . $user->id;
+        $put = fn ($file) => $file instanceof UploadedFile ? $store->store($file, $folder) : null;
+
+        $front = $put($files['front_side'] ?? null);
+        $back = $put($files['back_side'] ?? null);
+        $address = $put($files['address_proof'] ?? null);
+        $selfie = $put($files['selfie'] ?? null);
 
         $user->update([
             'front_side'     => $front,

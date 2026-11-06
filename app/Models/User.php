@@ -130,6 +130,11 @@ class User extends Authenticatable implements Payable
         'password',
         'transaction_pin',
         'remember_token',
+        // KYC identity documents: only admins see them, through KycDocumentSource::adminUrl().
+        'front_side',
+        'back_side',
+        'address_proof',
+        'selfie',
     ];
 
     /**
@@ -174,9 +179,6 @@ class User extends Authenticatable implements Payable
     }
 
     protected $appends = [
-        'front_side_url',
-        'back_side_url',
-        'address_proof_url',
         'popularity_level',
         'has_transaction_pin',
     ];

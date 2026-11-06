@@ -249,20 +249,17 @@ class AuthController extends Controller
         }
         // Front Side
         if ($request->hasFile('front_side')) {
-            $path = $request->file('front_side')->store('kyc/front', 'public');
-            $validated['front_side'] = Storage::url($path);
+            $validated['front_side'] = app(\App\Domain\Kyc\KycDocumentStore::class)->store($request->file('front_side'), 'user/' . $user->id);
         }
 
         // Back Side
         if ($request->hasFile('back_side')) {
-            $path = $request->file('back_side')->store('kyc/back', 'public');
-            $validated['back_side'] = Storage::url($path);
+            $validated['back_side'] = app(\App\Domain\Kyc\KycDocumentStore::class)->store($request->file('back_side'), 'user/' . $user->id);
         }
 
         // Address Proof
         if ($request->hasFile('address_proof')) {
-            $path = $request->file('address_proof')->store('kyc/address', 'public');
-            $validated['address_proof'] = Storage::url($path);
+            $validated['address_proof'] = app(\App\Domain\Kyc\KycDocumentStore::class)->store($request->file('address_proof'), 'user/' . $user->id);
         }
 
 

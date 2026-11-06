@@ -167,10 +167,11 @@ Route::middleware(['auth', 'otp.verified', 'isWizardComplete'])->group(function 
         Route::get('subscription/success', [SubscriptionController::class, 'subscriptionSuccess'])->name('subscription.success');
         Route::get('subscription/cancel', [SubscriptionController::class, 'subscriptionCancel'])->name('subscription.cancel');
 
-        Route::get('user/wallet', [WalletController::class, 'index'])->name('user.wallet');
+        // The old wallet screen is retired: every old link (KYC approval, emails, bookmarks) opens the wallet hub.
+        Route::get('user/wallet', fn (\Illuminate\Http\Request $request) => redirect()->route('user.wallet', $request->query()))->name('user.wallet');
 
         Route::middleware(['check.user_wallet_kyc'])->group(function () {
-            Route::get('user/wallet/kyc', [WalletController::class, 'kyc'])->name('user.wallet.kyc');
+            Route::get('user/wallet/kyc', fn () => redirect()->route('user.wallet', ['kyc' => 1]))->name('user.wallet.kyc');
             Route::post('user/wallet/kyc', [WalletController::class, 'storeKyc'])->name('user.wallet.kyc.store');
             Route::post('user/send/money', [WalletController::class, 'sendMoney'])->name('user.send.money');
             Route::get('user/coin', [WalletController::class, 'coinSystemhead'])->name('user.coin.system');

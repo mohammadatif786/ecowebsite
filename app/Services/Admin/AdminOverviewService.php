@@ -501,7 +501,10 @@ class AdminOverviewService
         $movementsRaw = $this->repository->getWalletMovements(300);
         $withdrawalsRaw = $this->repository->getBankWithdrawals(300);
 
-        $walletMovements = $movementsRaw->map(fn($tx) => $this->mapWalletMovement($tx))
+        $walletMovements = $movementsRaw
+            // A bank withdrawal is listed once, from BankWithdrawal (it carries the real status).
+            ->reject(fn($tx) => (($tx->meta ?? [])['type'] ?? null) === 'bank_withdrawal')
+            ->map(fn($tx) => $this->mapWalletMovement($tx))
             ->concat($withdrawalsRaw->map(fn($w) => $this->mapBankWithdrawal($w)))
             ->sortByDesc('date')
             ->values()
@@ -673,6 +676,10 @@ class AdminOverviewService
 
         return [
             'id' => 'WPO-UW-' . $w->id,
+            'withdrawalId' => $w->id,
+            'kind' => 'withdrawal',
+            'email' => $w->user?->email,
+            'failureReason' => $w->failure_reason,
             'party' => $w->user?->name ?? 'Unknown',
             'source' => 'User Wallet',
             'country' => $w->user?->country ?? 'Unknown',
@@ -694,6 +701,7 @@ class AdminOverviewService
 
         return [
             'id' => $p->reference ?: ('WPO-OW-' . $p->id),
+            'kind' => 'organizer',
             'party' => $user?->name ?? $p->author,
             'source' => 'Organizer Wallet',
             'country' => $user?->country ?? 'Unknown',
@@ -720,6 +728,7 @@ class AdminOverviewService
 
         return [
             'id' => 'WPO-AS-' . $tx->id,
+            'kind' => 'asue',
             'party' => $tx->to?->name ?? 'Unknown',
             'source' => 'ASU Drawer',
             'country' => $tx->to?->country ?? 'Unknown',
@@ -926,10 +935,17 @@ class AdminOverviewService
      * are best-effort labels derived from processor_id since the package doesn't
      * store a human-readable transaction type itself.
      */
-    private function mapWalletMovement($tx): array
+    public function mapWalletMovement($tx): array
     {
-        $subject = $tx->from ?? $tx->to;
         $processor = $tx->processor_id ?? 'transfer';
+        // The member this row is about: credits (deposits) belong to `to`, everything else to the sender.
+        $isMember = fn($m) => $m instanceof \App\Models\User;
+        $credit = in_array($processor, ['deposit', 'live deposit', 'conversion_credit'], true);
+        $subject = $credit
+            ? ($isMember($tx->to) ? $tx->to : ($isMember($tx->from) ? $tx->from : null))
+            : ($isMember($tx->from) ? $tx->from : ($isMember($tx->to) ? $tx->to : null));
+        $other = $subject === $tx->from ? $tx->to : $tx->from;
+        $metaType = ($tx->meta ?? [])['type'] ?? null;
 
         $typeMap = [
             'deposit' => 'Wallet Load',
@@ -966,8 +982,15 @@ class AdminOverviewService
             'id' => $tx->uuid,
             'date' => $tx->created_at ? (is_string($tx->created_at) ? Carbon::parse($tx->created_at)->format('Y-m-d H:i') : $tx->created_at->format('Y-m-d H:i')) : '—',
             'country' => $subject?->country ?? 'Unknown',
-            'user' => $subject?->name ?? 'Unknown',
-            'type' => $typeMap[$processor] ?? ucfirst(str_replace(['_', '-'], ' ', $processor)),
+            'user' => $subject?->name ?? ($tx->from?->name ?? 'Unknown'),
+            'counterparty' => $isMember($other) ? $other->name : null,
+            'type' => match (true) {
+                $processor === 'deposit' && $metaType === 'recharge' => 'Wallet Load',
+                $processor === 'deposit' && $metaType !== null => ucfirst(str_replace(['_', '-'], ' ', $metaType)),
+                $metaType === 'bank_withdrawal' => 'Cash Out',
+                $metaType === 'bank_withdrawal_refund' => 'Cash Out Refund',
+                default => $typeMap[$processor] ?? ucfirst(str_replace(['_', '-'], ' ', $processor)),
+            },
             'direction' => in_array($processor, $inboundProcessors) ? 'In' : 'Out',
             'channel' => $channelMap[$processor] ?? ($tx->meta['description'] ?? ucfirst(str_replace(['_', '-'], ' ', $processor))),
             'amount' => (float)$tx->amount,

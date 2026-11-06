@@ -95,6 +95,9 @@
           <button @click="reviewSend" :disabled="form.processing" class="btn btn-primary w-full py-3.5 mt-4 shadow hover:shadow-md transition disabled:opacity-60">
             Review &amp; Send
           </button>
+          <button @click="$emit('setup-pin')" class="w-full text-center text-[12px] font-black text-slate-500 hover:text-slate-700 mt-3 flex items-center justify-center gap-1">
+            <i data-lucide="lock" class="w-3.5 h-3.5"></i>{{ hasPin ? 'Change transaction PIN' : 'Set a transaction PIN' }}
+          </button>
         </div>
 
         <div v-else class="text-center fade">
@@ -127,9 +130,10 @@ const props = defineProps({
   balance: { type: Number, default: 0 },
   contacts: { type: Array, default: () => [] },
   users: { type: Array, default: () => [] },
+  hasPin: { type: Boolean, default: true },
 });
 
-const emit = defineEmits(['money-sent']);
+const emit = defineEmits(['money-sent', 'setup-pin']);
 
 const isOpen = ref(false);
 const recipientQuery = ref('');
@@ -284,6 +288,7 @@ const reviewSend = () => {
 
 const openTransactionPin = () => {
   if (!reviewRecipient.value || form.processing) return;
+  if (!props.hasPin) { emit('setup-pin'); return; }
   pinDigits.value = ['', '', '', ''];
   pinError.value = '';
   form.clearErrors('pin');

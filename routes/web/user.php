@@ -189,6 +189,8 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('/wallet-hub/requested-money/{id}/reject', [WalletController::class, 'rejectMoneyRequest'])->name('wallet.requested_money.reject');
             Route::post('/wallet-hub/requested-money/{id}/cancel', [WalletController::class, 'cancelMoneyRequest'])->name('wallet.requested_money.cancel');
             Route::post('/wallet-hub/buy-ticket', [TicketPurchaseController::class, 'buyTicketWallet'])->name('wallet.buy-ticket');
+            Route::post('/wallet-hub/bank-accounts', [WalletController::class, 'addBankAccount'])->middleware('throttle:10,1,wallet-bank-add:')->name('wallet.bank_accounts.store');
+            Route::post('/wallet-hub/bank-withdrawal', [WalletController::class, 'withdrawToBank'])->middleware('throttle:6,1,wallet-bank-withdraw:')->name('wallet.bank_withdrawal');
         });
     });
 });

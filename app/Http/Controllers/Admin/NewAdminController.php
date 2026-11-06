@@ -31,6 +31,8 @@ use App\Models\EventFeeSetting;
 use App\Models\OrganizerKyc;
 use App\Models\Settings;
 use App\Models\UserWalletKyc;
+use App\Domain\Kyc\Actions\UpdateKycReviewStatusAction;
+use App\Domain\Kyc\KycDocumentSource;
 use App\Repositories\NewsRepository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -295,6 +297,9 @@ class NewAdminController extends Controller
             'initialAsueSummary' => $walletData['asueSummary'],
             'initialPayoutQueue' => $walletData['payoutQueue'],
             'initialPayoutQueueSummary' => $walletData['payoutQueueSummary'],
+            // Real wallet + coin figures (Mission Control, Coins)
+            'initialWalletSummary' => app(\App\Actions\Admin\GetAdminWalletSummaryAction::class)->execute(),
+            'initialCoinsData' => app(\App\Actions\Admin\GetAdminCoinsDataAction::class)->execute(),
             'initialAds' => $adData['ads'],
             'initialEmailAds' => $adData['emailAds'],
             'initialAdStats' => $adData['stats'],
@@ -483,7 +488,7 @@ class NewAdminController extends Controller
                 'label' => 'Document ' . ($index + 1),
                 'status' => $status,
                 'raw_status' => $kyc->status ?: 'pending',
-                'url' => $this->kycFileUrl($path),
+                'url' => KycDocumentSource::adminUrl('wallet', $kyc->id, 'document_' . ($index + 1), $path),
             ])
             ->values()
             ->all();
@@ -536,9 +541,9 @@ class NewAdminController extends Controller
             'risk' => $this->kycRisk($status, [$kyc->p_front_status, $kyc->p_back_status, $kyc->p_o_add_status]),
             'notes' => 'Organizer identity verification documents.',
             'documents' => [
-                ['key' => 'passport_front', 'label' => 'Passport Front', 'status' => $this->displayKycStatus($kyc->p_front_status), 'raw_status' => $kyc->p_front_status ?: 'pending', 'url' => $this->kycFileUrl($kyc->passport_front)],
-                ['key' => 'passport_back', 'label' => 'Passport Back', 'status' => $this->displayKycStatus($kyc->p_back_status), 'raw_status' => $kyc->p_back_status ?: 'pending', 'url' => $this->kycFileUrl($kyc->passport_back)],
-                ['key' => 'proof_of_address', 'label' => 'Proof of Address', 'status' => $this->displayKycStatus($kyc->p_o_add_status), 'raw_status' => $kyc->p_o_add_status ?: 'pending', 'url' => $this->kycFileUrl($kyc->proof_of_address)],
+                ['key' => 'passport_front', 'label' => 'Passport Front', 'status' => $this->displayKycStatus($kyc->p_front_status), 'raw_status' => $kyc->p_front_status ?: 'pending', 'url' => KycDocumentSource::adminUrl('organizer', $kyc->id, 'passport_front', $kyc->passport_front)],
+                ['key' => 'passport_back', 'label' => 'Passport Back', 'status' => $this->displayKycStatus($kyc->p_back_status), 'raw_status' => $kyc->p_back_status ?: 'pending', 'url' => KycDocumentSource::adminUrl('organizer', $kyc->id, 'passport_back', $kyc->passport_back)],
+                ['key' => 'proof_of_address', 'label' => 'Proof of Address', 'status' => $this->displayKycStatus($kyc->p_o_add_status), 'raw_status' => $kyc->p_o_add_status ?: 'pending', 'url' => KycDocumentSource::adminUrl('organizer', $kyc->id, 'proof_of_address', $kyc->proof_of_address)],
             ],
             'updated_at' => optional($kyc->updated_at)->toDateTimeString(),
         ];
@@ -562,10 +567,10 @@ class NewAdminController extends Controller
             'risk' => $this->kycRisk($status),
             'notes' => $user->kyc_submitted ? 'User profile KYC submitted.' : 'User profile has KYC documents or status.',
             'documents' => [
-                ['key' => 'front_side', 'label' => 'ID Front', 'status' => $status, 'raw_status' => $user->kyc_status ?: 'pending', 'url' => $this->kycFileUrl($user->front_side)],
-                ['key' => 'back_side', 'label' => 'ID Back', 'status' => $status, 'raw_status' => $user->kyc_status ?: 'pending', 'url' => $this->kycFileUrl($user->back_side)],
-                ['key' => 'address_proof', 'label' => 'Address Proof', 'status' => $status, 'raw_status' => $user->kyc_status ?: 'pending', 'url' => $this->kycFileUrl($user->address_proof)],
-                ['key' => 'selfie', 'label' => 'Selfie', 'status' => $status, 'raw_status' => $user->kyc_status ?: 'pending', 'url' => $this->kycFileUrl($user->selfie)],
+                ['key' => 'front_side', 'label' => 'ID Front', 'status' => $status, 'raw_status' => $user->kyc_status ?: 'pending', 'url' => KycDocumentSource::adminUrl('user', $user->id, 'front_side', $user->front_side)],
+                ['key' => 'back_side', 'label' => 'ID Back', 'status' => $status, 'raw_status' => $user->kyc_status ?: 'pending', 'url' => KycDocumentSource::adminUrl('user', $user->id, 'back_side', $user->back_side)],
+                ['key' => 'address_proof', 'label' => 'Address Proof', 'status' => $status, 'raw_status' => $user->kyc_status ?: 'pending', 'url' => KycDocumentSource::adminUrl('user', $user->id, 'address_proof', $user->address_proof)],
+                ['key' => 'selfie', 'label' => 'Selfie', 'status' => $status, 'raw_status' => $user->kyc_status ?: 'pending', 'url' => KycDocumentSource::adminUrl('user', $user->id, 'selfie', $user->selfie)],
             ],
             'updated_at' => optional($user->updated_at)->toDateTimeString(),
         ];
@@ -599,67 +604,14 @@ class NewAdminController extends Controller
         return $fullName ?: ($user->name ?: 'Unknown');
     }
 
-    private function kycFileUrl(?string $path): ?string
-    {
-        if (! $path) return null;
-        $path = str_replace('\\', '/', trim($path));
-        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) return $path;
-        if (str_starts_with($path, '/storage/')) return asset(ltrim($path, '/'));
-        if (str_starts_with($path, 'storage/')) return asset($path);
-        if (str_starts_with($path, '/')) return asset(ltrim($path, '/'));
-
-        return asset('storage/' . ltrim($path, '/'));
-    }
-
-    public function updateKycReviewStatus(Request $request, string $source, int $id)
+    public function updateKycReviewStatus(Request $request, string $source, int $id, UpdateKycReviewStatusAction $action)
     {
         $data = $request->validate([
             'status' => ['required', 'in:pending,approved,rejected'],
         ]);
 
-        $approvedStatus = 'approved';
-        $userToUpgrade = null;
-
-        if ($source === 'wallet') {
-            $record = UserWalletKyc::findOrFail($id);
-            $record->update(['status' => $data['status']]);
-            if ($data['status'] === $approvedStatus) {
-                $userToUpgrade = $record->user;
-            }
-        } elseif ($source === 'organizer') {
-            $status = $data['status'] === 'rejected' ? 'canceled' : $data['status'];
-            $kyc = OrganizerKyc::findOrFail($id);
-            $payload = ['status' => $status];
-
-            if (in_array($status, ['approved', 'pending', 'canceled'], true)) {
-                $payload['p_front_status'] = $status;
-                $payload['p_back_status'] = $status;
-                $payload['p_o_add_status'] = $status;
-            }
-
-            $kyc->update($payload);
-            if ($status === $approvedStatus) {
-                $userToUpgrade = $kyc->organizer?->user;
-            }
-        } elseif ($source === 'user') {
-            $user = User::findOrFail($id);
-            $user->update(['kyc_status' => $data['status']]);
-            if ($data['status'] === $approvedStatus) {
-                $userToUpgrade = $user;
-            }
-        } else {
-            abort(404);
-        }
-
-        // AUTO-UPGRADE TO ORGANIZER
-        if ($userToUpgrade && $userToUpgrade->type !== 'admin') {
-            $userToUpgrade->update(['type' => 'organizer']);
-            $userToUpgrade->syncRoles(['organizer']);
-            Log::info("User upgraded to organizer via KYC approval", [
-                'user_id' => $userToUpgrade->id,
-                'source' => $source
-            ]);
-        }
+        // Wallet KYC approval no longer turns the user into an organizer (see the action).
+        $action->execute($source, $id, $data['status']);
 
         return back()->with('message', 'KYC status updated successfully.');
     }
@@ -686,7 +638,8 @@ class NewAdminController extends Controller
                 $field => $recordStatus === 'rejected' ? 'canceled' : $recordStatus,
             ]);
         } elseif ($source === 'wallet') {
-            UserWalletKyc::findOrFail($id)->update(['status' => $recordStatus]);
+            // A wallet KYC has one status for all its photos: same path (and activity record) as Verify/Reject.
+            app(UpdateKycReviewStatusAction::class)->execute('wallet', $id, $recordStatus);
         } elseif ($source === 'user') {
             User::findOrFail($id)->update(['kyc_status' => $recordStatus]);
         } else {
