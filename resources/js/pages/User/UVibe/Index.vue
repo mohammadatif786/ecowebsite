@@ -271,16 +271,6 @@ async function deletePost(id) {
   }
 }
 
-const openCreatorReels = (userId) => { reelsRef.value?.openCreator(userId, true); };
-const onReelCreated = (reel) => {
-  myReelsCount.value += 1;
-  reels.value.unshift({ ...reel, is_mine: true, handle: 'Your Reel' });
-};
-const onReelDeleted = (id) => {
-  reels.value = reels.value.filter((r) => r.id !== id);
-  myReelsCount.value = Math.max(0, myReelsCount.value - 1);
-};
-
 // Campus bar state comes from the server (same data the mobile API returns).
 const campus = ref(props.campusState);
 watch(() => props.campusState, (v) => { campus.value = v; });
