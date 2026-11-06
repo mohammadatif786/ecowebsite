@@ -210,7 +210,7 @@ const reelsRef = ref(null);
 const openNewReelModal = () => {
   newReelRef.value?.open();
 };
-const openCreatorReels = (userId) => { reelsRef.value?.openCreator(userId); };
+const openCreatorReels = (userId) => { reelsRef.value?.openCreator(userId, true); };
 const onReelCreated = (reel) => {
   myReelsCount.value += 1;
   reels.value.unshift({ ...reel, is_mine: true, handle: 'Your Reel' });

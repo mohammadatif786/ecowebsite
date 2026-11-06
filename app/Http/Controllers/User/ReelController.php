@@ -21,7 +21,8 @@ class ReelController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        $reels = $this->listQuery($user)->take(50)->get();
+        $isUvibe = $request->boolean('is_uvibe');
+        $reels = ReelPresenter::query($user, $isUvibe)->take(50)->get();
 
         return response()->json($reels->map(fn (UserReel $reel) => $this->present($reel, $user)));
     }
@@ -62,7 +63,8 @@ class ReelController extends Controller
     public function getFollowedReels(Request $request): JsonResponse
     {
         $user = $request->user();
-        $reels = $this->listQuery($user)->fromFollowedUsers($user->id)->take(self::LIST_LIMIT)->get();
+        $isUvibe = $request->boolean('is_uvibe');
+        $reels = ReelPresenter::query($user, $isUvibe)->fromFollowedUsers($user->id)->take(self::LIST_LIMIT)->get();
 
         return response()->json($reels->map(fn (UserReel $reel) => $this->present($reel, $user)));
     }
@@ -70,11 +72,12 @@ class ReelController extends Controller
     public function getUserReels(Request $request, User $user): JsonResponse
     {
         $currentUser = $request->user();
+        $isUvibe = $request->boolean('is_uvibe');
 
         // Nobody sees the reels of someone they blocked, or who blocked them.
         abort_if((int) $user->id !== (int) $currentUser->id && $this->blockedBetween($currentUser->id, $user->id), 404, 'Profile not found.');
 
-        $reels = $this->listQuery($currentUser)->where('user_id', $user->id)->take(self::LIST_LIMIT)->get();
+        $reels = ReelPresenter::query($currentUser, $isUvibe)->where('user_id', $user->id)->take(self::LIST_LIMIT)->get();
 
         $isFollowing = \App\Models\CreatorFollower::where('follower_id', $currentUser->id)->where('creator_id', $user->id)->exists();
 
@@ -121,9 +124,9 @@ class ReelController extends Controller
     }
 
     /** Active reels the viewer may see, newest first, with the creator and the viewer's like/save flags. */
-    private function listQuery(User $viewer)
+    private function listQuery(User $viewer, bool $isUvibe = false)
     {
-        return ReelPresenter::query($viewer);
+        return ReelPresenter::query($viewer, $isUvibe);
     }
 
     private function blockedBetween(int $a, int $b): bool
@@ -138,12 +141,5 @@ class ReelController extends Controller
     private function present(UserReel $reel, User $viewer): array
     {
         return ReelPresenter::present($reel, $viewer);
-    }
-
-    private function generateVideoThumbnail($file): ?string
-    {
-        // This would require FFmpeg to be installed on the server
-        // For now, return null - this can be implemented later
-        return null;
     }
 }

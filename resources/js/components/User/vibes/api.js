@@ -9,7 +9,7 @@ export const likeReel = (id) => axios.post(route('user.reels.like', { reel: id }
 export const shareReel = (id) => axios.post(route('user.reels.share', { reel: id })).then((r) => r.data);
 export const saveReel = (id) => axios.post(route('user.reels.save', { reel: id })).then((r) => r.data);
 export const deleteReel = (id) => axios.delete(route('user.reels.destroy', { reel: id })).then((r) => r.data);
-export const creatorReels = (userId) => axios.get(route('user.reels.user', { user: userId })).then((r) => r.data);
+export const creatorReels = (userId, isUvibe = false) => axios.get(route('user.reels.user', { user: userId }), { params: { is_uvibe: isUvibe ? 1 : 0 } }).then((r) => r.data);
 
 export const toggleFollow = (userId) => axios.post(route('user.creators.toggle-follow', { user: userId })).then((r) => r.data);
 

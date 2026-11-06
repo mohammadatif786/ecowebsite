@@ -73,14 +73,14 @@ async function open(list, startIndex = 0) {
 }
 
 /** One creator's reels (stories circles, profiles). */
-async function openCreator(userId) {
+async function openCreator(userId, isUvibe = false) {
   reels.value = [];
   isOpen.value = true;
   loading.value = true;
   document.body.style.overflow = 'hidden';
   window.addEventListener('keydown', onKey);
   try {
-    const data = await creatorReels(userId);
+    const data = await creatorReels(userId, isUvibe);
     reels.value = data.reels || [];
   } catch {
     reels.value = [];
