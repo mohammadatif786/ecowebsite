@@ -142,6 +142,12 @@
     <PostBoostModal ref="postBoostRef" @boosted="onBoosted" />
     <GigApplicantsModal ref="applicantsRef" @updated="replacePost" />
     <VibeTagModal ref="tagModalRef" />
+
+    <!-- Action Modals shared by posts -->
+    <CommentsModal ref="commentsRef" />
+    <VibeBigUpModal ref="bigUpRef" :p="bigUpFor || {}" @sent="onBigUpSent" />
+    <VibeOptionsModal ref="optionsRef" :vibe="optionsFor || {}" :is-owner="isOwner(optionsFor)" @delete="deletePost" @edit="(v) => composeModalRef?.openEdit(v)" @hidden="removePost" />
+    <SendVibeModal ref="sendVibeRef" :recipient-user-id="Number(sendVibeTo || 0)" />
   </div>
 </template>
 
@@ -174,6 +180,11 @@ import CampusExplorerModal from '../../../components/User/modals/CampusExplorerM
 import ReelStoriesBar from '../../../components/User/vibes/stories/ReelStoriesBar.vue';
 import ReelsViewer from '../../../components/User/vibes/reels/ReelsViewer.vue';
 import NewReelModal from '../../../components/User/modals/NewReelModal.vue';
+import { provideVibeActions, toast } from '../../../components/User/vibes/useVibeActions';
+import CommentsModal from '../../../components/User/vibes/comments/CommentsModal.vue';
+import VibeBigUpModal from '../../../components/User/modals/VibeBigUpModal.vue';
+import VibeOptionsModal from '../../../components/User/modals/VibeOptionsModal.vue';
+import SendVibeModal from '../../../components/User/modals/SendVibeModal.vue';
 import { getUser } from '../../../components/User/MockDataStore';
 
 defineOptions({ layout: MainLayout });
@@ -206,6 +217,44 @@ watch(() => props.myReelsCount, (v) => (myReelsCount.value = v));
 
 const newReelRef = ref(null);
 const reelsRef = ref(null);
+const commentsRef = ref(null);
+const bigUpRef = ref(null);
+const optionsRef = ref(null);
+const sendVibeRef = ref(null);
+
+const bigUpFor = ref(null);
+let bigUpDone = null;
+const optionsFor = ref(null);
+const sendVibeTo = ref(null);
+
+const isOwner = (p) => !!p && String(p.created_by) === String(user.value.id);
+
+provideVibeActions({
+  openComments: (post, onCount) => commentsRef.value?.open(post, onCount),
+  openBigUp: (post, done) => { bigUpFor.value = post; bigUpDone = done; nextTick(() => bigUpRef.value?.open()); },
+  openOptions: (post) => { optionsFor.value = post; nextTick(() => optionsRef.value?.open()); },
+  openTag: (post) => post?.tag && tagRef.value?.open(post.tag),
+  sendVibe: (userId) => { sendVibeTo.value = userId; nextTick(() => sendVibeRef.value?.open()); },
+  openReels: (list, index) => reelsRef.value?.open(list, index),
+  openCreatorReels,
+  filterTag: (tag) => { activeCategory.value = 'all'; },
+  openProfile: (userId) => userId && router.visit(route('user.vibes.user-profile', { user: userId })),
+});
+
+function onBigUpSent(count) {
+  if (bigUpDone) bigUpDone(count);
+  else if (bigUpFor.value) bigUpFor.value.bigups_count = count;
+}
+
+async function deletePost(id) {
+  try {
+    await axios.delete(route('user.vibes.destroy', { vibe: id }));
+    removePost(id);
+    toast('🗑️ Post deleted');
+  } catch (e) {
+    toast(e.response?.data?.message || 'Couldn’t delete this post');
+  }
+}
 
 const openNewReelModal = () => {
   newReelRef.value?.open();
