@@ -779,9 +779,12 @@ class DashboardController extends Controller
                 ];
             });
 
-        $categories = \App\Models\ProductCategory::where('status', 1)->get()->map(function ($c) {
-            return ['id' => $c->id, 'name' => $c->name];
-        });
+        // Admin-managed categories: active only, featured first (Commerce → Marketplace → Categories).
+        $categories = \App\Models\ProductCategory::where('status', 1)
+            ->orderByDesc('is_featured')->orderBy('name')
+            ->get()->map(function ($c) {
+                return ['id' => $c->id, 'name' => $c->name, 'is_featured' => (bool) $c->is_featured];
+            });
 
         $favoriteSellerIds = $user->favoriteSellers()->pluck('seller_id')->toArray();
         $feeRepo = app(\App\Repositories\ShopFeeRepository::class);
