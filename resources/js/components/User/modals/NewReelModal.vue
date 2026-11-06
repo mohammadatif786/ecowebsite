@@ -108,6 +108,10 @@ import { ref, computed } from 'vue';
 import Modal from '../ui/Modal.vue';
 
 const emit = defineEmits(['reelCreated']);
+const props = defineProps({
+  isUvibe: { type: Boolean, default: false },
+  campus: { type: [String, Number], default: null }
+});
 const modalRef = ref();
 const fileInput = ref();
 const selectedType = ref(null);
@@ -221,6 +225,10 @@ const submit = async () => {
   const form = new FormData();
   form.append('type', selectedType.value);
   form.append('file', file.value);
+  form.append('is_uvibe', props.isUvibe ? '1' : '0');
+  if (props.campus) {
+    form.append('campus', props.campus);
+  }
   if (caption.value.trim()) {
     form.append('caption', caption.value);
   }

@@ -46,6 +46,8 @@ class ReelController extends Controller
             ],
             'caption' => 'nullable|string|max:1000',
             'location' => 'nullable|string|max:255',
+            'is_uvibe' => 'sometimes|boolean',
+            'campus' => 'nullable|string|max:255',
         ]);
 
         $reel = $action->execute(auth()->user(), CreateReelData::fromRequest($request));

@@ -12,6 +12,8 @@ final readonly class CreateReelData
         public UploadedFile $file,
         public ?string $caption,
         public ?string $location,
+        public bool $isUvibe,
+        public ?string $campus,
     ) {}
 
     public static function fromRequest(Request $request): self
@@ -21,6 +23,8 @@ final readonly class CreateReelData
             $request->file('file'),
             isset($request['caption']) ? trim($request['caption']) : $request->input('caption'),
             $request->input('location'),
+            (bool) $request->input('is_uvibe', false),
+            $request->input('campus'),
         );
     }
 }

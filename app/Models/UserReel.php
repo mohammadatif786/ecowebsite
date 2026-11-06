@@ -26,6 +26,8 @@ class UserReel extends Model
         'gifts_count',
         'bigups_count',
         'status',
+        'is_uvibe',
+        'campus',
     ];
 
     protected function casts(): array
@@ -36,6 +38,7 @@ class UserReel extends Model
             'shares_count' => 'integer',
             'gifts_count' => 'integer',
             'bigups_count' => 'integer',
+            'is_uvibe' => 'boolean',
         ];
     }
 

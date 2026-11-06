@@ -13,9 +13,10 @@ use Illuminate\Database\Eloquent\Builder;
 class ReelPresenter
 {
     /** Active reels the viewer may see (blocks both ways), newest first, ready for present(). */
-    public static function query(User $viewer): Builder
+    public static function query(User $viewer, bool $isUvibe = false): Builder
     {
         return UserReel::active()
+            ->where('is_uvibe', $isUvibe)
             ->visibleTo($viewer)
             ->with('user:id,name,avatar,linkup_id,city,country')
             ->withViewerFlags($viewer)
@@ -59,13 +60,14 @@ class ReelPresenter
      * @param  list<int>  $creatorIds
      * @return list<array{user_id: int, handle: string, name: string, avatar: ?string, latest_at: ?string}>
      */
-    public static function stories(User $viewer, array $creatorIds, int $limit = 20): array
+    public static function stories(User $viewer, array $creatorIds, int $limit = 20, bool $isUvibe = false): array
     {
         if ($creatorIds === []) {
             return [];
         }
 
         $latest = UserReel::active()
+            ->where('is_uvibe', $isUvibe)
             ->visibleTo($viewer)
             ->whereIn('user_id', $creatorIds)
             ->where('user_id', '!=', $viewer->id)

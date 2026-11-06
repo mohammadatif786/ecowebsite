@@ -133,7 +133,7 @@
 
     <!-- Reels Viewer & New Reel Modal -->
     <ReelsViewer ref="reelsRef" @deleted="onReelDeleted" />
-    <NewReelModal ref="newReelRef" @reel-created="onReelCreated" />
+    <NewReelModal ref="newReelRef" :isUvibe="true" :campus="activeCampusId" @reel-created="onReelCreated" />
 
     <!-- Post windows: one of each serves the whole feed -->
     <PostMenuModal ref="postMenuRef" @edit="openEdit" @report="openReport" @deleted="removePost" @hidden="removePost" />
