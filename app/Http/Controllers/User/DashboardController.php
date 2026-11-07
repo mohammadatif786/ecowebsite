@@ -445,14 +445,17 @@ class DashboardController extends Controller
 
         $customPublishers = UserCustomPublisher::where('user_id', $user->id)->get();
 
+        // Trending tags: what people actually tag on posts this member can see, last 30 days, with counts.
         $trendingTags = DB::table('vibe_hashtags')
+            ->whereIn('vibe_id', \App\Support\VibeFeedPresenter::base($user)->where('vibes.created_at', '>=', now()->subDays(30))->select('vibes.id'))
             ->select('tag', DB::raw('count(*) as count'))
             ->groupBy('tag')
             ->orderByDesc('count')
             ->limit(10)
-            ->pluck('tag')
-            ->map(fn($tag) => '#' . $tag)
-            ->toArray();
+            ->get()
+            ->map(fn ($row) => ['tag' => '#'.$row->tag, 'count' => (int) $row->count])
+            ->values()
+            ->all();
 
         $totalBigUpCoins = \App\Models\GiftCoins::where('recieved_id', $user->id)
             ->whereNotNull('vibe_id')
@@ -549,94 +552,15 @@ class DashboardController extends Controller
             ->values()
             ->all();
 
-        // Latest reel per followed user for the stories carousel (within last 24 hours)
-        $latestStoryIds = DB::query()
-            ->fromSub(
-                UserReel::active()
-                    ->whereIn('user_id', $followedUserIds)
-                    ->where('created_at', '>=', now()->subHours(24))
-                    ->select([
-                        'id',
-                        'user_id',
-                        DB::raw('ROW_NUMBER() OVER (
-                            PARTITION BY user_id
-                            ORDER BY created_at DESC, id DESC
-                        ) AS row_num'),
-                    ]),
-                'ranked_reels'
-            )
-            ->where('row_num', 1)
-            ->orderByDesc('id')
-            ->limit(20)
-            ->pluck('id');
+        // Stories bar: one circle per followed creator with a reel in the last 24 hours.
+        $stories = \App\Support\ReelPresenter::stories($user, $followedUserIds);
+        $myReelsCount = UserReel::active()->where('user_id', $user->id)->count();
 
-        $stories = UserReel::active()
-            ->with('user:id,name,avatar,linkup_id')
-            ->whereIn('id', $latestStoryIds)
-            ->where('created_at', '>=', now()->subHours(24))
+        // Reels for the reels viewer: newest the member may see (no blocked creators), capped.
+        $allReels = \App\Support\ReelPresenter::query($user)
+            ->take(60)
             ->get()
-            ->sortByDesc(function ($reel) {
-                return $reel->created_at?->timestamp ?? 0;
-            })
-            ->values()
-            ->map(function ($reel) use ($user) {
-                return [
-                    'id' => $reel->id,
-                    'uid' => $reel->uid,
-                    'handle' => $reel->user_id === $user->id
-                        ? 'Your Reel'
-                        : ($reel->user?->linkup_id ?? $reel->user?->name ?? 'User'),
-                    'avatar' => $reel->user?->avatar,
-                    'type' => $reel->type,
-                    'file_path' => $reel->file_path,
-                    'thumbnail_path' => $reel->thumbnail_path,
-                    'user_id' => $reel->user_id,
-                    'name' => $reel->user?->name ?? 'User',
-                    'likes_count' => $reel->likes_count,
-                    'comments_count' => $reel->comments_count,
-                    'shares_count' => $reel->shares_count,
-                    'gifts_count' => $reel->gifts_count,
-                    'bigups_count' => $reel->bigups_count,
-                    'is_liked' => $reel->likes()->where('user_id', $user->id)->exists(),
-                    'is_saved' => $reel->saves()->where('user_id', $user->id)->exists(),
-                    'created_at' => $reel->created_at?->toISOString(),
-                ];
-            })
-            ->values();
-
-
-        // ============================================================
-        // ALL ACTIVE REELS FOR THE REEL VIEWER
-        // ============================================================
-
-        $allReels = UserReel::active()
-            ->with('user:id,name,avatar,linkup_id')
-            ->latest('created_at')
-            ->latest('id')
-            ->get()
-            ->map(function ($reel) use ($user) {
-                return [
-                    'id' => $reel->id,
-                    'uid' => $reel->uid,
-                    'handle' => $reel->user_id === $user->id
-                        ? 'Your Reel'
-                        : ($reel->user?->linkup_id ?? $reel->user?->name ?? 'User'),
-                    'avatar' => $reel->user?->avatar,
-                    'type' => $reel->type,
-                    'file_path' => $reel->file_path,
-                    'thumbnail_path' => $reel->thumbnail_path,
-                    'user_id' => $reel->user_id,
-                    'name' => $reel->user?->name ?? 'User',
-                    'likes_count' => $reel->likes_count,
-                    'comments_count' => $reel->comments_count,
-                    'shares_count' => $reel->shares_count,
-                    'gifts_count' => $reel->gifts_count,
-                    'bigups_count' => $reel->bigups_count,
-                    'is_liked' => $reel->likes()->where('user_id', $user->id)->exists(),
-                    'is_saved' => $reel->saves()->where('user_id', $user->id)->exists(),
-                    'created_at' => $reel->created_at?->toISOString(),
-                ];
-            })
+            ->map(fn ($reel) => \App\Support\ReelPresenter::present($reel, $user))
             ->values();
 
         $followingUserIds = CreatorFollower::followedIds($user->id);
@@ -646,8 +570,11 @@ class DashboardController extends Controller
                       ->orWhereHas('reels');
             })
             ->where('id', '!=', $user->id)
+            ->whereNotIn('id', \App\Models\BlockedUser::query()->where('user_id', $user->id)->where('is_blocked', true)->select('blocked_user_id'))
+            ->whereNotIn('id', \App\Models\BlockedUser::query()->where('blocked_user_id', $user->id)->where('is_blocked', true)->select('user_id'))
             ->latest()
-            ->get()
+            ->limit(60)
+            ->get(['id', 'name', 'linkup_id', 'avatar'])
             ->map(function ($u) use ($followingUserIds) {
                 return [
                     'user_id' => $u->id,
@@ -665,7 +592,9 @@ class DashboardController extends Controller
             'shopFee' => app(\App\Repositories\ShopFeeRepository::class)->getFee(),
             'vibes' => $formattedVibes,
             'stories' => $stories,
+            'myReelsCount' => $myReelsCount,
             'allReels' => $allReels,
+            'activeTag' => $tag !== '' ? '#'.$tag : null,
             'suggestedCreators' => $suggestedCreators,
             'vibePublishers' => [
                 'organizations' => $user->organizerProfile()->get(['id', 'organizer_name'])
@@ -739,20 +668,46 @@ class DashboardController extends Controller
             'image' => $e->image_url,
         ]);
 
+        $followedUserIds = \App\Models\Frontend\FriendRequest::where(function ($q) use ($user) {
+            $q->where('user_id', $user->id)
+            ->orWhere('receiver_id', $user->id);
+        })
+        ->where('status', 1)
+        ->get()
+        ->map(fn ($r) => (int) (
+            $r->user_id == $user->id
+                ? $r->receiver_id
+                : $r->user_id
+        ))
+        ->push((int) $user->id)
+        ->toBase()
+        ->merge(\App\Models\CreatorFollower::followedIds($user->id))
+        ->unique()
+        ->values()
+        ->all();
+
+        $stories = \App\Support\ReelPresenter::stories($user, $followedUserIds);
+        $myReelsCount = \App\Models\UserReel::active()->where('user_id', $user->id)->count();
+        $allReels = \App\Support\ReelPresenter::query($user)
+            ->take(60)
+            ->get()
+            ->map(fn ($reel) => \App\Support\ReelPresenter::present($reel, $user))
+            ->values();
+
         return Inertia::render('User/UVibe/Index', [
             'affiliateItems' => $affiliateItems,
             'earningsStats' => $earningsStats,
-            // The page reads `stats`; it used to get nothing, so My Earnings always showed $0.00.
             'stats' => $earningsStats,
             'uvibes' => $formattedVibes,
-            // Own universities + followed campuses for the campus bar and "Posting to".
+            'stories' => $stories,
+            'myReelsCount' => $myReelsCount,
+            'allReels' => $allReels,
             'campusState' => app(\App\Services\UniversityService::class)->state($user),
             'publishers' => [
                 'organizations' => $organizerProfiles,
                 'custom' => $customPublishers,
             ],
             'userEvents' => $userEvents,
-            // What the "Post to U Vibe" composer lets a member choose (types, org types, text-card looks).
             'composeOptions' => \App\Support\UVibeOptions::all(),
         ]);
     }
@@ -824,9 +779,12 @@ class DashboardController extends Controller
                 ];
             });
 
-        $categories = \App\Models\ProductCategory::where('status', 1)->get()->map(function ($c) {
-            return ['id' => $c->id, 'name' => $c->name];
-        });
+        // Admin-managed categories: active only, featured first (Commerce → Marketplace → Categories).
+        $categories = \App\Models\ProductCategory::where('status', 1)
+            ->orderByDesc('is_featured')->orderBy('name')
+            ->get()->map(function ($c) {
+                return ['id' => $c->id, 'name' => $c->name, 'is_featured' => (bool) $c->is_featured];
+            });
 
         $favoriteSellerIds = $user->favoriteSellers()->pluck('seller_id')->toArray();
         $feeRepo = app(\App\Repositories\ShopFeeRepository::class);
@@ -931,6 +889,8 @@ class DashboardController extends Controller
             'subscriptions' => $this->walletSubscriptions($user),
             'bankWithdrawals' => $this->walletBankWithdrawals($user),
             'activeAsue' => $this->walletActiveAsue($user),
+            // Saved banks (masked), withdrawal fee, KYC status, PIN set?
+            ...($user ? \App\Domain\Wallet\WalletPageData::forUser($user) : []),
         ]);
     }
 
@@ -1520,113 +1480,6 @@ class DashboardController extends Controller
         ];
     }
 
-    /**
-     * Convert received gift coins to cash
-     */
-    public function convertToCash(Request $request)
-    {
-        $request->validate([
-            'coins' => 'required|integer|min:1',
-            'minimum_cashout' => 'sometimes|integer|min:1'
-        ]);
-
-        $user = Auth::user();
-        $coinsToConvert = $request->input('coins');
-        $minimumCashout = $request->input('minimum_cashout', 25);
-        $coinRate = 0.01;
-        $userPayoutRatio = 0.5;
-
-        // Only coins without status can be converted
-        $totalReceivedCoins = GiftCoins::where('recieved_id', $user->id)
-            ->whereNull('status')
-            ->sum('coins');
-
-        $grossCashValue = $coinsToConvert * $coinRate;
-        $userCashValue = $grossCashValue * $userPayoutRatio;
-        $platformCashValue = $grossCashValue - $userCashValue;
-
-        if ($userCashValue < $minimumCashout) {
-            return response()->json([
-                'success' => false,
-                'message' => "Minimum cash-out amount is $" . number_format($minimumCashout, 2) . ". You need $" . number_format($minimumCashout - $userCashValue, 2) . " more to convert."
-            ], 422);
-        }
-
-        if ($coinsToConvert > $totalReceivedCoins) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You do not have enough received coins to convert this amount.'
-            ], 422);
-        }
-
-        try {
-            DB::beginTransaction();
-
-            $currentWalletBalance = (float) ($user->balance('USD')->value->get() ?? 0);
-
-            // Deposit to user wallet using the wallet system
-            // Assuming deposit() helper exists as used in reference controller
-            deposit($userCashValue, 'USD')
-                ->from(Custodian::of('e_money'))
-                ->to($user)
-                ->overcharge()
-                ->commit();
-
-            $user->refresh();
-
-            $remainingCoinsToConvert = $coinsToConvert;
-
-            $receivedGifts = GiftCoins::where('recieved_id', $user->id)
-                ->whereNull('status')
-                ->orderBy('created_at', 'asc')
-                ->get();
-
-            foreach ($receivedGifts as $gift) {
-                if ($remainingCoinsToConvert <= 0) break;
-
-                $coinsToDeduct = min($gift->coins, $remainingCoinsToConvert);
-
-                if ($coinsToDeduct >= $gift->coins) {
-                    $gift->status = now();
-                    $gift->save();
-                    $remainingCoinsToConvert -= $gift->coins;
-                } else {
-                    // Split the gift if only partially converted
-                    $newGift = $gift->replicate();
-                    $newGift->coins = $gift->coins - $coinsToDeduct;
-                    $newGift->status = null;
-                    $newGift->save();
-
-                    $gift->coins = $coinsToDeduct;
-                    $gift->status = now();
-                    $gift->save();
-
-                    $remainingCoinsToConvert = 0;
-                }
-            }
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Successfully converted ' . number_format($coinsToConvert) . ' coins to $' . number_format($userCashValue, 2),
-                'data' => [
-                    'coins_converted' => $coinsToConvert,
-                    'new_wallet_balance' => (float) $user->balance('USD')->value->get(),
-                    'remaining_received_coins' => $totalReceivedCoins - $coinsToConvert
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Gift conversion failed: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Conversion failed. Please try again later.'
-            ], 500);
-        }
-    }
-
     protected function profileNews(?User $user)
     {
         if (! $user) {
@@ -1982,32 +1835,43 @@ class DashboardController extends Controller
         return $affiliateProducts->concat($affiliateEvents);
     }
 
+    /**
+     * "Say thank you" to someone who sent you a gift. Only to a real gift sender, never to yourself,
+     * and the message is plain text of a sensible length.
+     */
     public function thankSender(Request $request)
     {
-        $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'message' => 'required|string',
-            'gift_coins_id' => 'nullable|exists:gift_coins,id',
+        $data = $request->validate([
+            'user_id' => 'required|integer|exists:users,id',
+            'message' => 'required|string|max:500',
+            'gift_coins_id' => 'nullable|integer',
         ]);
 
         $sender = Auth::user();
-        $recipient = User::findOrFail($request->input('user_id'));
+        $recipient = User::findOrFail($data['user_id']);
 
-        if ($giftId = $request->input('gift_coins_id')) {
-            \App\Models\GiftCoins::where('id', $giftId)
-                ->where('recieved_id', $sender->id)
-                ->update(['responded_at' => now()]);
+        if ((int) $recipient->id === (int) $sender->id) {
+            return response()->json(['success' => false, 'message' => 'You can’t thank yourself.'], 422);
+        }
+
+        // The thank-you must answer a gift this person actually sent you.
+        $gifts = \App\Models\GiftCoins::where('recieved_id', $sender->id)->where('sender_id', $recipient->id);
+        if (! empty($data['gift_coins_id'])) {
+            $gifts->whereKey($data['gift_coins_id']);
+        }
+        if (! (clone $gifts)->exists()) {
+            return response()->json(['success' => false, 'message' => 'You can only thank someone who sent you a gift.'], 422);
+        }
+
+        if (! empty($data['gift_coins_id'])) {
+            $gifts->update(['responded_at' => now()]);
         } else {
-            \App\Models\GiftCoins::where('recieved_id', $sender->id)
-                ->where('sender_id', $recipient->id)
-                ->whereNull('responded_at')
-                ->latest()
-                ->update(['responded_at' => now()]);
+            $gifts->whereNull('responded_at')->update(['responded_at' => now()]);
         }
 
         \App\Models\Notification::create([
             'title'    => 'Thank you for your support!',
-            'message'  => $request->input('message'),
+            'message'  => strip_tags(trim($data['message'])),
             'send_by'  => $sender->id,
             'user_id'  => $recipient->id,
             'type'     => 'gift',

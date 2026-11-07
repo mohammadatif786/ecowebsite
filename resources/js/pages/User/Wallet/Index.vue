@@ -19,25 +19,28 @@
           <p class="text-white/60 text-xs font-black tracking-wide flex items-center gap-2 relative z-10"><i data-lucide="wallet" class="w-4 h-4"></i>LINK UP DIGITAL WALLET</p>
           <p class="text-4xl font-black mt-2 relative z-10">{{ money(WALLET.balance) }}</p>
           <div class="flex flex-wrap gap-2 mt-5 relative z-10">
-            <button @click="showScanPay = true" class="btn bg-gradient-to-r from-teal-400 to-cyan-500 text-white px-4 py-2.5 flex items-center gap-2"><i data-lucide="scan-line" class="w-4 h-4"></i>Scan to Pay</button>
+            <button @click="showScanPay = true" class="btn bg-gradient-to-r from-teal-400 to-cyan-500 text-white px-4 py-2.5 flex items-center gap-2"><i data-lucide="scan-line" class="w-4 h-4"></i>Scan to Pay<span class="rounded-full bg-white/25 px-1.5 py-0.5 text-[9px] font-black uppercase">Soon</span></button>
             <button @click="showMyQR = true" class="btn bg-white/15 hover:bg-white/25 text-white px-4 py-2.5 flex items-center gap-2 transition"><i data-lucide="qr-code" class="w-4 h-4"></i>My QR</button>
-            <button @click="openTopUp('cash')" class="btn btn-primary px-4 py-2.5 flex items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i>Top Up</button>
-            <button @click="showTransfer = true" class="btn bg-white/15 hover:bg-white/25 text-white px-4 py-2.5 flex items-center gap-2 transition"><i data-lucide="repeat" class="w-4 h-4"></i>Transfer</button>
+            <button @click="requireKyc(() => openTopUp('cash'))" class="btn btn-primary px-4 py-2.5 flex items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i>Top Up</button>
+            <button @click="requireKyc(() => { showTransfer = true })" class="btn bg-white/15 hover:bg-white/25 text-white px-4 py-2.5 flex items-center gap-2 transition"><i data-lucide="repeat" class="w-4 h-4"></i>Transfer</button>
           </div>
         </div>
+
+        <!-- Identity check (hidden once approved) -->
+        <KycStatusCard :status="kycStatus" @verify="openKyc" />
 
         <!-- Quick Link Ups -->
         <div class="card p-4">
           <h3 class="font-black mb-3">Quick Link Ups</h3>
-          <div class="flex gap-3 pb-2">
-            <button @click="openAddContact" class="shrink-0 text-center hover:opacity-80 transition">
+          <div class="flex gap-3 pb-2 overflow-x-auto hide-scroll">
+            <button @click="requireKyc(openAddContact)" class="shrink-0 text-center hover:opacity-80 transition">
               <div class="h-12 w-12 rounded-full border-2 border-dashed border-slate-300 grid place-items-center text-slate-400 mx-auto">
                 <i data-lucide="plus" class="w-5 h-5"></i>
               </div>
               <p class="text-[10px] font-bold mt-1">New</p>
             </button>
             <div v-for="c in cs" :key="c.contactId || c.id" class="relative shrink-0 w-20 text-center group">
-              <button @click="openSend(c.tag)" class="w-full hover:opacity-80 transition">
+              <button @click="requireKyc(() => openSend(c.tag))" class="w-full hover:opacity-80 transition">
               <img :src="c.img" class="h-12 w-12 rounded-full object-cover mx-auto"/>
               <p class="text-[10px] font-bold mt-1 w-20 truncate">{{ c.name }}</p>
               <p class="text-[10px] font-light w-20 truncate">{{ c.tag }}</p>
@@ -50,8 +53,9 @@
         </div>
 
         <!-- Action Grid -->
-        <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-          <button v-for="a in actions" :key="a.name" @click="a.fn()" class="card p-4 flex flex-col items-center gap-2 hover:-translate-y-0.5 transition shadow-sm hover:shadow-md">
+        <div class="grid grid-cols-3 gap-3">
+          <button v-for="a in actions" :key="a.name" @click="a.fn()" class="card p-4 flex flex-col items-center gap-2 hover:-translate-y-0.5 transition shadow-sm hover:shadow-md relative">
+            <span v-if="a.soon" class="absolute top-2 right-2 rounded-full bg-slate-100 text-slate-500 px-1.5 py-0.5 text-[9px] font-black uppercase">Soon</span>
             <span class="w-11 h-11 rounded-xl grid place-items-center text-white" :style="{ background: a.color }">
               <i :data-lucide="a.icon" class="w-5 h-5"></i>
             </span>
@@ -69,7 +73,8 @@
               <span class="font-black flex items-center gap-2"><i data-lucide="piggy-bank" class="w-5 h-5"></i> LinkUp Save</span>
               <div class="flex items-center gap-2">
                 <button @click="showSaveHow = true" class="h-7 w-7 rounded-full bg-white/20 hover:bg-white/30 grid place-items-center font-black transition">?</button>
-                <span class="rounded-full bg-white/20 px-2.5 py-1 text-[10px] font-black">Powered by Scotiabank</span>
+                <span class="rounded-full bg-white px-2.5 py-1 text-[10px] font-black text-emerald-700">Coming soon</span>
+                <span class="hidden sm:inline rounded-full bg-white/20 px-2.5 py-1 text-[10px] font-black">Powered by Scotiabank</span>
               </div>
             </div>
             <p class="text-emerald-50 text-xs mt-4">Available Savings Balance</p>
@@ -106,7 +111,7 @@
           </div>
         </div>
 
-        <LinkUpCoinsCard :coins="WALLET.coins" @buy-more="openTopUp('coins')" />
+        <LinkUpCoinsCard :coins="WALLET.coins" @buy-more="requireKyc(() => openTopUp('coins'))" />
 
       </div>
 
@@ -143,7 +148,8 @@
         <div class="flex items-center justify-between mb-2"><h3 class="text-xl font-black">Scan to Pay</h3><button @click="showScanPay = false" class="hover:bg-slate-100 p-1 rounded"><i data-lucide="x" class="w-5 h-5"></i></button></div>
         <div class="rounded-2xl bg-slate-900 text-white/70 aspect-square grid place-items-center mb-3"><i data-lucide="scan-line" class="w-16 h-16"></i></div>
         <p class="text-sm text-slate-500">Point your camera at a LinkUp QR to pay.</p>
-        <button @click="showScanPay = false; showMerchant = true" class="btn btn-primary w-full mt-4 py-3 shadow">Enter amount manually</button>
+        <div class="rounded-2xl bg-slate-50 border border-slate-200 text-slate-600 text-[12px] font-bold p-3 mt-3">🚧 QR payments are coming soon. For now, use Send Money.</div>
+        <button @click="showScanPay = false; requireKyc(() => openSend())" class="btn btn-primary w-full mt-3 py-3 shadow">Send Money instead</button>
       </div>
     </div>
 
@@ -166,37 +172,36 @@
       <div class="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-sm p-5 shadow-2xl">
         <div class="flex items-center justify-between mb-4"><h3 class="text-xl font-black">Transfer</h3><button @click="showTransfer = false" class="hover:bg-slate-100 p-1 rounded"><i data-lucide="x" class="w-5 h-5"></i></button></div>
         <div class="grid grid-cols-3 gap-3 text-center text-xs font-black">
-          <button @click="showTransfer = false; showTransferBank = true" class="rounded-2xl border-2 border-slate-100 py-4 hover:border-lkblue hover:bg-blue-50 transition"><i data-lucide="building-2" class="w-6 h-6 mx-auto mb-2 text-lkblue"></i><p>To Bank</p></button>
-          <button @click="showTransfer = false; showSaveDeposit = true" class="rounded-2xl border-2 border-slate-100 py-4 hover:border-emerald-400 hover:bg-emerald-50 transition"><i data-lucide="piggy-bank" class="w-6 h-6 mx-auto mb-2 text-emerald-500"></i><p>To Save</p></button>
+          <button @click="showTransfer = false; transferBankRef?.open()" class="rounded-2xl border-2 border-slate-100 py-4 hover:border-lkblue hover:bg-blue-50 transition"><i data-lucide="building-2" class="w-6 h-6 mx-auto mb-2 text-lkblue"></i><p>To Bank</p></button>
+          <button @click="showTransfer = false; showSaveDeposit = true" class="relative rounded-2xl border-2 border-slate-100 py-4 hover:border-emerald-400 hover:bg-emerald-50 transition"><span class="absolute top-1.5 right-1.5 rounded-full bg-slate-100 text-slate-500 px-1.5 py-0.5 text-[9px] font-black uppercase">Soon</span><i data-lucide="piggy-bank" class="w-6 h-6 mx-auto mb-2 text-emerald-500"></i><p>To Save</p></button>
           <button @click="showTransfer = false; openTopUp('coins')" class="rounded-2xl border-2 border-slate-100 py-4 hover:border-amber-400 hover:bg-amber-50 transition"><i data-lucide="gem" class="w-6 h-6 mx-auto mb-2 text-amber-500"></i><p>To Coins</p></button>
         </div>
       </div>
     </div>
 
-    <!-- Transfer to Bank -->
-    <div v-if="showTransferBank" class="fixed inset-0 z-[120] bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center" @click.self="showTransferBank = false">
-      <div class="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-sm p-5 shadow-2xl">
-        <div class="flex items-center justify-between mb-4"><h3 class="text-xl font-black">Transfer to Bank</h3><button @click="showTransferBank = false" class="hover:bg-slate-100 p-1 rounded"><i data-lucide="x" class="w-5 h-5"></i></button></div>
-        <div class="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 mb-3 border border-slate-100"><span class="font-black text-slate-500">Available</span><span class="font-black text-lg">{{ money(WALLET.balance) }}</span></div>
-        <input v-model="tbAmt" type="number" placeholder="Amount (USD)" class="w-full rounded-2xl border border-slate-200 px-4 py-3 font-black text-lg outline-none focus:border-lkblue transition-colors mb-2"/>
-        <select class="w-full rounded-2xl border border-slate-200 px-4 py-3 font-bold outline-none bg-white focus:border-lkblue transition-colors mb-3">
-          <option>Scotiabank ••4471</option>
-          <option>RBC ••8830</option>
-        </select>
-        <div class="rounded-2xl bg-amber-50 border border-amber-200 p-3 text-amber-800 mb-3">
-          <p class="font-bold text-sm">5% bank processing fee applies.</p>
-          <p class="text-[12px] mt-1 font-bold opacity-80">You withdraw {{ money(tbAmt || 0) }} • Fee {{ money((tbAmt || 0) * 0.05) }} • You receive {{ money((tbAmt || 0) * 0.95) }}</p>
-        </div>
-        <button @click="doWithdraw" class="btn w-full py-3.5 text-white shadow" style="background:#0b2942">Confirm Withdrawal</button>
-      </div>
-    </div>
+    <!-- Transfer to Bank (real: saved banks, fee, PIN) -->
+    <TransferBankModal
+      ref="transferBankRef"
+      :balance="WALLET.balance"
+      :bank-accounts="props.bankAccounts"
+      :fee-percent="Number(props.withdrawalFeePercent)"
+      :has-pin="props.hasPin"
+      @withdrawn="handleWithdrawn"
+      @setup-pin="pinSetupRef?.open()"
+    />
+
+    <!-- Identity check + PIN -->
+    <KycModal ref="kycModalRef" :kyc-status="kycStatus" :default-name="user.name || ''" @submitted="refreshKyc" />
+    <PinSetupModal ref="pinSetupRef" :has-pin="props.hasPin" @saved="router.reload({ only: ['hasPin'] })" />
 
     <SendMoneyModal
       ref="sendMoneyModalRef"
       :balance="WALLET.balance"
       :contacts="cs"
       :users="quickPayUsers"
+      :has-pin="props.hasPin"
       @money-sent="handleMoneySent"
+      @setup-pin="pinSetupRef?.open()"
     />
 
     <!-- Request Money -->
@@ -234,30 +239,19 @@
     <!-- Pay Bills -->
     <div v-if="showPayBills" class="fixed inset-0 z-[120] bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center" @click.self="showPayBills = false">
       <div class="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
-        <div v-if="!billToPay" class="fade">
-          <div class="p-5 flex items-center justify-between"><h3 class="text-xl font-black">Pay Bills</h3><button @click="showPayBills = false" class="hover:bg-slate-100 p-1 rounded"><i data-lucide="x" class="w-5 h-5"></i></button></div>
+        <div class="fade">
+          <div class="p-5 flex items-center justify-between"><h3 class="text-xl font-black">Pay Bills <span class="align-middle rounded-full bg-slate-100 text-slate-500 px-2 py-0.5 text-[10px] font-black uppercase">Coming soon</span></h3><button @click="showPayBills = false" class="hover:bg-slate-100 p-1 rounded"><i data-lucide="x" class="w-5 h-5"></i></button></div>
           <div class="p-4 pt-0 space-y-3 max-h-[70vh] overflow-y-auto">
+            <p class="rounded-2xl bg-slate-50 border border-slate-200 text-slate-600 text-[12px] font-bold p-3">🚧 Bill payments from your wallet are coming soon. These are the billers we're adding first.</p>
             <div v-for="b in BILLERS" :key="b.id" class="flex items-center gap-3 border border-slate-100 rounded-2xl p-3 shadow-sm hover:border-sky-200 transition">
               <span class="h-10 w-10 rounded-full bg-sky-50 grid place-items-center text-sky-500 shrink-0"><i :data-lucide="b.icon" class="w-5 h-5"></i></span>
               <div class="flex-1 min-w-0">
                 <p class="font-black text-sm">{{ b.name }}</p>
-                <p :class="['text-[11px] font-bold mt-0.5', billPaid[b.id] ? 'text-emerald-600' : 'text-slate-400']">{{ billPaid[b.id] ? '✅ Paid ' + money(billPaid[b.id]) : b.due }}</p>
+                <p class="text-[11px] font-bold mt-0.5 text-slate-400">{{ b.hint }}</p>
               </div>
-              <span v-if="billPaid[b.id]" class="rounded-full bg-emerald-50 text-emerald-600 px-3 py-1.5 text-xs font-black shrink-0">✓ Paid</span>
-              <button v-else @click="billToPay = b" class="btn bg-sky-500 hover:bg-sky-600 text-white px-4 py-2 text-xs shadow-sm transition">Pay</button>
+              <span class="rounded-full bg-slate-100 text-slate-400 px-3 py-1.5 text-xs font-black shrink-0">Soon</span>
             </div>
           </div>
-        </div>
-        <div v-else class="fade p-5">
-          <div class="flex items-center justify-between mb-5">
-            <h3 class="text-xl font-black flex items-center gap-2">
-              <button @click="billToPay = null" class="mr-1 hover:bg-slate-100 p-1 rounded"><i data-lucide="arrow-left" class="w-4 h-4"></i></button>
-              {{ billToPay.name }}
-            </h3>
-            <button @click="showPayBills = false" class="hover:bg-slate-100 p-1 rounded"><i data-lucide="x" class="w-5 h-5"></i></button>
-          </div>
-          <input v-model="billAmt" type="number" placeholder="Amount (USD)" class="w-full rounded-2xl border border-slate-200 px-4 py-4 font-black text-xl outline-none focus:border-lkblue transition-colors"/>
-          <button @click="payBill" class="btn btn-primary w-full mt-4 py-3.5 shadow">Pay {{ billToPay.name }}</button>
         </div>
       </div>
     </div>
@@ -265,34 +259,36 @@
     <!-- Merchant Pay -->
     <div v-if="showMerchant" class="fixed inset-0 z-[120] bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center" @click.self="showMerchant = false">
       <div class="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-sm p-5 shadow-2xl">
-        <div class="flex items-center justify-between mb-4"><h3 class="text-xl font-black">Merchant Pay</h3><button @click="showMerchant = false" class="hover:bg-slate-100 p-1 rounded"><i data-lucide="x" class="w-5 h-5"></i></button></div>
+        <div class="flex items-center justify-between mb-4"><h3 class="text-xl font-black">Merchant Pay <span class="align-middle rounded-full bg-slate-100 text-slate-500 px-2 py-0.5 text-[10px] font-black uppercase">Coming soon</span></h3><button @click="showMerchant = false" class="hover:bg-slate-100 p-1 rounded"><i data-lucide="x" class="w-5 h-5"></i></button></div>
         <div class="rounded-2xl bg-slate-900 text-white/70 p-6 text-center mb-4">
           <i data-lucide="scan-line" class="w-12 h-12 mx-auto text-lkblue"></i><p class="font-bold text-sm mt-3">Scan merchant QR to pay</p>
         </div>
-        <input v-model="merchName" class="w-full rounded-2xl border border-slate-200 px-4 py-3 mb-3 font-bold outline-none focus:border-lkblue transition-colors"/>
-        <input v-model="merchAmt" type="number" placeholder="Amount (USD)" class="w-full rounded-2xl border border-slate-200 px-4 py-3 font-black text-lg outline-none focus:border-lkblue transition-colors"/>
-        <button @click="payMerchant" class="btn btn-primary w-full mt-4 py-3.5 shadow hover:shadow-md transition">Pay Merchant</button>
+        <input disabled placeholder="Merchant name" class="w-full rounded-2xl border border-slate-200 px-4 py-3 mb-3 font-bold bg-slate-50 text-slate-400"/>
+        <input disabled type="number" placeholder="Amount (USD)" class="w-full rounded-2xl border border-slate-200 px-4 py-3 font-black text-lg bg-slate-50 text-slate-400"/>
+        <p class="rounded-2xl bg-slate-50 border border-slate-200 text-slate-600 text-[12px] font-bold p-3 mt-3">🚧 Paying shops from your wallet is coming soon.</p>
+        <button disabled class="btn w-full mt-3 py-3.5 bg-slate-200 text-slate-500 cursor-not-allowed">Coming soon</button>
       </div>
     </div>
 
     <!-- Cards -->
     <div v-if="showCards" class="fixed inset-0 z-[120] bg-black/40 backdrop-blur-sm flex items-end sm:items-center justify-center" @click.self="showCards = false">
       <div class="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-sm p-5 shadow-2xl">
-        <div class="flex items-center justify-between mb-5"><h3 class="text-xl font-black">My Cards</h3><button @click="showCards = false" class="hover:bg-slate-100 p-1 rounded"><i data-lucide="x" class="w-5 h-5"></i></button></div>
+        <div class="flex items-center justify-between mb-5"><h3 class="text-xl font-black">My Cards <span class="align-middle rounded-full bg-slate-100 text-slate-500 px-2 py-0.5 text-[10px] font-black uppercase">Coming soon</span></h3><button @click="showCards = false" class="hover:bg-slate-100 p-1 rounded"><i data-lucide="x" class="w-5 h-5"></i></button></div>
         <div class="rounded-3xl p-6 text-white shadow-lg relative overflow-hidden" style="background:linear-gradient(135deg,#0b2942,#2f9bef)">
           <div class="absolute -right-8 -bottom-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
           <div class="flex justify-between items-start relative z-10">
             <span class="logo text-2xl drop-shadow-md">Link<span class="text-lkyellow">üp</span></span>
             <i data-lucide="wifi" class="w-5 h-5 opacity-80"></i>
           </div>
-          <p class="tracking-[0.2em] text-xl mt-8 font-mono relative z-10">•••• •••• •••• {{ cardInfo.last4 || '4471' }}</p>
+          <p class="tracking-[0.2em] text-xl mt-8 font-mono relative z-10">•••• •••• •••• ••••</p>
           <div class="flex justify-between mt-4 text-sm font-bold relative z-10">
             <span class="uppercase tracking-wide">{{ user.name }}</span>
-            <span>{{ cardInfo.exp || '08/28' }}</span>
+            <span>••/••</span>
           </div>
         </div>
-        <button @click="toast('❄ Card frozen')" class="btn btn-ghost w-full mt-5 py-3 hover:bg-slate-50 transition">Freeze card</button>
-        <button @click="toast('➕ Virtual card created')" class="btn btn-primary w-full mt-3 py-3 shadow transition">Create virtual card</button>
+        <p class="rounded-2xl bg-slate-50 border border-slate-200 text-slate-600 text-[12px] font-bold p-3 mt-5">🚧 LinkUp debit and virtual cards are coming soon.</p>
+        <button disabled class="btn btn-ghost w-full mt-3 py-3 text-slate-400 cursor-not-allowed">Freeze card</button>
+        <button disabled class="btn w-full mt-3 py-3 bg-slate-200 text-slate-500 cursor-not-allowed">Create virtual card · Coming soon</button>
       </div>
     </div>
 
@@ -325,7 +321,8 @@
           </div>
           <input v-model="depAmt" type="number" placeholder="Amount (USD)" class="w-full rounded-2xl border border-slate-200 px-4 py-4 font-black text-xl outline-none focus:border-emerald-500 transition-colors"/>
           <div class="rounded-2xl bg-emerald-50 text-emerald-800 text-xs font-bold p-3 border border-emerald-100 shadow-sm">Moves Wallet → LinkUp Save. Interest accrues daily, posts monthly.</div>
-          <button @click="applyDeposit" class="btn w-full py-3.5 text-white shadow hover:shadow-md transition" style="background:linear-gradient(135deg,#059669,#14b8a6)">Deposit</button>
+          <p class="rounded-2xl bg-slate-50 border border-slate-200 text-slate-600 text-[12px] font-bold p-3">🚧 LinkUp Save is coming soon. Nothing is moved yet.</p>
+          <button disabled class="btn w-full py-3.5 bg-slate-200 text-slate-500 cursor-not-allowed">Coming soon</button>
         </div>
       </div>
     </div>
@@ -342,7 +339,8 @@
           <div class="rounded-2xl bg-amber-50 text-amber-800 text-xs font-bold p-4 border border-amber-200 shadow-sm">
             ⚠️ Funds locked {{ saveTierInfo.lock || savingsConfig.lockDays }} days. Early withdrawal incurs {{ savingsConfig.earlyPenalty }}% penalty.
           </div>
-          <button @click="applyWithdraw" class="btn w-full py-3.5 text-white shadow hover:shadow-md transition" style="background:linear-gradient(135deg,#059669,#14b8a6)">Withdraw to Wallet</button>
+          <p class="rounded-2xl bg-slate-50 border border-slate-200 text-slate-600 text-[12px] font-bold p-3">🚧 LinkUp Save is coming soon. Nothing is moved yet.</p>
+          <button disabled class="btn w-full py-3.5 bg-slate-200 text-slate-500 cursor-not-allowed">Coming soon</button>
         </div>
       </div>
     </div>
@@ -362,7 +360,8 @@
             <button @click="asPct = 25" class="rounded-xl border-2 border-emerald-100 hover:bg-emerald-50 py-2.5 font-black text-emerald-700 text-sm transition">25%</button>
           </div>
           <input v-model="asPct" type="number" class="w-full rounded-2xl border border-slate-200 px-4 py-4 font-black text-2xl outline-none focus:border-emerald-500 transition-colors text-center"/>
-          <button @click="applyAuto" class="btn w-full py-3.5 text-white shadow hover:shadow-md transition" style="background:linear-gradient(135deg,#059669,#14b8a6)">Save Rule</button>
+          <p class="rounded-2xl bg-slate-50 border border-slate-200 text-slate-600 text-[12px] font-bold p-3">🚧 LinkUp Save is coming soon. Nothing is moved yet.</p>
+          <button disabled class="btn w-full py-3.5 bg-slate-200 text-slate-500 cursor-not-allowed">Coming soon</button>
         </div>
       </div>
     </div>
@@ -374,6 +373,7 @@
           <div class="flex items-center justify-between"><h3 class="text-xl font-black">Savings History</h3><button @click="showSaveHistory = false" class="hover:bg-white/20 p-1 rounded transition"><i data-lucide="x" class="w-5 h-5"></i></button></div>
         </div>
         <div class="p-4 space-y-2 max-h-[70vh] overflow-y-auto bg-slate-50/50">
+          <p v-if="!saveHistory.length" class="text-center text-slate-400 font-bold text-sm py-8">No savings activity yet. LinkUp Save is coming soon.</p>
           <div v-for="(t, i) in saveHistory" :key="i" class="flex items-center justify-between bg-white border border-slate-100 rounded-2xl p-4 shadow-sm hover:border-slate-200 transition">
             <div class="pr-3">
               <p class="font-black text-sm">{{ t[0] }}</p>
@@ -425,6 +425,10 @@ import RequestMoneyModal from './modals/RequestMoneyModal.vue';
 import RequestedMoneyModal from './modals/RequestedMoneyModal.vue';
 import WalletActivityModal from './modals/WalletActivityModal.vue';
 import LinkUpCoinsCard from './components/LinkUpCoinsCard.vue';
+import KycStatusCard from './components/KycStatusCard.vue';
+import KycModal from './modals/KycModal.vue';
+import TransferBankModal from './modals/TransferBankModal.vue';
+import PinSetupModal from './modals/PinSetupModal.vue';
 import AsueModal from './Classic/UserWallet/components/AsueModal.vue';
 import AsueDetailModal from './Classic/UserWallet/components/AsueDetailModal.vue';
 
@@ -439,6 +443,10 @@ const props = defineProps({
   subscriptions: { type: Array, default: () => [] },
   bankWithdrawals: { type: Array, default: () => [] },
   activeAsue: { type: Object, default: null },
+  bankAccounts: { type: Array, default: () => [] },
+  withdrawalFeePercent: { type: [Number, String], default: 5 },
+  kyc: { type: Object, default: () => ({ status: 'none' }) },
+  hasPin: { type: Boolean, default: false },
 });
 
 // --- UTILS ---
@@ -468,10 +476,10 @@ const CCY = [
   {code:'COP',sym:'COL$',mode:'floating',rate:4000,bps:200}
 ];
 const BILLERS = [
-  {id:'bpl', name:'BPL Electricity', due:'Due Jun 18', icon:'zap'},
-  {id:'cable', name:'Cable & Internet', due:'Due Jun 22', icon:'wifi'},
-  {id:'water', name:'Water & Sewerage', due:'Due Jun 25', icon:'droplet'},
-  {id:'btc', name:'BTC Mobile', due:'Due Jun 28', icon:'smartphone'}
+  {id:'bpl', name:'BPL Electricity', hint:'Electricity', icon:'zap'},
+  {id:'cable', name:'Cable & Internet', hint:'TV & internet', icon:'wifi'},
+  {id:'water', name:'Water & Sewerage', hint:'Water', icon:'droplet'},
+  {id:'btc', name:'BTC Mobile', hint:'Mobile top-up', icon:'smartphone'}
 ];
 const savingsConfig = {minBalance:1000, topUpMin:100, earlyPenalty:1.5, lockDays:90, tiers:[{name:'Standard',min:1000,apy:3.0,lock:30},{name:'Premium',min:5000,apy:4.0,lock:90},{name:'Elite',min:25000,apy:4.5,lock:180}]};
 
@@ -480,6 +488,26 @@ const WALLET = reactive({
   balance: Number(props.wallet?.balance ?? 0),
   coins: Number(props.wallet?.coins ?? 0),
 });
+// Keep the card in step with the server after any partial reload.
+watch(() => props.wallet, (w) => {
+  WALLET.balance = Number(w?.balance ?? 0);
+  WALLET.coins = Number(w?.coins ?? 0);
+}, { deep: true });
+
+// --- IDENTITY CHECK (KYC) ---
+// Money features need an approved check; until then the button opens the form instead.
+const kycModalRef = ref(null);
+const pinSetupRef = ref(null);
+const transferBankRef = ref(null);
+const kycStatus = computed(() => props.kyc?.status || 'none');
+const openKyc = () => { kycModalRef.value?.open(); };
+const requireKyc = (fn) => {
+  if (kycStatus.value === 'approved') { fn(); return; }
+  if (kycStatus.value === 'pending') window.toast?.('Your identity check is in review — this unlocks once approved.');
+  openKyc();
+};
+const refreshKyc = () => router.reload({ only: ['kyc'] });
+
 const normalizeActivity = (item, index = 0, overrides = {}) => ({
   id: item.id || 'activity-' + index,
   title: overrides.title || item.title || 'Wallet activity',
@@ -589,7 +617,6 @@ const requestMoneyModalRef = ref(null);
 const requestedMoneyModalRef = ref(null);
 const activityModalRef = ref(null);
 const showTransfer = ref(false);
-const showTransferBank = ref(false);
 const showPayBills = ref(false);
 const showMerchant = ref(false);
 const showCards = ref(false);
@@ -607,15 +634,8 @@ const refreshAsue = () => {
 
 // Forms & Inputs
 const coinPacks = [[100,1],[550,5],[1200,10],[3000,25]].map(p => ({luc: p[0], usd: p[1]}));
-const tbAmt = ref('');
-const merchName = ref('The Stop & Shop');
-const merchAmt = ref('');
-const cardInfo = { last4: '4471', exp: '08/28' };
 
 // Pay Bills
-const billPaid = ref({});
-const billToPay = ref(null);
-const billAmt = ref('');
 
 // LinkUp Save
 const saveData = reactive({ balance: 0, earnedMonth: 0, autoSavePct: 0 });
@@ -655,49 +675,24 @@ hydrateMoneyRequests();
 watch(() => props.moneyRequests, hydrateMoneyRequests, { deep: true });
 
 const actions = [
-  { name: 'Send Money', icon: 'send', color: '#2f9bef', fn: () => openSend() },
-  { name: 'Request', icon: 'hand-coins', color: '#f59e0b', fn: () => openRequest() },
+  { name: 'Send Money', icon: 'send', color: '#2f9bef', fn: () => requireKyc(() => openSend()) },
+  { name: 'Request', icon: 'hand-coins', color: '#f59e0b', fn: () => requireKyc(() => openRequest()) },
   { name: 'Requested', icon: 'inbox', color: '#8b5cf6', fn: () => openRequestedMoney() },
-  { name: 'Pay Bills', icon: 'receipt', color: '#22c55e', fn: () => { showPayBills.value = true; } },
-  { name: 'Merchant', icon: 'store', color: '#a855f7', fn: () => { showMerchant.value = true; } },
-  { name: 'Transfer', icon: 'repeat', color: '#0b2942', fn: () => { showTransfer.value = true; } },
-  { name: 'Top Up', icon: 'plus', color: '#0ea5e9', fn: () => openTopUp('cash') },
-  { name: 'Cards', icon: 'credit-card', color: '#ec4899', fn: () => { showCards.value = true; } },
+  { name: 'Pay Bills', icon: 'receipt', color: '#22c55e', soon: true, fn: () => { showPayBills.value = true; } },
+  { name: 'Merchant', icon: 'store', color: '#a855f7', soon: true, fn: () => { showMerchant.value = true; } },
+  { name: 'Transfer', icon: 'repeat', color: '#0b2942', fn: () => requireKyc(() => { showTransfer.value = true; }) },
+  { name: 'Top Up', icon: 'plus', color: '#0ea5e9', fn: () => requireKyc(() => openTopUp('cash')) },
+  { name: 'Cards', icon: 'credit-card', color: '#ec4899', soon: true, fn: () => { showCards.value = true; } },
   { name: 'Activity', icon: 'history', color: '#64748b', fn: () => openActivity() },
   { name: 'ASUE', icon: 'users-round', color: '#0f766e', fn: () => { showAsue.value = true; } }
 ];
 
 // --- LOGIC ---
-const pushTx = (title, amount) => {
-  localTxns.value.unshift({
-    id: 'local-' + Date.now(),
-    title,
-    amount: Math.abs(Number(amount || 0)),
-    isPositive: Number(amount || 0) >= 0,
-    status: 'success',
-    type: 'local',
-    counterparty: '',
-    note: '',
-    runningBalance: WALLET.balance,
-    date: new Date().toISOString(),
-    dateLabel: 'Today',
-  });
-
-  if (window.toast) window.toast((amount >= 0 ? 'Received: ' : 'Paid: ') + money(Math.abs(amount)));
-};
-
 const openTopUp = (tab) => { topUpModalRef.value?.open(tab); };
 
-const doWithdraw = () => {
-  const v = parseFloat(tbAmt.value);
-  if (!v || v <= 0) { if (window.toast) window.toast('Enter an amount'); return; }
-  if (v > WALLET.balance) { if (window.toast) window.toast('Exceeds balance'); return; }
-  const fee = v * 0.05;
-  WALLET.balance = +(WALLET.balance - v).toFixed(2);
-  pushTx('Transfer to bank', -v);
-  syncDB();
-  showTransferBank.value = false;
-  if (window.toast) window.toast(`🏦 Withdrew ${money(v)} (−${money(fee)} fee)`);
+const handleWithdrawn = (data) => {
+  if (data?.balance !== undefined) WALLET.balance = Number(data.balance);
+  router.reload({ only: ['wallet', 'activity', 'bankWithdrawals', 'bankAccounts'] });
 };
 
 const openAddContact = () => { quickPayContactModalRef.value?.open(); };
@@ -719,21 +714,9 @@ const fmtCcy = (amt, code) => {
   return sym + Number(amt).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
-const walletResolve = (q) => {
-  q = (q || '').trim(); if (!q) return null;
-  const key = q.toLowerCase().replace(/^[@~]/, '');
-  const hit = cs.value.find(c => c.tag.toLowerCase().replace(/^[@~]/, '') === key || c.name.toLowerCase() === q.toLowerCase());
-  if (hit) return hit;
-  const dirHit = quickPayUsers.value.find(u => u.tag.toLowerCase().replace(/^@/, '') === key || u.name.toLowerCase() === q.toLowerCase());
-  if (dirHit) return dirHit;
-  return { name: q.replace(/^[@~]/, ''), tag: '@' + key, img: AV(8), unknown: true };
-};
-
 const openSend = (tag) => { sendMoneyModalRef.value?.open(tag); };
 const handleMoneySent = ({ recipient, amount }) => {
-  WALLET.balance = +(WALLET.balance - amount).toFixed(2);
-  pushTx('Sent to ' + recipient.name, -amount);
-  syncDB();
+  // The send itself reloads the page props (balance + activity) from the server.
   if (window.toast) window.toast('Sent ' + money(amount) + ' to ' + recipient.name);
 };
 
@@ -757,10 +740,8 @@ const removeQuickPayContact = async (contact) => {
 
 const openRequestedMoney = () => { requestedMoneyModalRef.value?.open(); };
 const handleRequestedMoneyPaid = (request) => {
-  WALLET.balance = +(WALLET.balance - Number(request.amount || 0)).toFixed(2);
-  pushTx('Paid ' + request.person.name, -Number(request.amount || 0));
   handleRequestedMoneyUpdated({ id: request.id, status: 'accepted' });
-  syncDB();
+  router.reload({ only: ['wallet', 'activity', 'moneyRequests'] });
   if (window.toast) window.toast('Paid ' + money(request.amount) + ' to ' + request.person.name);
 };
 const handleRequestedMoneyUpdated = ({ id, status }) => {
@@ -774,59 +755,12 @@ const openActivity = () => {
   router.reload({ only: ['activity', 'moneyRequests', 'subscriptions', 'bankWithdrawals'] });
 };
 
-const payBill = () => {
-  const v = parseFloat(billAmt.value);
-  if (!v || v <= 0) { if (window.toast) window.toast('Enter an amount'); return; }
-  if (WALLET.balance < v) { if (window.toast) window.toast('Insufficient balance'); return; }
-  WALLET.balance = +(WALLET.balance - v).toFixed(2);
-  billPaid.value[billToPay.value.id] = v;
-  DB.set('lk_bill_paid', billPaid.value);
-  pushTx('Bill · ' + billToPay.value.name, -v);
-  syncDB();
-  showPayBills.value = false;
-  if (window.toast) window.toast(`🧾 Paid ${money(v)} to ${billToPay.value.name}`);
-  billToPay.value = null; billAmt.value = '';
-};
+// Pay Bills, Merchant, Cards and LinkUp Save are shown as "Coming soon": no money moves from these screens.
 
-const payMerchant = () => {
-  const v = parseFloat(merchAmt.value);
-  if (!v || v <= 0) { if (window.toast) window.toast('Enter an amount'); return; }
-  if (WALLET.balance < v) { if (window.toast) window.toast('Insufficient balance'); return; }
-  WALLET.balance = +(WALLET.balance - v).toFixed(2);
-  pushTx('Merchant · ' + merchName.value, -v);
-  syncDB();
-  showMerchant.value = false;
-  if (window.toast) window.toast(`🏪 Paid ${money(v)} to ${merchName.value}`);
-  merchAmt.value = '';
-};
-
-// --- SAVE ACTIONS ---
-const applyDeposit = () => {
-  const v = parseFloat(depAmt.value);
-  if (!v || v < savingsConfig.topUpMin) { if (window.toast) window.toast('Minimum deposit is ' + money(savingsConfig.topUpMin)); return; }
-  if (v > WALLET.balance) { if (window.toast) window.toast('Not enough wallet balance'); return; }
-  saveData.balance += v; WALLET.balance = +(WALLET.balance - v).toFixed(2);
-  pushTx('Deposit to LinkUp Save', -v); syncDB(); showSaveDeposit.value = false;
-  if (window.toast) window.toast('🐷 ' + money(v) + ' moved to LinkUp Save');
-  depAmt.value = '';
-};
-const applyWithdraw = () => {
-  const v = parseFloat(wdAmt.value);
-  if (!v || v <= 0) { if (window.toast) window.toast('Enter an amount'); return; }
-  if (v > saveData.balance) { if (window.toast) window.toast('Exceeds savings balance'); return; }
-  const pen = v * savingsConfig.earlyPenalty / 100;
-  saveData.balance -= v; WALLET.balance = +(WALLET.balance + (v - pen)).toFixed(2);
-  pushTx('Withdraw from Save', v - pen); syncDB(); showSaveWithdraw.value = false;
-  if (window.toast) window.toast(`Withdrew ${money(v - pen)} (−${money(pen)} penalty)`);
-  wdAmt.value = '';
-};
-const applyAuto = () => {
-  const v = parseFloat(asPct.value) || 0;
-  saveData.autoSavePct = Math.max(0, Math.min(100, v));
-  syncDB(); showSaveAuto.value = false;
-  if (window.toast) window.toast('Auto-Save set to ' + saveData.autoSavePct + '%');
-};
-
-onMounted(() => { nextTick(() => { if (window.lucide) window.lucide.createIcons(); }); });
+onMounted(() => {
+  nextTick(() => { if (window.lucide) window.lucide.createIcons(); });
+  // Sent here by the KYC gate (?kyc=1): open the identity check straight away.
+  if (new URLSearchParams(window.location.search).has('kyc') && kycStatus.value !== 'approved') openKyc();
+});
 onUpdated(() => { nextTick(() => { if (window.lucide) window.lucide.createIcons(); }); });
 </script>

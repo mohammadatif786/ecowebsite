@@ -40,7 +40,15 @@ const props = defineProps<{
     initialKycReviews?: KycRecord[];
 }>();
 
-const records = computed(() => props.initialKycReviews || []);
+// Pending first, newest first, so new submissions are at the top.
+const statusOrder: Record<string, number> = { 'Pending Review': 0, Rejected: 1, Verified: 2 };
+const records = computed(() => [...(props.initialKycReviews || [])].sort((a, b) =>
+    (statusOrder[a.status] ?? 3) - (statusOrder[b.status] ?? 3) || String(b.submitted || '').localeCompare(String(a.submitted || ''))));
+const refreshing = ref(false);
+const refresh = () => {
+    refreshing.value = true;
+    router.reload({ only: ['initialKycReviews'], preserveScroll: true, onFinish: () => { refreshing.value = false; } });
+};
 const typeFilter = ref('All Types');
 const statusFilter = ref('All Statuses');
 const search = ref('');
@@ -171,11 +179,12 @@ const renderCharts = () => {
     }
 };
 
+// Every region and country starts open so submissions are visible straight away.
 const toggleGroup = (key: string) => {
-    openGroups.value[key] = !(openGroups.value[key] ?? key.startsWith('region:'));
+    openGroups.value[key] = !(openGroups.value[key] ?? true);
 };
 
-const groupOpen = (key: string) => openGroups.value[key] ?? key.startsWith('region:');
+const groupOpen = (key: string) => openGroups.value[key] ?? true;
 
 const statusClass = (status: KycStatus) => ({
     Verified: 'bg-green-50 text-green-700',
@@ -252,7 +261,10 @@ const setDocumentStatus = (record: KycRecord, doc: KycDocument, status: ReviewSt
     );
 };
 
-onMounted(() => nextTick(renderCharts));
+onMounted(() => {
+    nextTick(renderCharts);
+    refresh(); // the dashboard may have been open for a while: always show the latest submissions
+});
 watch(records, () => nextTick(renderCharts), { deep: true });
 onBeforeUnmount(destroyCharts);
 </script>
@@ -303,6 +315,7 @@ onBeforeUnmount(destroyCharts);
                     <p class="text-slate-500">Approve or reject identity, address, wallet, and organizer KYC submissions from the database.</p>
                 </div>
                 <div class="flex flex-wrap gap-2">
+                    <button :disabled="refreshing" class="rounded-2xl bg-slate-950 px-4 py-2 font-black text-white disabled:opacity-50" @click="refresh">{{ refreshing ? 'Refreshing…' : 'Refresh' }}</button>
                     <select v-model="typeFilter" class="rounded-2xl border border-slate-200 px-4 py-2 font-bold">
                         <option>All Types</option>
                         <option v-for="type in profileTypes" :key="type">{{ type }}</option>

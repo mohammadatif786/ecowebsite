@@ -120,7 +120,7 @@
                                     <div
                                         class="w-16 h-16 rounded-full overflow-hidden mb-2 ring-2 ring-white shadow-sm">
                                         <img :src="artist.image" class="w-full h-full object-cover"
-                                            @error="$event.target.src = '/assets/images/default-avatar.png'" />
+                                            @error="$event.target.src = ''" />
                                     </div>
                                     <p class="text-xs font-black truncate w-full">{{ artist.name }}</p>
                                     <p class="text-[10px] text-slate-400 font-bold">Performer</p>
@@ -354,7 +354,7 @@ const artists = computed(() => {
 
     return names.map((name, i) => ({
         name: name,
-        image: resolveMediaUrl(images[i]) || '/assets/images/default-avatar.png'
+        image: resolveMediaUrl(images[i]) || ''
     }));
 });
 

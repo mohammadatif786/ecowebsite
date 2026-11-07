@@ -3,6 +3,10 @@
 namespace App\Http\Controllers\User;
 
 use App\Actions\CompleteCoinRechargeAction;
+use App\Actions\InitiateBankWithdrawalAction;
+use App\Domain\Wallet\Actions\AddBankAccountAction;
+use App\Domain\Wallet\WalletPageData;
+use App\DTOs\BankWithdrawalDTO;
 use App\Actions\CompleteWalletRechargeAction;
 use App\Actions\InitiateCoinRechargeAction;
 use App\Actions\InitiateWalletRechargeAction;
@@ -17,6 +21,8 @@ use App\Models\UserMoneyRequest;
 use App\Services\WalletEmailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\RateLimiter;
 use Inertia\Inertia;
 
@@ -63,6 +69,83 @@ class WalletController extends Controller
             'success' => true,
             'message' => 'Contact removed.',
         ]);
+    }
+
+    /** Wallet hub: save one more bank account for withdrawals. */
+    public function addBankAccount(Request $request, AddBankAccountAction $action)
+    {
+        $validated = $request->validate([
+            'bank_name' => ['required', 'string', 'max:120'],
+            'account_number' => ['required', 'string', 'regex:/^[0-9A-Za-z ]{4,34}$/'],
+            'routing_number' => ['nullable', 'string', 'regex:/^[0-9 ]{5,20}$/'],
+            'account_type' => ['nullable', 'in:checking,savings'],
+            'is_default' => ['nullable', 'boolean'],
+        ]);
+
+        $account = $action->execute((int) Auth::id(), $validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Bank account saved.',
+            'bank_account_id' => $account->id,
+            'bankAccounts' => WalletPageData::bankAccounts((int) Auth::id()),
+        ]);
+    }
+
+    /** Wallet hub: move wallet money to a saved bank account. Needs the transaction PIN. */
+    public function withdrawToBank(Request $request, InitiateBankWithdrawalAction $action)
+    {
+        $validated = $request->validate([
+            'amount' => ['required', 'numeric', 'min:10', 'max:10000'],
+            'bank_account_id' => ['required', 'integer'],
+            'pin' => ['required', 'string', 'digits:4'],
+        ], [
+            'pin.required' => 'Transaction PIN is required.',
+            'pin.digits' => 'Transaction PIN must be 4 digits.',
+        ]);
+
+        $user = $request->user();
+        $this->assertPin($user, $validated['pin']);
+
+        $withdrawal = $action->execute(new BankWithdrawalDTO(
+            userId: (int) $user->id,
+            amount: round((float) $validated['amount'], 2),
+            bankIndex: -1,
+            bankAccountId: (int) $validated['bank_account_id'],
+        ));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Withdrawal submitted. It is pending processing.',
+            'withdrawal' => [
+                'id' => $withdrawal->id,
+                'amount' => (float) $withdrawal->amount,
+                'fee_amount' => (float) $withdrawal->fee_amount,
+                'payout_amount' => (float) $withdrawal->payout_amount,
+                'bank_name' => $withdrawal->bank_name,
+                'status' => $withdrawal->status,
+            ],
+            'balance' => (float) ($user->fresh()->balance('USD')->value->get() ?? 0),
+        ]);
+    }
+
+    private function assertPin(User $user, string $pin): void
+    {
+        if (empty($user->transaction_pin)) {
+            throw ValidationException::withMessages(['pin' => 'Set a transaction PIN first.']);
+        }
+
+        $key = 'wallet-pin:' . $user->id;
+        if (RateLimiter::tooManyAttempts($key, 5)) {
+            throw ValidationException::withMessages(['pin' => 'Too many wrong PINs. Try again in ' . RateLimiter::availableIn($key) . ' seconds.']);
+        }
+
+        if (! Hash::check($pin, $user->transaction_pin)) {
+            RateLimiter::hit($key, 900);
+            throw ValidationException::withMessages(['pin' => 'Incorrect transaction PIN. Please try again.']);
+        }
+
+        RateLimiter::clear($key);
     }
 
     public function sendMoney(Request $request, InitiateWalletRechargeAction $action, WalletEmailService $emailService)

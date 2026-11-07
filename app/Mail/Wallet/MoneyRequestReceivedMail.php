@@ -37,7 +37,7 @@ class MoneyRequestReceivedMail extends Mailable
             ? (str_starts_with($this->requester->image, 'http')
                 ? $this->requester->image
                 : $this->appUrl . 'storage/' . $this->requester->image)
-            : $this->appUrl . 'assets/images/default-avatar.png';
+            : $this->appUrl . '';
 
         $ad = $this->getSponsorAd('money_request', $this->recipient->country_code);
 

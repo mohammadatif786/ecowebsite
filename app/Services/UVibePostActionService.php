@@ -93,15 +93,7 @@ class UVibePostActionService
             }
 
             // Hashtags follow the words.
-            DB::table('vibe_hashtags')->where('vibe_id', $vibe->id)->delete();
-            if ($caption !== '' && preg_match_all('/#(\w+)/', $caption, $m) && ! empty($m[1])) {
-                DB::table('vibe_hashtags')->insert(collect($m[1])->map(fn ($tag) => [
-                    'vibe_id' => $vibe->id,
-                    'tag' => strtolower($tag),
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ])->all());
-            }
+            $vibe->syncHashtags($caption);
         });
 
         return $this->fresh($vibe);

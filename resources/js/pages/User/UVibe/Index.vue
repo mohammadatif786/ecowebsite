@@ -77,17 +77,8 @@
       <!-- Main Feed Column -->
       <div class="lg:col-span-2 space-y-4 min-w-0">
 
-        <!-- Stories Carousel -->
-        <div class="card p-4">
-          <div class="flex gap-4 overflow-x-auto hide-scroll">
-            <button @click="openCompose" class="flex flex-col items-center gap-1 shrink-0">
-              <span class="w-16 h-16 rounded-full border-2 border-dashed border-slate-300 grid place-items-center text-slate-400">
-                <Plus class="w-6 h-6" />
-              </span>
-              <span class="text-xs font-bold text-slate-500">Add</span>
-            </button>
-          </div>
-        </div>
+        <!-- Reels bar: the same component as Vibes, in U Vibe's violet -->
+        <ReelStoriesBar :stories="props.stories" :my-reels-count="myReelsCount" ring="violet" @add="openNewReelModal" @mine="openCreatorReels(user.id)" @open="(s) => openCreatorReels(s.user_id)" />
 
         <!-- Share on your campus bar -->
         <div class="card p-4 flex items-center gap-3">
@@ -138,6 +129,10 @@
     <!-- Campus Explorer Modal -->
     <CampusExplorerModal ref="campusExplorerModalRef" :state="campus" @changed="onCampusChanged" @visit="goCampus" @manageUniversities="openMyUniversities" />
 
+    <!-- Reels Viewer & New Reel Modal -->
+    <ReelsViewer ref="reelsRef" @deleted="onReelDeleted" />
+    <NewReelModal ref="newReelRef" :isUvibe="true" :campus="activeCampusId" @reel-created="onReelCreated" />
+
     <!-- Post windows: one of each serves the whole feed -->
     <PostMenuModal ref="postMenuRef" @edit="openEdit" @report="openReport" @deleted="removePost" @hidden="removePost" />
     <PostEditModal ref="postEditRef" :userEvents="props.userEvents" @updated="replacePost" />
@@ -145,6 +140,9 @@
     <PostBoostModal ref="postBoostRef" @boosted="onBoosted" />
     <GigApplicantsModal ref="applicantsRef" @updated="replacePost" />
     <VibeTagModal ref="tagModalRef" />
+
+    <!-- Action Modals shared by posts -->
+    <CommentsModal ref="commentsRef" />
   </div>
 </template>
 
@@ -174,6 +172,11 @@ import UVibeCategoriesCard from '../../../components/User/uvibe/categories/UVibe
 import KeepVibesCleanModal from '../../../components/User/modals/KeepVibesCleanModal.vue';
 import MyUniversitiesModal from '../../../components/User/modals/MyUniversitiesModal.vue';
 import CampusExplorerModal from '../../../components/User/modals/CampusExplorerModal.vue';
+import ReelStoriesBar from '../../../components/User/vibes/stories/ReelStoriesBar.vue';
+import ReelsViewer from '../../../components/User/vibes/reels/ReelsViewer.vue';
+import NewReelModal from '../../../components/User/modals/NewReelModal.vue';
+import { provideVibeActions } from '../../../components/User/vibes/useVibeActions';
+import CommentsModal from '../../../components/User/vibes/comments/CommentsModal.vue';
 import { getUser } from '../../../components/User/MockDataStore';
 
 defineOptions({ layout: MainLayout });
@@ -184,6 +187,9 @@ const props = defineProps({
   // Same numbers as `stats`; this is the one the Promote & Earn window refreshes after a payout.
   earningsStats: { type: Object, default: null },
   uvibes: { type: Array, default: () => [] },
+  stories: { type: Array, default: () => [] },
+  myReelsCount: { type: Number, default: 0 },
+  allReels: { type: Array, default: () => [] },
   publishers: { type: Object, default: () => ({ organizations: [], custom: [] }) },
   // Post types, organization types and text-card looks for the composer (same data the app gets).
   composeOptions: { type: Object, default: null },
@@ -195,6 +201,41 @@ const props = defineProps({
 const page = usePage();
 const user = computed(() => page.props.auth?.user || getUser());
 const earnings = computed(() => props.earningsStats || props.stats || {});
+
+const reels = ref([...props.allReels]);
+const myReelsCount = ref(props.myReelsCount);
+watch(() => props.allReels, (v) => (reels.value = [...(v || [])]));
+watch(() => props.myReelsCount, (v) => (myReelsCount.value = v));
+
+const newReelRef = ref(null);
+const reelsRef = ref(null);
+const commentsRef = ref(null);
+
+
+function openNewReelModal() {
+  newReelRef.value?.open();
+}
+function openCreatorReels(userId) {
+  reelsRef.value?.openCreator(userId);
+}
+function onReelCreated(reel) {
+  myReelsCount.value += 1;
+  reels.value.unshift({ ...reel, is_mine: true, handle: 'Your Reel' });
+}
+function onReelDeleted(id) {
+  reels.value = reels.value.filter((r) => r.id !== id);
+  myReelsCount.value = Math.max(0, myReelsCount.value - 1);
+}
+
+// The comments window and the reels viewer are the Vibes ones; U Vibe's own windows (menu, Boost,
+// edit, report) are opened through the post card's events below.
+provideVibeActions({
+  openComments: (post, onCount) => commentsRef.value?.open(post, onCount),
+  openTag: (post) => post?.tag && tagModalRef.value?.open(post.tag),
+  openReels: (list, index) => reelsRef.value?.open(list, index),
+  openCreatorReels,
+  openProfile: (userId) => userId && router.visit(route('user.vibes.user-profile', { user: userId })),
+});
 
 // Campus bar state comes from the server (same data the mobile API returns).
 const campus = ref(props.campusState);

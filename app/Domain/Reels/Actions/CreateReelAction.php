@@ -31,6 +31,8 @@ class CreateReelAction
             'caption' => $data->caption,
             'location' => $data->location,
             'status' => 'active',
+            'is_uvibe' => $data->isUvibe,
+            'campus' => $data->campus,
         ]);
 
         return $reel->load('user:id,name,avatar,linkup_id,city,country');

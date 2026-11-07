@@ -123,6 +123,25 @@ class Vibe extends Model
                 ->where('blocked_user_id', $viewerId)->where('is_blocked', true)->select('user_id'));
     }
 
+    /** Replace this post's hashtags with the ones in `$caption` (each tag once). */
+    public function syncHashtags(?string $caption): void
+    {
+        DB::table('vibe_hashtags')->where('vibe_id', $this->getKey())->delete();
+
+        if (! $caption || ! preg_match_all('/#(\w+)/u', $caption, $m)) {
+            return;
+        }
+
+        $now = now();
+        $rows = collect($m[1])->map(fn ($t) => mb_strtolower(mb_substr($t, 0, 64)))->unique()->take(30)
+            ->map(fn ($tag) => ['vibe_id' => $this->getKey(), 'tag' => $tag, 'created_at' => $now, 'updated_at' => $now])
+            ->values()->all();
+
+        if ($rows !== []) {
+            DB::table('vibe_hashtags')->insert($rows);
+        }
+    }
+
     /** Same rule as scopeVisibleTo, for one post that is already loaded. */
     public function isVisibleTo(?User $viewer): bool
     {

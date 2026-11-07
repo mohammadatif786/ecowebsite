@@ -25,7 +25,12 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
-            RedirectIfAdminIsAuthenticated::class
+            RedirectIfAdminIsAuthenticated::class,
+            \App\Http\Middleware\RecordWalletActivity::class,
+        ]);
+        // Mobile app wallet calls are recorded too.
+        $middleware->api(append: [
+            \App\Http\Middleware\RecordWalletActivity::class,
         ]);
         $middleware->alias([
             'isWizardComplete' => CheckWizardCompleted::class,

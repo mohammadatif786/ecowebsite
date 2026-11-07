@@ -54,7 +54,7 @@
             </span>
           </Link>
           <button class="w-10 h-10 rounded-full bg-slate-200 overflow-hidden ring-2 ring-lkblue/30">
-            <img id="topAvatar" :src="user.avatar" @error="$event.target.src = '/images/default-avatar.png'" alt="me" class="w-full h-full object-cover"/>
+            <img id="topAvatar" :src="user.avatar" @error="$event.target.src = ''" alt="me" class="w-full h-full object-cover"/>
           </button>
         </div>
       </header>
@@ -122,7 +122,7 @@ const getIconStyle = (id) => {
 const authUser = computed(() => page.props.auth?.user ?? null);
 const user = computed(() => ({
   name: authUser.value?.name ?? 'Guest',
-  avatar: authUser.value?.avatar || '/images/default-avatar.png',
+  avatar: authUser.value?.avatar || '',
   city: authUser.value?.new_city ?? authUser.value?.city ?? '',
   country: authUser.value?.new_country ?? authUser.value?.country ?? '',
   flag: page.props.userCountryFlag ?? '',

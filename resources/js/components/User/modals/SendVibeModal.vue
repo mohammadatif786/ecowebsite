@@ -92,18 +92,17 @@ const page = usePage();
 const userCoins = computed(() => page.props.auth?.user?.coins || 0);
 
 const VIBES_GIFTS = [
-  ['Wha Gwaan', '👋', 0, 'Just saying hi 👋'],
-  ['Likkle Smile', '😊', 10, 'A sweet island smile'],
-  ['Soca Vibe', '🎶', 35, 'Feel the riddim with me'],
-  ['Wine & Dance', '💃', 50, 'Pull up and wine 💃'],
-  ['Sunset Lime', '🌅', 75, 'Catch a sunset together'],
-  ['Coconut Cheers', '🥥', 90, 'Cheers from the islands'],
-  ['Island Rose', '🌹', 120, 'A rose, respectfully 🌹'],
-  ['Sweet Kiss', '😘', 150, 'Flirty but classy'],
-  ['Candlelit Date', '🕯️', 220, 'Dinner by candlelight'],
-  ['Beach Linkup', '🏝️', 250, 'Link up by the sea'],
-  ['Sweetheart', '💖', 300, "I really like you 💖"],
-  ['Island Royalty', '👑', 400, 'You’re my King/Queen 👑']
+  ['Likkle Smile', '😊', 10, 'A sweet island smile', 'smile'],
+  ['Soca Vibe', '🎶', 35, 'Feel the riddim with me', 'soca'],
+  ['Wine & Dance', '💃', 50, 'Pull up and wine 💃', 'wine'],
+  ['Sunset Lime', '🌅', 75, 'Catch a sunset together', 'sunset'],
+  ['Coconut Cheers', '🥥', 90, 'Cheers from the islands', 'coconut'],
+  ['Island Rose', '🌹', 120, 'A rose, respectfully 🌹', 'rose'],
+  ['Sweet Kiss', '😘', 150, 'Flirty but classy', 'kiss'],
+  ['Candlelit Date', '🕯️', 220, 'Dinner by candlelight', 'candle'],
+  ['Beach Linkup', '🏝️', 250, 'Link up by the sea', 'beach'],
+  ['Sweetheart', '💖', 300, "I really like you 💖", 'sweetheart'],
+  ['Island Royalty', '👑', 400, 'You’re my King/Queen 👑', 'royalty']
 ];
 
 const remainingCoins = computed(() => {
@@ -140,9 +139,7 @@ const sendGift = async () => {
   sending.value = true;
   try {
     const response = await axios.post(route('user.vibes.send-vibe'), {
-      gift_name: selectedGift.value[0],
-      emoji: selectedGift.value[1],
-      coins: cost,
+      gift_id: selectedGift.value[4],
       recipient_id: props.recipientUserId
     });
 

@@ -1088,7 +1088,10 @@ const CATS = computed(() => {
     : ['All', 'Home', 'Accessories', 'Outdoors', 'Collectibles', 'Carnival'];
   return [...new Set(base)];
 });
-const SHOP_CATS = ['Home', 'Accessories', 'Outdoors', 'Collectibles', 'Carnival', 'Fashion', 'Electronics', 'Food', 'Beauty', 'Other'];
+// Categories come from Admin → Commerce → Marketplace → Categories (active only).
+const SHOP_CATS = computed(() => (props.categories && props.categories.length)
+  ? props.categories.map(c => c.name || c)
+  : ['Home', 'Accessories', 'Outdoors', 'Collectibles', 'Carnival', 'Fashion', 'Electronics', 'Food', 'Beauty', 'Other']);
 
 // ---------- STATE ----------
 const activeCat = ref('All');

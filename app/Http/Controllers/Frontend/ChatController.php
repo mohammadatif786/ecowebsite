@@ -24,7 +24,7 @@ class ChatController extends Controller
             'id' => uniqid(),
             'user_id' => $user->id,
             'user_name' => $user->name,
-            'user_avatar' => $user->avatar ?? '/images/default-avatar.png',
+            'user_avatar' => $user->avatar ?? '',
             'message' => $request->message,
             'timestamp' => now()->toISOString(),
         ];

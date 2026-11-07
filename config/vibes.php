@@ -15,4 +15,13 @@ return [
     // release it to "available" (time for refunds/disputes). Marketplace order
     // commissions are released when the buyer confirms delivery instead.
     'affiliate_hold_days' => (int) env('VIBE_AFFILIATE_HOLD_DAYS', 7),
+    // Text-post backgrounds: a colour or a simple gradient of colours, nothing else (no url(), no CSS tricks).
+    'text_bg_pattern' => '/^(#[0-9a-fA-F]{3,8}|linear-gradient\(\d{1,3}deg(,\s*#[0-9a-fA-F]{3,8}(\s+\d{1,3}%)?){2,5}\))$/',
+    'text_font_pattern' => '/^[\pL\pN ._\-]{1,100}$/u',
+    // Converting received gift coins to wallet cash (Gifts tab). Never taken from the request.
+    'cashout' => [
+        'coin_rate' => 0.01,      // USD per coin
+        'payout_ratio' => 0.5,    // the member's share; the rest is the platform's
+        'minimum_usd' => (float) env('VIBES_CASHOUT_MINIMUM', 25),
+    ],
 ];

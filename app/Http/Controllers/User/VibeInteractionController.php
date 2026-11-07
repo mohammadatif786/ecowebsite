@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\User;
 
+use App\Support\VibeGiftCatalog;
 use App\Services\VibeActivityNotifier;
 use App\Domain\Vibes\Actions\PostVibeCommentAction;
 use App\Domain\Vibes\Actions\ToggleVibeLikeAction;
@@ -45,21 +46,16 @@ class VibeInteractionController extends Controller
         $this->ensureVisible($vibe);
         $comments = $vibe->comments()
             ->whereNull('parent_id')
-            ->with(['user:id,name,avatar', 'replies.user:id,name,avatar'])
+            ->with([
+                'user:id,name,avatar',
+                // Replies come with their likes count and the viewer's like in the same queries.
+                'replies' => fn ($q) => $q->with('user:id,name,avatar')->withCount('likes')
+                    ->withExists(['likes as is_liked' => fn ($l) => $l->where('user_id', auth()->id())]),
+            ])
             ->withCount(['likes', 'replies'])
+            ->withExists(['likes as is_liked' => fn ($l) => $l->where('user_id', auth()->id())])
             ->latest()
             ->paginate(20);
-
-        // Add is_liked status for auth user
-        if (auth()->check()) {
-            $comments->getCollection()->each(function ($comment) {
-                $comment->is_liked = $comment->likes()->where('user_id', auth()->id())->exists();
-                $comment->replies->each(function ($reply) {
-                    $reply->is_liked = $reply->likes()->where('user_id', auth()->id())->exists();
-                    $reply->likes_count = $reply->likes()->count();
-                });
-            });
-        }
 
         return response()->json($comments);
     }
@@ -71,15 +67,10 @@ class VibeInteractionController extends Controller
             ->whereNull('parent_id')
             ->with(['user:id,name,avatar'])
             ->withCount('likes')
+            ->withExists(['likes as is_liked' => fn ($l) => $l->where('user_id', auth()->id())])
             ->latest()
             ->take(3)
             ->get();
-
-        if (auth()->check()) {
-            $comments->each(function ($comment) {
-                $comment->is_liked = $comment->likes()->where('user_id', auth()->id())->exists();
-            });
-        }
 
         return response()->json($comments);
     }
@@ -125,12 +116,11 @@ class VibeInteractionController extends Controller
     {
         $sender = $request->user();
 
-        $data = $request->validate([
-            'gift_name' => 'nullable|string|max:60',
-            'emoji' => 'nullable|string|max:16',
-            'coins' => 'required|integer|min:1|max:100000',
+        $data = $request->validate(VibeGiftCatalog::rules() + [
             'recipient_id' => 'nullable|integer',
         ]);
+        // The gift's name, emoji and price come from the catalog, never from the app.
+        $gift = VibeGiftCatalog::resolve($data);
 
         if ($vibe) {
             $this->ensureVisible($vibe);
@@ -147,9 +137,9 @@ class VibeInteractionController extends Controller
             return response()->json(['message' => 'Creator not found'], 404);
         }
 
-        $coins = (int) $data['coins'];
-        $giftName = $data['gift_name'] ?? 'Big Up';
-        $emoji = $data['emoji'] ?? '⚡';
+        $coins = $gift['coins'];
+        $giftName = $gift['name'];
+        $emoji = $gift['emoji'];
 
         $balance = app(CoinGiftService::class)->send($sender, $receiver, $coins, function () use ($sender, $receiver, $vibe, $coins, $giftName, $emoji) {
             \App\Models\GiftCoins::create([
@@ -193,6 +183,9 @@ class VibeInteractionController extends Controller
 
     public function toggleCommentLike(VibeComment $comment): JsonResponse
     {
+        $vibe = Vibe::find($comment->vibe_id);
+        abort_unless($vibe, 404, 'Post not found.');
+        $this->ensureVisible($vibe);
         $user = auth()->user();
         $like = $comment->likes()->where('user_id', $user->id)->first();
 
@@ -213,64 +206,33 @@ class VibeInteractionController extends Controller
         ]);
     }
 
-    public function purchaseAttachment(Request $request, Vibe $vibe): JsonResponse
+    /**
+     * Delete a comment: the person who wrote it, or the post's creator, can. Replies go with it,
+     * and the post's comment count is set from what is left.
+     */
+    public function destroyComment(VibeComment $comment): JsonResponse
     {
         $user = auth()->user();
-        $request->validate([
-            'kind' => 'required|in:product,event',
-            'id' => 'required|integer',
-            'price' => 'required|numeric'
-        ]);
+        $vibe = Vibe::find($comment->vibe_id);
 
-        $price = (float) $request->price;
-        $walletBalance = (float) ($user->balance('USD')->value->get() ?? 0);
+        $allowed = (int) $comment->user_id === (int) $user->id
+            || ($vibe && (int) $vibe->created_by === (int) $user->id);
+        abort_unless($allowed, 403, 'You can only delete your own comments.');
 
-        if ($walletBalance < $price) {
-            return response()->json(['message' => 'Insufficient wallet balance'], 422);
-        }
+        $count = DB::transaction(function () use ($comment, $vibe) {
+            VibeComment::where('parent_id', $comment->id)->delete();
+            $comment->delete();
 
-        // 1. Deduct funds from buyer and transfer to system custodian
-        transfer($price, 'USD')
-            ->from($user)
-            ->to(Custodian::of('e_money'))
-            ->overcharge(false)
-            ->meta(['note' => "Purchased tagged {$request->kind} on Vibe #{$vibe->id}"])
-            ->commit();
-
-        // 2. Calculate and record Affiliate Commission
-        // Use the product's actual commission rate if available, otherwise default to 10%
-        $product = \App\Models\MarketplaceProduct::find($request->id);
-        $commissionRate = 0.10;
-
-        if ($product) {
-            if ($product->commMode === 'pct') {
-                $commissionRate = $product->commission / 100;
-            } elseif ($product->commMode === 'flat') {
-                // If flat, we calculate a virtual rate for this one sale
-                $commissionRate = ($product->commFlat > 0 && $price > 0) ? ($product->commFlat / $price) : 0.10;
+            if (! $vibe) {
+                return 0;
             }
-        }
+            $count = VibeComment::where('vibe_id', $vibe->id)->count();
+            Vibe::query()->whereKey($vibe->id)->update(['comments_count' => $count]);
 
-        $commission = $price * $commissionRate;
+            return $count;
+        });
 
-        // Ensure a promotion record exists for this creator/product link
-        $promotion = \App\Models\MarketplaceAffiliatePromotion::firstOrCreate([
-            'user_id' => $vibe->created_by,
-            'product_id' => $request->kind === 'product' ? $request->id : null,
-        ]);
-
-        \App\Models\MarketplaceAffiliateEarning::create([
-            'promotion_id' => $promotion->id,
-            'affiliate_user_id' => $vibe->created_by,
-            'product_id' => $request->kind === 'product' ? $request->id : null,
-            'commission_amount' => round($commission, 2),
-            'status' => 'pending', // New earnings start as pending
-        ]);
-
-        return response()->json([
-            'message' => 'Purchase successful',
-            'new_balance' => (float) $user->balance('USD')->value->get()
-        ]);
+        return response()->json(['success' => true, 'comments_count' => $count]);
     }
 
     /**

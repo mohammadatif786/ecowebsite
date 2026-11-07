@@ -150,20 +150,20 @@ class OrganizerProfileService
 
         if (array_key_exists('passport_front', $payload)) {
             $updates['passport_front'] = $payload['passport_front'] instanceof \Illuminate\Http\UploadedFile
-                ? $this->image_service->single('organizer/kyc', $payload['passport_front'])
-                : $payload['passport_front'];
+                ? app(\App\Domain\Kyc\KycDocumentStore::class)->store($payload['passport_front'], 'organizer/' . $organizer->id)
+                : $kyc->passport_front;
         }
 
         if (array_key_exists('passport_back', $payload)) {
             $updates['passport_back'] = $payload['passport_back'] instanceof \Illuminate\Http\UploadedFile
-                ? $this->image_service->single('organizer/kyc', $payload['passport_back'])
-                : $payload['passport_back'];
+                ? app(\App\Domain\Kyc\KycDocumentStore::class)->store($payload['passport_back'], 'organizer/' . $organizer->id)
+                : $kyc->passport_back;
         }
 
         if (array_key_exists('proof_of_address', $payload)) {
             $updates['proof_of_address'] = $payload['proof_of_address'] instanceof \Illuminate\Http\UploadedFile
-                ? $this->image_service->single('organizer/kyc', $payload['proof_of_address'])
-                : $payload['proof_of_address'];
+                ? app(\App\Domain\Kyc\KycDocumentStore::class)->store($payload['proof_of_address'], 'organizer/' . $organizer->id)
+                : $kyc->proof_of_address;
         }
 
         if (!empty($updates)) {

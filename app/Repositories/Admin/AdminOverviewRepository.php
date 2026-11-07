@@ -18,6 +18,13 @@ use Illuminate\Support\Facades\DB;
 
 class AdminOverviewRepository
 {
+    /**
+     * Wallet owner types as stored in balances/transactions. The app registers a morph map
+     * ('user' => User::class), so newer rows say 'user' while older rows say 'App\\Models\\User'.
+     * Every wallet query must accept both, or new members' wallets disappear from admin.
+     */
+    public const USER_TYPES = ['user', User::class];
+
     public function getCountryNames(): array
     {
         return User::whereNotNull('country')->distinct()->pluck('country')->toArray();
@@ -85,8 +92,19 @@ class AdminOverviewRepository
 
     public function getWalletStats(): \Illuminate\Support\Collection
     {
-        return Transaction::join('users', 'transactions.from_id', '=', 'users.id')
-            ->select('users.country', DB::raw('sum(amount) as gtv'))
+        $types = self::USER_TYPES;
+
+        return Transaction::query()
+            ->join('users', function ($join) use ($types) {
+                $join->where(function ($q) use ($types) {
+                    $q->whereIn('transactions.from_type', $types)->whereColumn('transactions.from_id', 'users.id')
+                        ->whereNotIn('transactions.processor_id', ['deposit', 'live deposit', 'conversion_credit']);
+                })->orWhere(function ($q) use ($types) {
+                    $q->whereIn('transactions.to_type', $types)->whereColumn('transactions.to_id', 'users.id')
+                        ->whereIn('transactions.processor_id', ['deposit', 'live deposit', 'conversion_credit']);
+                });
+            })
+            ->select('users.country', DB::raw('sum(transactions.amount) as gtv'))
             ->whereNotNull('users.country')
             ->groupBy('users.country')
             ->get();
@@ -206,7 +224,7 @@ class AdminOverviewRepository
             ->whereIn('id', function ($query) use ($balanceTable) {
                 $query->select('payable_id')
                     ->from($balanceTable)
-                    ->where('payable_type', User::class);
+                    ->whereIn('payable_type', self::USER_TYPES);
             })
             ->latest()
             ->limit($limit)
@@ -217,12 +235,17 @@ class AdminOverviewRepository
     {
         $balanceTable = (new \O21\LaravelWallet\Models\Balance())->getTable();
 
-        return (int) DB::table($balanceTable)->where('payable_type', User::class)->distinct()->count('payable_id');
+        // Only wallets that still belong to a member (deleted members' wallets are reported separately).
+        return (int) DB::table($balanceTable)
+            ->join('users', 'users.id', '=', "{$balanceTable}.payable_id")
+            ->whereIn("{$balanceTable}.payable_type", self::USER_TYPES)
+            ->distinct()
+            ->count("{$balanceTable}.payable_id");
     }
 
     public function getWalletBalancesByUserIds(array $userIds): \Illuminate\Support\Collection
     {
-        return \O21\LaravelWallet\Models\Balance::where('payable_type', User::class)
+        return \O21\LaravelWallet\Models\Balance::whereIn('payable_type', self::USER_TYPES)
             ->whereIn('payable_id', $userIds)
             ->get(['payable_id', 'value']);
     }
@@ -239,7 +262,7 @@ class AdminOverviewRepository
         return DB::table($balanceTable)
             ->join('users', function ($join) use ($balanceTable) {
                 $join->on("{$balanceTable}.payable_id", '=', 'users.id')
-                    ->where("{$balanceTable}.payable_type", '=', User::class);
+                    ->whereIn("{$balanceTable}.payable_type", self::USER_TYPES);
             })
             ->whereNotNull('users.country')
             ->select('users.country', DB::raw('sum(' . $balanceTable . '.value) as storedValue'), DB::raw('count(distinct users.id) as walletUsers'))
@@ -256,9 +279,10 @@ class AdminOverviewRepository
         $balanceTable = (new \O21\LaravelWallet\Models\Balance())->getTable();
 
         return DB::table($balanceTable)
-            ->where('payable_type', User::class)
-            ->select('currency', DB::raw('sum(value) as total'))
-            ->groupBy('currency')
+            ->join('users', 'users.id', '=', "{$balanceTable}.payable_id")
+            ->whereIn("{$balanceTable}.payable_type", self::USER_TYPES)
+            ->select("{$balanceTable}.currency", DB::raw("sum({$balanceTable}.value) as total"))
+            ->groupBy("{$balanceTable}.currency")
             ->orderByDesc('total')
             ->get();
     }

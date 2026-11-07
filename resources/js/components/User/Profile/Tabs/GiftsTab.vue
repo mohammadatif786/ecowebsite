@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { Gift, Wallet, Activity, TrendingUp } from 'lucide-vue-next';
+import { usePage } from '@inertiajs/vue3';
 
 interface GiftData {
     id: number;
@@ -160,11 +161,15 @@ const top_gift = computed(() => {
 });
 
 // Available coins for conversion
+// Received gift coins not yet cashed, capped by the coins still held: gift coins also land in the
+// spendable balance, so a coin that was spent can't be cashed too (the server enforces the same rule).
+const page = usePage();
 const availableCoins = computed(() => {
-    const received = props.gifts_received || [];
-    return received
+    const received = (props.gifts_received || [])
         .filter(g => g && !(g as any).status)
         .reduce((sum, g) => sum + (Number((g as any).coins) || 0), 0);
+    const held = Number((page.props as any).auth?.user?.coins ?? received) || 0;
+    return Math.max(0, Math.min(received, held));
 });
 
 // Available cash value
@@ -270,14 +275,15 @@ async function convertToCash() {
                 'Accept': 'application/json'
             },
             body: JSON.stringify({
-                coins: selectedCoins.value,
-                minimum_cashout: minCashout.value
+                coins: selectedCoins.value
             })
         });
 
         if (!response.ok) {
-            const errorText = await response.text();
-            if (response.status === 419) {
+            if (response.status === 422) {
+                const body = await response.json().catch(() => ({}));
+                conversionMessage.value = body.message || 'This amount can’t be converted.';
+            } else if (response.status === 419) {
                 conversionMessage.value = 'CSRF token mismatch. Please refresh the page and try again.';
             } else {
                 conversionMessage.value = `Server error (${response.status}). Please try again later.`;

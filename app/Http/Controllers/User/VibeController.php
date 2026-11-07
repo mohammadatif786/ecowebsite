@@ -107,21 +107,44 @@ class VibeController extends Controller
 
     public function update(\Illuminate\Http\Request $request, Vibe $vibe): JsonResponse
     {
-        abort_unless($vibe->created_by === auth()->id(), 403, 'Unauthorized');
+        // Only the person who posted it can change it.
+        abort_unless((int) $vibe->created_by === (int) auth()->id(), 403, 'Unauthorized');
 
         $request->validate([
-            'caption' => 'nullable|string|max:2200',
+            'caption' => 'nullable|string|max:'.config('vibes.caption_max', 2200),
             'location_name' => 'nullable|string|max:255',
-            'text_bg' => 'nullable|string|max:255',
-            'text_font' => 'nullable|string|max:100',
+            'text_bg' => ['nullable', 'string', 'max:255', 'regex:'.config('vibes.text_bg_pattern')],
+            'text_font' => ['nullable', 'string', 'max:100', 'regex:'.config('vibes.text_font_pattern')],
         ]);
 
-        $vibe->update([
-            'caption' => $request->input('caption', $vibe->caption),
-            'location_name' => $request->input('location_name', $vibe->location_name),
-            'text_bg' => $request->input('text_bg', $vibe->text_bg),
-            'text_font' => $request->input('text_font', $vibe->text_font),
-        ]);
+        $oldCaption = (string) $vibe->caption;
+        $caption = $request->has('caption') ? trim((string) $request->input('caption')) : $oldCaption;
+
+        if ($caption === '' && ! $vibe->media()->exists()) {
+            return response()->json(['message' => 'A post needs words or at least one photo or video.'], 422);
+        }
+
+        DB::transaction(function () use ($request, $vibe, $caption, $oldCaption) {
+            $vibe->update([
+                'caption' => $caption,
+                'location_name' => $request->input('location_name', $vibe->location_name),
+                'text_bg' => $request->input('text_bg', $vibe->text_bg),
+                'text_font' => $request->input('text_font', $vibe->text_font),
+                'edited_at' => $caption !== $oldCaption ? now() : $vibe->edited_at,
+            ]);
+
+            // Hashtags follow the words.
+            if ($caption !== $oldCaption) {
+                $vibe->syncHashtags($caption);
+            }
+        });
+
+        // Tell only the people newly @mentioned by the edit.
+        if ($caption !== $oldCaption) {
+            preg_match_all('/(?<![\w@])@([A-Za-z0-9_.]{2,40})/u', $oldCaption, $m);
+            $already = $m[1] ? User::whereIn('linkup_id', array_map(fn ($h) => rtrim($h, '.'), $m[1]))->pluck('id')->all() : [];
+            app(VibeActivityNotifier::class)->mentioned($request->user(), $vibe, $caption, array_merge([$request->user()->id], array_map('intval', $already)));
+        }
 
         return response()->json([
             'success' => true,
@@ -132,7 +155,8 @@ class VibeController extends Controller
 
     public function destroy(Vibe $vibe): JsonResponse
     {
-        abort_unless($vibe->created_by === auth()->id(), 403, 'Unauthorized');
+        // Only the person who posted it can delete it.
+        abort_unless((int) $vibe->created_by === (int) auth()->id(), 403, 'Unauthorized');
 
         $vibe->delete();
 

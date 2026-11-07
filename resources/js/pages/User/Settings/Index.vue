@@ -153,7 +153,7 @@ const authUser = page.props.auth?.user;
 const user = reactive({
     name: authUser?.name || 'Cassius',
     username: authUser?.username || 'cassius',
-    avatar: authUser?.avatar || '/images/default-avatar.png',
+    avatar: authUser?.avatar || '',
     plan: authUser?.plan || 'Brisa plan',
 });
 

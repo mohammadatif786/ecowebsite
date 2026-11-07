@@ -44,7 +44,8 @@ class CheckUserWalletKyc
                 return response()->json(['error' => 'KYC verification required.'], 403);
             }
             
-            return redirect()->route('frontend.user.wallet')
+            // Back to the wallet hub, which opens the identity-check form (?kyc=1).
+            return redirect()->route('user.wallet', ['kyc' => 1])
                 ->with('error', 'Please complete your KYC verification to access this feature.');
         }
 
